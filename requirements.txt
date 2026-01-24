@@ -1,0 +1,16 @@
+PyQt6
+sounddevice
+numpy
+soundfile
+azure-cognitiveservices-speech
+requests
+python-dotenv
+pdfplumber
+SpeechRecognition
+python-Levenshtein
+openai
+openai-whisper
+edge-tts
+nest_asyncio
+# Note: torch is required for Whisper but usually installed specifically for CUDA.
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
