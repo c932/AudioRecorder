@@ -54,6 +54,12 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 python main.py
 ```
 
+### 快捷启动 (Quick Start)
+为方便使用，项目提供了快捷启动脚本：
+- **`run.bat`**: 自动激活环境并启动程序 (有控制台窗口)。
+- **`start_silent.vbs`**: **[推荐]** 静默启动，不显示黑色控制台窗口，适合日常使用。
+
+
 ### 设置建议 (Settings)
 点击主页右上角的 **Settings** 按钮进行配置：
 - **Audio Device**: 选择正确的麦克风设备。
