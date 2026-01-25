@@ -3,7 +3,101 @@ from PyQt6.QtCore import QUrl, QObject, QThread, pyqtSignal
 import os
 import asyncio
 import tempfile
+import tempfile
 import edge_tts
+import numpy as np # Critical: Needed for silence padding
+
+import subprocess
+
+class KokoroWorker(QThread):
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+    
+    def __init__(self, kokoro_instance, text, voice="af_bella"):
+        super().__init__()
+        self.kokoro = kokoro_instance
+        self.text = text
+        self.voice = voice # af_bella is a good American Female voice in Kokoro
+        
+    def run(self):
+        try:
+            import hashlib
+            import soundfile as sf
+            
+            # Use hash for cache
+            # Use hash for cache
+            text_hash = hashlib.md5(self.text.encode()).hexdigest()
+            # Changed suffix to _padded.wav to invalidate old cache (missing padding)
+            filename = f"kokoro_{text_hash}_padded.wav"
+            output_file = os.path.join(tempfile.gettempdir(), filename)
+            
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
+                self.finished.emit(output_file)
+                return
+
+            # Generate
+            # create_audio returns (samples, sample_rate)
+            # Disable trim AND add explicit padding (0.4s) to fix "missing start" issue
+            samples, sample_rate = self.kokoro.create(self.text, voice=self.voice, speed=1.0, lang="en-us", trim=False)
+            
+            # Add 0.4s silence at the start (Sample rate is usually 24000)
+            padding_size = int(sample_rate * 0.4)
+            silence = np.zeros(padding_size, dtype=np.float32)
+            samples = np.concatenate((silence, samples))
+            
+            # Save to WAV
+            sf.write(output_file, samples, sample_rate)
+            
+            if os.path.exists(output_file):
+                self.finished.emit(output_file)
+            else:
+                self.error.emit("Kokoro generation failed to write file.")
+                
+        except Exception as e:
+            self.error.emit(str(e))
+
+class PiperWorker(QThread):
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+    
+    def __init__(self, text, piper_path, model_path):
+        super().__init__()
+        self.text = text
+        self.piper_path = piper_path
+        self.model_path = model_path
+        
+    def run(self):
+        try:
+            import hashlib
+            # Use hash for cache
+            text_hash = hashlib.md5(self.text.encode()).hexdigest()
+            filename = f"piper_{text_hash}.wav"
+            output_file = os.path.join(tempfile.gettempdir(), filename)
+            
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
+                self.finished.emit(output_file)
+                return
+
+            # Run Piper via subprocess
+            # echo "text" | piper.exe -m model.onnx -f output.wav
+            cmd = [
+                self.piper_path,
+                "--model", self.model_path,
+                "--output_file", output_file
+            ]
+            
+            # Windows: input via stdin requires proper encoding
+            p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Encode text to utf-8
+            out, err = p.communicate(input=self.text.encode('utf-8'))
+            
+            if p.returncode == 0 and os.path.exists(output_file):
+                self.finished.emit(output_file)
+            else:
+                self.error.emit(f"Piper failed: {err.decode('utf-8', errors='ignore')}")
+                
+        except Exception as e:
+            self.error.emit(str(e))
 
 class EdgeTTSWorker(QThread):
     finished = pyqtSignal(str) # Emits path to generated file
@@ -41,6 +135,8 @@ class EdgeTTSWorker(QThread):
             self.error.emit(str(e))
 
 class TTSEngine(QObject):
+    MAX_FAILURES = 2
+    
     def __init__(self):
         super().__init__()
         self.player = QMediaPlayer()
@@ -52,29 +148,166 @@ class TTSEngine(QObject):
         self.worker = None
         self.last_text = ""
         
-        # Error handling for player (e.g. file format issues)
+        # Check for Piper
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.piper_exe = os.path.join(base_dir, "resources", "piper", "piper", "piper.exe")
+        self.piper_model = os.path.join(base_dir, "resources", "piper", "voices", "en_US-amy-medium.onnx")
+        self.use_piper = os.path.exists(self.piper_exe) and os.path.exists(self.piper_model)
+        
+        if self.use_piper:
+            print(f"[TTSEngine] 🚀 Piper TTS found! Using high-quality offline model.")
+            
+        # Check for Kokoro
+        self.kokoro_onnx_path = os.path.join(base_dir, "resources", "kokoro", "kokoro-v0_19.onnx")
+        self.kokoro_voices_path = os.path.join(base_dir, "resources", "kokoro", "voices.json")
+        self.kokoro_instance = None
+        self.use_kokoro = False
+        
+        if os.path.exists(self.kokoro_onnx_path) and os.path.exists(self.kokoro_voices_path):
+            try:
+                from kokoro_onnx import Kokoro
+                import numpy as np
+                import onnxruntime as rt
+                from kokoro_onnx.config import KoKoroConfig
+                from kokoro_onnx.tokenizer import Tokenizer
+                
+                # Subclass to safely load pickled OR json voices.json
+                class SafeKokoro(Kokoro):
+                    def __init__(self, model_path, voices_path, espeak_config=None, vocab_config=None):
+                        # Re-implement __init__ to support JSON voices
+                        
+                        # Basic Setup
+                        self.config = KoKoroConfig(model_path, voices_path, espeak_config)
+                        self.config.validate()
+                        
+                        providers = ["CPUExecutionProvider"]
+                        try:
+                            import importlib.util
+                            if importlib.util.find_spec("onnxruntime-gpu"):
+                                providers = rt.get_available_providers()
+                        except: pass
+                            
+                        self.sess = rt.InferenceSession(model_path, providers=providers)
+                        
+                        # THE CLUTCH FIX: Support both Pickle and JSON
+                        import json
+                        try:
+                            # Try loading as JSON first (since we downloaded .json)
+                            with open(voices_path, 'r', encoding='utf-8') as f:
+                                voices_data = json.load(f)
+                                print("[TTSEngine] Loaded voices.json as JSON text.")
+                                # Convert lists to numpy arrays if needed (kokoro expects arrays)
+                                # Actually, kokoro-onnx expects self.voices to be a dict-like where keys are names
+                                # and values are numpy arrays of style (?)
+                                # Let's convert to dict of numpy arrays
+                                self.voices = {k: np.array(v, dtype=np.float32) for k, v in voices_data.items()}
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            # Fallback to pickle
+                            print("[TTSEngine] voices.json is not text, trying pickle...")
+                            self.voices = np.load(voices_path, allow_pickle=True)
+                        
+                        vocab = self._load_vocab(vocab_config)
+                        self.tokenizer = Tokenizer(espeak_config, vocab=vocab)
+
+                print(f"[TTSEngine] 🚀 Kokoro TTS found! Loading model (this may take 1s)...")
+                self.kokoro_instance = SafeKokoro(self.kokoro_onnx_path, self.kokoro_voices_path)
+                self.use_kokoro = True
+                print(f"[TTSEngine] Kokoro loaded successfully with Safe Pickle Patch.")
+            except ImportError as e:
+                 print(f"[TTSEngine] Kokoro files found but libs missing: {e}")
+            except Exception as e:
+                 print(f"[TTSEngine] Failed to load Kokoro: {e}")
+        
+        # Signals
         self.player.errorOccurred.connect(self._on_player_error)
+        
+        self.failure_count = 0
+        self.engine_mode = "Auto" # Default
+
+    def set_mode(self, mode_str):
+        # mode_str comes from UI combo box, e.g. "Kokoro (Local Neural...)"
+        if "Kokoro" in mode_str: self.engine_mode = "Kokoro"
+        elif "Piper" in mode_str: self.engine_mode = "Piper"
+        elif "Edge" in mode_str: self.engine_mode = "Edge"
+        elif "System" in mode_str: self.engine_mode = "System"
+        else: self.engine_mode = "Auto"
+        print(f"[TTSEngine] Mode set to: {self.engine_mode}")
 
     def speak(self, text):
         if not text:
             return
             
         self.last_text = text
-        print(f"[TTSEngine] Requesting Edge TTS for: {text}")
+        
+        # Decide which engine to use
+        use_kokoro = (self.engine_mode == "Kokoro") or (self.engine_mode == "Auto" and self.use_kokoro)
+        use_piper = (self.engine_mode == "Piper") or (self.engine_mode == "Auto" and self.use_piper and not self.use_kokoro)
+        use_edge = (self.engine_mode == "Edge") or (self.engine_mode == "Auto" and not self.use_piper and not self.use_kokoro)
+        # System is fallback for all, or forced
+        
+        if self.engine_mode == "System":
+             self._fallback_offline(text)
+             return
+        
+        # 1. Kokoro
+        if use_kokoro:
+            if self.kokoro_instance:
+                print(f"[TTSEngine] Requesting Kokoro TTS for: {text}")
+                self.worker = KokoroWorker(self.kokoro_instance, text)
+                self.worker.finished.connect(self._play_file)
+                self.worker.error.connect(self._on_kokoro_error)
+                self.worker.start()
+                return
+            elif self.engine_mode == "Kokoro":
+                print("[TTSEngine] Kokoro selected but not loaded. Fallback.")
 
-        # Start background generation
-        self.worker = EdgeTTSWorker(text)
-        self.worker.finished.connect(self._play_file)
-        self.worker.error.connect(self._on_edge_error)
-        self.worker.start()
+        # 2. Piper
+        if use_piper:
+            if self.use_piper:  # Binary exists logic
+                print(f"[TTSEngine] Requesting Piper TTS for: {text}")
+                self.worker = PiperWorker(text, self.piper_exe, self.piper_model)
+                self.worker.finished.connect(self._play_file)
+                self.worker.error.connect(self._on_piper_error)
+                self.worker.start()
+                return
+            elif self.engine_mode == "Piper":
+                print("[TTSEngine] Piper selected but not found. Fallback.")
+
+        # 3. Edge TTS
+        if use_edge:
+             if self.failure_count >= self.MAX_FAILURES and self.engine_mode == "Auto":
+                 print(f"[TTSEngine] Circuit breaker open. Skipping Edge TTS.")
+                 self._fallback_offline(text)
+                 return
+                 
+             print(f"[TTSEngine] Requesting Edge TTS for: {text}")
+             self.worker = EdgeTTSWorker(text)
+             self.worker.finished.connect(self._play_file)
+             self.worker.error.connect(self._on_edge_error)
+             self.worker.start()
+             return
+
+        # Fallback if nothing matched or failed
+        self._fallback_offline(text)
+        
+    def _on_kokoro_error(self, error):
+        print(f"[TTSEngine] Kokoro Failed: {error}. Falling back.")
+        self._fallback_offline(self.last_text)
+
+    def _on_piper_error(self, error):
+        print(f"[TTSEngine] Piper Failed: {error}. Falling back to offline.")
+        self._fallback_offline(self.last_text)
 
     def _play_file(self, file_path):
         print(f"[TTSEngine] Playing generated file: {file_path}")
+        # Success! Reset failure count
+        self.failure_count = 0 
         self.player.setSource(QUrl.fromLocalFile(file_path))
         self.player.play()
 
     def _on_edge_error(self, error_msg):
         print(f"[TTSEngine] Edge TTS failed: {error_msg}")
+        self.failure_count += 1
         self._fallback_offline(self.last_text)
         
     def _on_player_error(self):

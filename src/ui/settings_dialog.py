@@ -58,6 +58,17 @@ class SettingsDialog(QDialog):
         self.combo_feedback_lang.addItem("English (Punchy ⚡)", "en")
         self.combo_feedback_lang.addItem("Chinese (Cute 🎀)", "zh")
         form_audio.addRow("Encouragement Voice (鼓励语音):", self.combo_feedback_lang)
+        
+        self.combo_tts = QComboBox()
+        self.combo_tts.addItems([
+            "Auto (Best available)",
+            "Kokoro (Local Neural - Best Quality)", 
+            "Piper (Local Fast - Low Latency)", 
+            "Edge TTS (Cloud - Good Quality)", 
+            "System (Offline - Robot)"
+        ])
+        form_audio.addRow("TTS Engine (语音引擎):", self.combo_tts)
+        
         grp_audio.setLayout(form_audio)
         layout_gen.addWidget(grp_audio)
         
@@ -252,6 +263,10 @@ class SettingsDialog(QDialog):
                     idx = self.combo_feedback_lang.findData(lang)
                     if idx >= 0: self.combo_feedback_lang.setCurrentIndex(idx)
                     
+                    tts = config.get("tts_engine", "Auto (Best available)")
+                    idx_tts = self.combo_tts.findText(tts)
+                    if idx_tts >= 0: self.combo_tts.setCurrentIndex(idx_tts)
+                    
                     self.chk_random.setChecked(config.get("strategy_random", True))
                     self.chk_smart.setChecked(config.get("strategy_smart", True))
                     self.chk_no_repeat.setChecked(config.get("strategy_no_repeat", False))
@@ -288,6 +303,7 @@ class SettingsDialog(QDialog):
             "practice_count": self.spin_count.value(),
             "auto_mode_default": self.chk_auto_default.isChecked(),
             "feedback_language": self.combo_feedback_lang.currentData(),
+            "tts_engine": self.combo_tts.currentText(),
             
             "strategy_random": self.chk_random.isChecked(),
             "strategy_smart": self.chk_smart.isChecked(),

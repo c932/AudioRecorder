@@ -148,3 +148,10 @@ src/resources/sounds/temp.mp3
 # Let's verify if words.json is user data or seed data. It started as seed data.
 # But config.json is definitely local config.
 config.json
+
+# Large Model Files (Kokoro, Piper, Whisper)
+*.onnx
+*.pth
+*.pt
+src/resources/kokoro/
+src/resources/piper/

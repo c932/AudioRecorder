@@ -112,6 +112,8 @@ class MainWindow(QMainWindow):
                 with open("config.json", 'r') as f:
                     config = json.load(f)
                     self.chk_auto.setChecked(config.get("auto_mode_default", True))
+                    # Set TTS Mode
+                    self.tts.set_mode(config.get("tts_engine", "Auto"))
              except: pass
         
         # Main Start Button (Merged)
