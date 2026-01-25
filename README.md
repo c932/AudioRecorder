@@ -60,6 +60,7 @@ python main.py
 - **STT Engine**: 强烈建议选择 `Local Whisper (GPU)` 以获得最佳识别效果。
 - **Practice Count**: 设置每组练习的单词数量 (默认: 20)。
 - **Feedback Language**: 建议选择 `Chinese (中文)`，反馈更加亲切有趣。
+- **Advanced (高级设置)**: 可调节 **Scoring Sensitivity** (评分灵敏度)，包括自信度门槛 (Threshold) 和严选模式 (90+ Lock)，满足不同水平的学习需求。
 
 ## 📂 项目结构
 
