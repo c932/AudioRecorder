@@ -10,6 +10,7 @@ SpeechRecognition
 python-Levenshtein
 openai
 openai-whisper
+
 edge-tts
 nest_asyncio
 # Note: torch is required for Whisper but usually installed specifically for CUDA.

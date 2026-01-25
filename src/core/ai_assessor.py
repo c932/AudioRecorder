@@ -1,5 +1,6 @@
 import os
 import json
+import string
 try:
     import azure.cognitiveservices.speech as speechsdk
 except ImportError:
@@ -15,9 +16,13 @@ class PronunciationCoach:
         self.speech_region = os.getenv("SPEECH_REGION")
         
         # Try Loading from config.json
-        if os.path.exists("config.json"):
+        # Load from correct user data path
+        from src.utils import get_user_data_path
+        config_path = get_user_data_path("config.json")
+        
+        if os.path.exists(config_path):
             try:
-                with open("config.json", 'r') as f:
+                with open(config_path, 'r') as f:
                     self.config = json.load(f)
                     if self.config.get("azure_key"):
                         self.speech_key = self.config.get("azure_key")
@@ -167,8 +172,9 @@ class PronunciationCoach:
                 
                 print(f"Whisper: {recognized_text} (Conf: {confidence:.2f})")
                 
-            except ImportError:
-                 return {"accuracy_score": 0, "feedback": "请先安装 openai-whisper 库。"}
+            except ImportError as e:
+                 print(f"Whisper Import Error: {e}")
+                 return {"accuracy_score": 0, "feedback": f"Whisper 缺失依赖: {e}"}
             except Exception as e:
                  print(f"Whisper Error: {e}")
                  # Fallback?
@@ -204,30 +210,56 @@ class PronunciationCoach:
 
         # --- SCORE SECTION ---
         # Base Similarity
-        similarity = Levenshtein.ratio(reference_text.lower(), recognized_text.lower())
+        def normalize(text):
+            return text.translate(str.maketrans('', '', string.punctuation)).lower().strip()
+
+        similarity = Levenshtein.ratio(normalize(reference_text), normalize(recognized_text))
         score = int(similarity * 100)
         
-        # Confidence Penalty
-        # Whisper logic: logprob > -0.4 might be good, < -1.0 is bad.
-        # But exp(-0.4) ~ 0.67. 
-        # OpenAI docs say logprob > -1.0 is mostly reliable.
-        # Let's relax penalty for Whisper slightly or normalize.
-        # Safe threshold for Google is 0.85
+        # Scoring Optimization (Configurable)
+        threshold = self.config.get("scoring_threshold", 0.80) 
+        penalty_factor = self.config.get("scoring_penalty", 100 if "Whisper" in stt_provider else 60)
+        enable_cap = self.config.get("scoring_strict_cap", True)
         
-        threshold = 0.85 if "Whisper" not in stt_provider else 0.75
-        if score > 80 and confidence < threshold:
-             # Stricter Penalty Strategy for Whisper
-             # Whisper small model confidence is often between 0.4-0.8 for short words
-             
-             penalty_factor = 60 if "Whisper" in stt_provider else 50
-             penalty = (threshold - confidence) * penalty_factor
-             penalty = min(30, max(0, penalty)) # Cap penalty at 30
-             score = max(0, int(score - penalty))
-             print(f"Confidence Penalty applied: -{penalty:.1f}")
+        penalty_log = 0.0
+        
+        if score > 80:
+             if confidence < threshold:
+                 penalty = (threshold - confidence) * penalty_factor
+                 penalty = min(40, max(0, penalty)) # Cap penalty
+                 score = max(0, int(score - penalty))
+                 penalty_log = penalty
+                 print(f"Confidence Penalty applied: -{penalty:.1f}")
+                 
+             # CRITICAL CAP
+             if enable_cap and score > 90 and confidence < threshold: 
+                 print(f"Quality Cap applied: Score {score} -> 88 (Conf {confidence:.2f} too low)")
+                 score = 88
+                 
+             # Hard Cap only for Very Low Confidence
+             if confidence < 0.4 and score > 85:
+                 score = 85 
+                 
+        # --- FEEDBACK GENERATION ---
+        # 1. Default Rule-Based Feedback (Fallback)
+        if score >= 90:
+            feedback = "发音很标准！非常棒！"
+        elif score >= 80:
+            feedback = "发音不错，但还有提升空间。注意元音的饱满度。"
+        elif score >= 60:
+            feedback = "读音基本准确，但声音太小或不够自信。请大声朗读！"
+        else:
+            feedback = "听不太清，或者发音偏差较大。请仔细听示范音，再试一次。"
 
-        # --- LLM FEEDBACK ---
-        feedback = "发音很标准！"
-        if score < 100:
+        # 2. Specific feedback for the Quality Cap case
+        if score == 88 and confidence < threshold and similarity > 0.95:
+            feedback = "读音准确，但不够自信。想拿 90+ 需要更大声、更清晰！"
+
+        # 3. LLM Enhancement (Only if configured)
+        provider = self.config.get("ai_provider", "")
+        has_llm = provider and ("Ollama" in provider or "OpenAI" in provider)
+        
+        if score < 100 and has_llm:
             provider = self.config.get("ai_provider", "")
             base_url = self.config.get("ollama_base") if "Ollama" in provider else self.config.get("openai_base")
             api_key = "ollama" if "Ollama" in provider else self.config.get("openai_key")
@@ -253,18 +285,30 @@ class PronunciationCoach:
                 response = client.chat.completions.create(
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
-                    max_tokens=80
+                    max_tokens=150
                 )
-                feedback = response.choices[0].message.content.strip()
+                llm_feedback = response.choices[0].message.content.strip()
+                if llm_feedback:
+                    feedback = llm_feedback
             except Exception as e:
-                print(f"LLM Error: {e}")
-                feedback = f"识别结果: {recognized_text} (AI建议失败)"
+                print(f"LLM Error (Using Fallback): {e}")
+                # Do NOT overwrite 'feedback' with an error message. 
+                # Keep the rule-based feedback.
         
         return {
             "accuracy_score": score,
             "fluency_score": score, 
             "completeness_score": score,
-            "feedback": feedback
+            "feedback": feedback,
+            "details": {
+                "confidence": confidence,
+                "similarity": similarity,
+                "penalty": penalty_log,
+                "recognized": recognized_text,
+                "threshold": threshold,
+                "raw_score": int(similarity * 100),
+                "capped": (score == 88 and enable_cap)
+            }
         }
 
     def _dummy_assess(self, reference_text):

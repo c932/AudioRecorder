@@ -4,6 +4,7 @@ from PyQt6.QtCore import pyqtSignal, QSize, Qt, QThread
 from PyQt6.QtGui import QIcon, QFont, QPixmap
 import os
 from .styles import AppStyles
+from src.utils import get_resource_path
 
 class RecordingWidget(QWidget):
     recording_finished = pyqtSignal(str) # Emits path to audio file
@@ -79,7 +80,7 @@ class RecordingWidget(QWidget):
             self.device_combo.setCurrentIndex(0)
             
     def toggle_recording(self):
-        listening_path = os.path.join("src", "resources", "images", "listening.png")
+        listening_path = get_resource_path(os.path.join("src", "resources", "images", "listening.png"))
         
         if not self.is_recording:
             # Start
@@ -128,3 +129,15 @@ class RecordingWidget(QWidget):
         
     def update_volume_meter(self, value):
         self.volume_bar.setValue(int(value))
+
+    def reset_state(self):
+        """Force reset UI state (e.g. when external stop occurs or navigating away)."""
+        if self.is_recording:
+             self.recorder.stop_recording()
+             self.is_recording = False
+             
+        self.record_btn.setStyleSheet(AppStyles.RECORD_BUTTON_IDLE)
+        self.status_label.setText("Click Mic to Record 🎙️")
+        self.device_combo.setEnabled(True)
+        self.volume_bar.setValue(0)
+        self.icon_label.clear()

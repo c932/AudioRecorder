@@ -44,7 +44,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 1.  下载并安装 [Ollama](https://ollama.com/)。
 2.  拉取一个中文能力较强的模型 (例如 Qwen2.5 或 Qwen3)：
     ```bash
-    ollama run qwen2.5:7b
+    ollama run qwen3:4b
     ```
 
 ## 🚀 使用说明 (Usage)

@@ -14,6 +14,7 @@ import os
 import json
 import threading
 import time
+from src.utils import get_resource_path, get_user_data_path
 
 # Helper signal for thread-safe VAD stop
 class ValidSignal(QObject):
@@ -32,7 +33,7 @@ class MainWindow(QMainWindow):
         # Warmup AI in background (Whisper Model)
         threading.Thread(target=self.ai_coach.warmup, daemon=True).start()
         
-        self.exercise_manager = ExerciseManager(os.path.join("src", "data", "words.json"))
+        self.exercise_manager = ExerciseManager(get_user_data_path("words.json"))
         self.tts = TTSEngine()
         
         # Signals
@@ -86,7 +87,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(top_layout)
         
         # Mascot Image
-        mascot_path = os.path.join("src", "resources", "images", "mascot.png")
+        mascot_path = get_resource_path(os.path.join("src", "resources", "images", "mascot.png"))
         if os.path.exists(mascot_path):
             lbl_mascot = QLabel()
             pixmap = QPixmap(mascot_path).scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
@@ -155,10 +156,11 @@ class MainWindow(QMainWindow):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Navigation back
+        # Navigation back
         top_bar = QHBoxLayout()
-        btn_back = QPushButton("⬅ Back")
+        btn_back = QPushButton("⏹ End Practice (Exit)")
         btn_back.clicked.connect(self.stop_and_home)
-        btn_back.setStyleSheet("font-size: 16px; padding: 5px;")
+        btn_back.setStyleSheet("font-size: 16px; padding: 5px; background-color: #f4fab4; color: #555;")
         top_bar.addWidget(btn_back)
         top_bar.addStretch()
         layout.addLayout(top_bar)
@@ -201,7 +203,13 @@ class MainWindow(QMainWindow):
         return page
         
     def stop_and_home(self):
+        # Force stop recorder via widget to sync UI state
+        if hasattr(self, 'recorder_widget'):
+            self.recorder_widget.reset_state()
+            
+        # Ensure underlying recorder is definitely stopped (double safety)
         self.audio_recorder.stop_recording()
+        
         self.stack.setCurrentWidget(self.page_home)
 
     def create_result_page(self):
@@ -249,6 +257,13 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(btn_layout)
         
+        # Debug Details Button (Small)
+        btn_details = QPushButton("🔍 Scoring Details")
+        btn_details.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_details.setStyleSheet("background: transparent; color: #888; border: none; text-decoration: underline;")
+        btn_details.clicked.connect(self.show_debug_details)
+        layout.addWidget(btn_details)
+        
         btn_continue = QPushButton("Next Word ➡")
         btn_continue.setStyleSheet("background-color: #0288D1; color: white; font-size: 20px; padding: 15px; border-radius: 10px; margin-top: 20px;")
         btn_continue.clicked.connect(self.next_exercise)
@@ -281,10 +296,11 @@ class MainWindow(QMainWindow):
 
     def start_practice(self):
         # 1. Load Config
+        config_path = get_user_data_path("config.json")
         config = {}
-        if os.path.exists("config.json"):
+        if os.path.exists(config_path):
              try:
-                with open("config.json", 'r') as f:
+                with open(config_path, 'r') as f:
                     config = json.load(f)
              except: pass
         
@@ -434,6 +450,12 @@ class MainWindow(QMainWindow):
         score = int(result.get("accuracy_score", 0))
         feedback_text = result.get("feedback", "")
         
+        print(f"[MainWindow DEBUG] Text: {reference_text}")
+        print(f"[MainWindow DEBUG] Score: {score}")
+        print(f"[MainWindow DEBUG] Result Raw: {result}")
+        
+        
+        self.last_details = result.get("details", {})
         
         # Save Result to Session
         self.session_results.append({
@@ -526,3 +548,19 @@ class MainWindow(QMainWindow):
              self.recorder_widget.is_recording = True
              self.recorder_widget.record_btn.setStyleSheet(AppStyles.RECORD_BUTTON_ACTIVE)
              self.recorder_widget.status_label.setText("🎙️ Listening... (Auto Stop)")
+
+    def show_debug_details(self):
+        if hasattr(self, 'last_details') and self.last_details:
+            d = self.last_details
+            info_text = (
+                f" Recognized: {d.get('recognized', '')}\n"
+                f" Confidence: {d.get('confidence', 0):.2f}\n"
+                f" Similarity: {d.get('similarity', 0):.2f}\n"
+                f" Threshold: {d.get('threshold', 0)}\n"
+                f" Penalty Applied: -{d.get('penalty', 0):.1f}\n"
+                f" Raw Score: {d.get('raw_score', 0)}\n"
+                f" Capped: {d.get('capped', False)}"
+            )
+            QMessageBox.information(self, "Scoring Logic (Debug)", info_text)
+        else:
+            QMessageBox.information(self, "Debug", "No details available for this recording.")

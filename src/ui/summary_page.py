@@ -3,6 +3,9 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel,
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from .styles import AppStyles
+import os
+import winsound
+from src.utils import get_resource_path, get_user_data_path
 
 class SummaryPage(QWidget):
     def __init__(self, main_window):
@@ -54,11 +57,12 @@ class SummaryPage(QWidget):
             
             # Load config to check preferred language
             import json
-            import os
             lang_suffix = "_en" # Default
-            if os.path.exists("config.json"):
+            # Ideally config loading should be centralized, but here we check user data
+            config_path = get_user_data_path("config.json")
+            if os.path.exists(config_path):
                 try:
-                    with open("config.json", 'r') as f:
+                    with open(config_path, 'r') as f:
                         cfg = json.load(f)
                         if cfg.get("feedback_language") == "zh":
                             lang_suffix = "_zh"
@@ -83,7 +87,7 @@ class SummaryPage(QWidget):
                 
             # Display Trophy or Mascot
             img_file = "trophy.png" if avg_score >= 80 else "mascot.png"
-            img_path = os.path.join("src", "resources", "images", img_file)
+            img_path = get_resource_path(os.path.join("src", "resources", "images", img_file))
             
             if os.path.exists(img_path):
                 lbl_img = QLabel()
@@ -127,17 +131,10 @@ class SummaryPage(QWidget):
 
     def play_feedback_sound(self, filename, text_msg):
         """Plays a wav file from src/resources/sounds/ or falls back to TTS."""
-        import os
-        import winsound
-        
         # Check defaults first
-        sound_dir = os.path.join("src", "resources", "sounds")
-        if not os.path.exists(sound_dir):
-            try:
-                os.makedirs(sound_dir)
-            except: pass
-            
-        full_path = os.path.join(sound_dir, filename) if filename else ""
+        full_path = ""
+        if filename:
+            full_path = get_resource_path(os.path.join("src", "resources", "sounds", filename))
         
         if full_path and os.path.exists(full_path):
             try:

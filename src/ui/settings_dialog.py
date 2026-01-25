@@ -1,104 +1,97 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QLabel, QComboBox, QLineEdit, QGroupBox, QFormLayout, QMessageBox, QStackedWidget, QWidget, QSpinBox,
-                             QListWidget, QListWidgetItem, QCheckBox)
+                             QListWidget, QListWidgetItem, QCheckBox, QTabWidget, QDoubleSpinBox)
 from PyQt6.QtCore import Qt
 from src.core.audio_recorder import AudioRecorder
 import os
 import json
 
+from src.utils import get_user_data_path
+
 class SettingsDialog(QDialog):
     def __init__(self, parent=None, audio_recorder=None, exercise_manager=None):
         super().__init__(parent)
         self.setWindowTitle("Settings 设置")
-        self.resize(500, 400)
+        self.resize(600, 500) # Slightly larger for tabs
         self.recorder = audio_recorder or AudioRecorder()
-        # Use passed manager or create temporary (though creation here is risky for sync, better to always pass)
+        # Use passed manager or create temporary
         if exercise_manager:
             self.manager = exercise_manager
         else:
             from src.core.exercise_manager import ExerciseManager
-            self.manager = ExerciseManager("src/data/words.json")
+            self.manager = ExerciseManager(get_user_data_path("words.json"))
             
-        self.config_file = "config.json"
+        self.config_file = get_user_data_path("config.json")
         
         self.setup_ui()
         self.load_settings()
         
     def setup_ui(self):
-        layout = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs)
+        
+        # --- TAB 1: General (Audio & Practice) ---
+        tab_general = QWidget()
+        layout_gen = QVBoxLayout(tab_general)
         
         # Audio Section
-        grp_audio = QGroupBox("Audio Settings 音频设置")
+        grp_audio = QGroupBox("Audio & Interface 音频与界面")
         form_audio = QFormLayout()
         
         self.combo_devices = QComboBox()
         self.refresh_devices()
-        
         form_audio.addRow("Microphone (麦克风):", self.combo_devices)
         
-        # Count Setting
         self.spin_count = QSpinBox()
         self.spin_count.setRange(5, 1000)
         self.spin_count.setValue(20)
         self.spin_count.setSuffix(" words")
-        self.spin_count.setSuffix(" words")
         form_audio.addRow("Practice Count (每次练习):", self.spin_count)
         
-        self.chk_auto_default = QCheckBox("Enable Auto Mode by Default")
+        self.chk_auto_default = QCheckBox("Enable Auto Mode by Default (默认开启连读模式)")
         self.chk_auto_default.setToolTip("Automatically check 'Auto Mode' when starting.")
-        form_audio.addRow("Auto Mode (默认连读):", self.chk_auto_default)
+        form_audio.addRow("", self.chk_auto_default)
         
         self.combo_feedback_lang = QComboBox()
         self.combo_feedback_lang.addItem("English (Punchy ⚡)", "en")
         self.combo_feedback_lang.addItem("Chinese (Cute 🎀)", "zh")
         form_audio.addRow("Encouragement Voice (鼓励语音):", self.combo_feedback_lang)
-        
         grp_audio.setLayout(form_audio)
-        layout.addWidget(grp_audio)
+        layout_gen.addWidget(grp_audio)
         
-        grp_audio.setLayout(form_audio)
-        grp_audio.setLayout(form_audio)
-        layout.addWidget(grp_audio)
-        
-        # Review Strategy Settings
+        # Strategy Section
         grp_strategy = QGroupBox("Review Strategy 复习策略")
         layout_strategy = QVBoxLayout()
-        
         self.chk_random = QCheckBox("Random Order (随机打乱)")
-        self.chk_random.setToolTip("Shuffle the order of words every time.")
-        
-        self.chk_smart = QCheckBox("Prioritize Unpracticed/Wrong (智能优先)")
-        self.chk_smart.setToolTip("Prioritize words that haven't been practiced or had low scores.")
-        
-        self.chk_no_repeat = QCheckBox("Exclude Recently Mastered (不重复已掌握)")
-        self.chk_no_repeat.setToolTip("Don't show words scored >= 90 in the last session.")
-        
+        self.chk_smart = QCheckBox("Prioritize Unpracticed/Wrong (智能优先 - 错题/生词)")
+        self.chk_no_repeat = QCheckBox("Exclude Recently Mastered (不重复已掌握 - 90分以上)")
         layout_strategy.addWidget(self.chk_random)
         layout_strategy.addWidget(self.chk_smart)
         layout_strategy.addWidget(self.chk_no_repeat)
-        
         grp_strategy.setLayout(layout_strategy)
-        layout.addWidget(grp_strategy)
+        layout_gen.addWidget(grp_strategy)
         
-        # Data Management Section
-        grp_data = QGroupBox("Data Management 数据管理")
-        layout_data = QVBoxLayout()
+        layout_gen.addStretch()
+        self.tabs.addTab(tab_general, "General 通用")
+        
+        # --- TAB 2: Data Management ---
+        tab_data = QWidget()
+        layout_data = QVBoxLayout(tab_data)
         
         lbl_groups = QLabel("Select Groups to Practice (选择练习题库):")
         layout_data.addWidget(lbl_groups)
         
-        # Group List with Checkboxes
         self.list_groups = QListWidget()
-        self.list_groups.setToolTip("Checked groups will be included in practice.\nRight-click or use button to delete.")
         layout_data.addWidget(self.list_groups)
         
         hbox_data_btns = QHBoxLayout()
-        
         btn_edit_db = QPushButton("Edit Database (编辑题库)")
         btn_edit_db.clicked.connect(self.open_database_editor)
         hbox_data_btns.addWidget(btn_edit_db)
         
-        btn_delete_group = QPushButton("Delete Selected (删除选中组)")
+        btn_delete_group = QPushButton("Delete Selected (删除选中)")
         btn_delete_group.clicked.connect(self.delete_selected_group)
         hbox_data_btns.addWidget(btn_delete_group)
         
@@ -109,25 +102,18 @@ class SettingsDialog(QDialog):
         
         btn_reset_stats = QPushButton("Reset Progress (重置进度)")
         btn_reset_stats.setStyleSheet("background-color: #FFF9C4; color: #F57F17;")
-        btn_reset_stats.setToolTip("Keep words but clear scores and practice history.\n保留单词，仅清空分数和练习记录。")
         btn_reset_stats.clicked.connect(self.reset_progress)
         hbox_data_btns.addWidget(btn_reset_stats)
         
         layout_data.addLayout(hbox_data_btns)
+        self.tabs.addTab(tab_data, "Data 数据")
         
-        grp_data.setLayout(layout_data)
-        layout.addWidget(grp_data)
-        
-        # Init Groups
-        self.refresh_group_list()
-        
-        # AI Section
-        grp_ai = QGroupBox("AI Engine Settings (AI 引擎)")
-        layout_ai = QVBoxLayout()
+        # --- TAB 3: AI Engine ---
+        tab_ai = QWidget()
+        layout_ai = QVBoxLayout(tab_ai)
         
         # Provider Selector
         form_provider = QFormLayout()
-        
         self.combo_stt = QComboBox()
         self.combo_stt.addItems(["Google Web Speech (Cloud/Free)", "Local Whisper (GPU)"])
         form_provider.addRow("STT (听写) Engine:", self.combo_stt)
@@ -136,7 +122,6 @@ class SettingsDialog(QDialog):
         self.combo_provider.addItems(["Azure Speech (Recommended)", "OpenAI / GPT", "Ollama (Local)"])
         self.combo_provider.currentIndexChanged.connect(self.update_ai_fields)
         form_provider.addRow("LLM (建议) Provider:", self.combo_provider)
-        
         layout_ai.addLayout(form_provider)
         
         # Stacked Widget for different inputs
@@ -171,35 +156,73 @@ class SettingsDialog(QDialog):
         form_ollama = QFormLayout()
         self.txt_ollama_base = QLineEdit("http://localhost:11434/v1")
         self.txt_ollama_model = QLineEdit("qwen2.5") 
-        self.txt_ollama_model.setPlaceholderText("e.g. qwen2.5, llama3.1")
         form_ollama.addRow("Base URL:", self.txt_ollama_base)
         form_ollama.addRow("Model:", self.txt_ollama_model)
-        lbl_ollama_hint = QLabel("提示：8GB显卡推荐 'qwen2.5' 或 'llama3.1' (7B/8B模型)。\n请确保已运行 'ollama pull qwen2.5'。")
-        lbl_ollama_hint.setStyleSheet("color: gray; font-size: 10px;")
+        lbl_ollama_hint = QLabel("提示：本地大模型需先安装 Ollama 并 pull 模型。")
+        lbl_ollama_hint.setStyleSheet("color: gray;")
         form_ollama.addRow("", lbl_ollama_hint)
         page_ollama.setLayout(form_ollama)
         self.stack_ai.addWidget(page_ollama)
         
         layout_ai.addWidget(self.stack_ai)
-        grp_ai.setLayout(layout_ai)
-        layout.addWidget(grp_ai)
         
-        # Description
-        self.lbl_info = QLabel("提示：Azure 提供最精准的音素级打分。OpenAI/Ollama 模式下，将使用 Google STT 进行识别，\n并由大模型提供纠音建议（评分基于文本相似度，不如 Azure 精准）。")
-        self.lbl_info.setWordWrap(True)
-        self.lbl_info.setStyleSheet("color: #666; font-style: italic; margin: 10px;")
-        layout.addWidget(self.lbl_info)
+        self.lbl_info = QLabel("提示：Azure 提供最精准的音素级打分。OpenAI/Ollama 使用 Hybrid 模式。")
+        self.lbl_info.setStyleSheet("color: #666; font-style: italic; margin-top: 10px;")
+        layout_ai.addWidget(self.lbl_info)
+        layout_ai.addStretch()
         
-        # Buttons
+        self.tabs.addTab(tab_ai, "AI Engine")
+        
+        # --- TAB 4: Developer / Scoring ---
+        tab_dev = QWidget()
+        layout_dev = QVBoxLayout(tab_dev)
+        
+        grp_scoring = QGroupBox("Scoring Sensitivity (High Precision Whisper) 评分灵敏度")
+        form_scoring = QFormLayout()
+        
+        self.dspin_threshold = QDoubleSpinBox()
+        self.dspin_threshold.setRange(0.1, 1.0)
+        self.dspin_threshold.setSingleStep(0.05)
+        self.dspin_threshold.setValue(0.80)
+        self.dspin_threshold.setToolTip("Lower = Easier (Less strict about confidence). Default 0.8.")
+        form_scoring.addRow("Confidence Threshold (自信度门槛):", self.dspin_threshold)
+        
+        self.spin_penalty = QSpinBox()
+        self.spin_penalty.setRange(0, 500)
+        self.spin_penalty.setValue(100)
+        self.spin_penalty.setToolTip("Higher = More punishment for blurry sound. Default 100.")
+        form_scoring.addRow("Penalty Factor (模糊扣分力度):", self.spin_penalty)
+        
+        self.chk_strict_cap = QCheckBox("Enable Excellence Cap (90+ requires High Confidence)")
+        self.chk_strict_cap.setChecked(True)
+        self.chk_strict_cap.setToolTip("If enabled, prevents scores > 90 unless confidence is very high.")
+        form_scoring.addRow("90+ Lock (严选模式):", self.chk_strict_cap)
+        
+        grp_scoring.setLayout(form_scoring)
+        layout_dev.addWidget(grp_scoring)
+        
+        lbl_dev_hint = QLabel("Adjust these if you feel the AI is too strict or too loose.\nThreshold 0.8 / Penalty 100 is the 'Strict' standard.")
+        lbl_dev_hint.setStyleSheet("color: gray;")
+        layout_dev.addWidget(lbl_dev_hint)
+        
+        layout_dev.addStretch()
+        self.tabs.addTab(tab_dev, "Advanced 高级")
+
+
+        # --- Bottom Buttons ---
         btn_box = QHBoxLayout()
         btn_box.addStretch()
         
-        btn_save = QPushButton("Save 保存")
+        btn_save = QPushButton("Save Settings 保存设置")
         btn_save.clicked.connect(self.save_settings)
+        btn_save.setStyleSheet("background-color: #4CAF50; color: white; padding: 6px 15px; font-weight: bold;")
         btn_box.addWidget(btn_save)
         
-        layout.addLayout(btn_box)
+        main_layout.addLayout(btn_box)
         
+        # Initialize
+        self.refresh_group_list()
+
     def refresh_devices(self):
         self.combo_devices.clear()
         devices = self.recorder.get_input_devices()
@@ -215,14 +238,13 @@ class SettingsDialog(QDialog):
                 with open(self.config_file, 'r') as f:
                     config = json.load(f)
                     
-                    # Device
+                    # General
                     dev_idx = config.get("device_index", 0)
                     for i in range(self.combo_devices.count()):
                         if self.combo_devices.itemData(i) == dev_idx:
                             self.combo_devices.setCurrentIndex(i)
                             break
                             
-                    # Count
                     self.spin_count.setValue(config.get("practice_count", 20))
                     self.chk_auto_default.setChecked(config.get("auto_mode_default", True))
                     
@@ -230,34 +252,31 @@ class SettingsDialog(QDialog):
                     idx = self.combo_feedback_lang.findData(lang)
                     if idx >= 0: self.combo_feedback_lang.setCurrentIndex(idx)
                     
-                    # Strategy
                     self.chk_random.setChecked(config.get("strategy_random", True))
                     self.chk_smart.setChecked(config.get("strategy_smart", True))
                     self.chk_no_repeat.setChecked(config.get("strategy_no_repeat", False))
                     
-                    # AI Provider
+                    # AI
                     provider = config.get("ai_provider", "Azure Speech (Recommended)")
                     idx = self.combo_provider.findText(provider)
-                    if idx >= 0:
-                        self.combo_provider.setCurrentIndex(idx)
+                    if idx >= 0: self.combo_provider.setCurrentIndex(idx)
                         
                     stt = config.get("stt_provider", "Google Web Speech (Cloud/Free)")
                     idx_stt = self.combo_stt.findText(stt)
-                    if idx_stt >= 0:
-                        self.combo_stt.setCurrentIndex(idx_stt)
+                    if idx_stt >= 0: self.combo_stt.setCurrentIndex(idx_stt)
                         
-                    # Azure
                     self.txt_azure_key.setText(config.get("azure_key", ""))
                     self.txt_azure_region.setText(config.get("azure_region", ""))
-                    
-                    # OpenAI
                     self.txt_openai_key.setText(config.get("openai_key", ""))
                     self.txt_openai_base.setText(config.get("openai_base", "https://api.openai.com/v1"))
                     self.txt_openai_model.setText(config.get("openai_model", "gpt-4o"))
-                    
-                    # Ollama
                     self.txt_ollama_base.setText(config.get("ollama_base", "http://localhost:11434/v1"))
                     self.txt_ollama_model.setText(config.get("ollama_model", "qwen2"))
+                    
+                    # Scoring (New)
+                    self.dspin_threshold.setValue(config.get("scoring_threshold", 0.80))
+                    self.spin_penalty.setValue(config.get("scoring_penalty", 100))
+                    self.chk_strict_cap.setChecked(config.get("scoring_strict_cap", True))
                     
             except Exception as e:
                 print(e)
@@ -265,7 +284,6 @@ class SettingsDialog(QDialog):
                 
     def save_settings(self):
         config = {
-            "device_index": self.combo_devices.currentData(),
             "device_index": self.combo_devices.currentData(),
             "practice_count": self.spin_count.value(),
             "auto_mode_default": self.chk_auto_default.isChecked(),
@@ -278,21 +296,21 @@ class SettingsDialog(QDialog):
             "ai_provider": self.combo_provider.currentText(),
             "stt_provider": self.combo_stt.currentText(),
             
-            # Azure
-            "azure_key": self.txt_azure_key.text().strip(),
             "azure_key": self.txt_azure_key.text().strip(),
             "azure_region": self.txt_azure_region.text().strip(),
             
-            # OpenAI
             "openai_key": self.txt_openai_key.text().strip(),
             "openai_base": self.txt_openai_base.text().strip(),
             "openai_model": self.txt_openai_model.text().strip(),
             
-            # Ollama
             "ollama_base": self.txt_ollama_base.text().strip(),
             "ollama_model": self.txt_ollama_model.text().strip(),
             
-            # Active Groups
+            # Scoring
+            "scoring_threshold": self.dspin_threshold.value(),
+            "scoring_penalty": self.spin_penalty.value(),
+            "scoring_strict_cap": self.chk_strict_cap.isChecked(),
+            
             "active_groups": [self.list_groups.item(i).text() for i in range(self.list_groups.count()) 
                               if self.list_groups.item(i).checkState() == Qt.CheckState.Checked]
         }
@@ -305,90 +323,51 @@ class SettingsDialog(QDialog):
             QMessageBox.critical(self, "Error", str(e))
 
     def clear_database(self):
-        confirm = QMessageBox.question(
-            self, 
-            "Confirm Clear (确认清空)", 
-            "Are you sure you want to delete ALL words and sentences?\nData cannot be recovered.\n\n确定要清空所有单词和句子吗？不可恢复。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
+        confirm = QMessageBox.question(self, "Confirm", "Delete ALL words? Cannot recover.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if confirm == QMessageBox.StandardButton.Yes:
-            # Use SHARED Manager
             self.manager.clear_all_exercises()
-            
-            QMessageBox.information(self, "Cleared", "Database has been cleared.\nPlease restart the application or refresh the view.\n\n数据库已清空。")
             self.refresh_group_list()
 
     def reset_progress(self):
-        confirm = QMessageBox.question(
-            self, 
-            "Confirm Reset (确认重置)", 
-            "Are you sure you want to RESET progress for all words?\n"
-            "This will clear scores and practice counts, but keep the words.\n\n"
-            "确定要重置所有进度吗？只清空分数，保留单词。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
+        confirm = QMessageBox.question(self, "Confirm", "Reset progress stats? Words will keep.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if confirm == QMessageBox.StandardButton.Yes:
             self.manager.reset_stats()
-            QMessageBox.information(self, "Reset", "Progress has been reset.\nReady for a fresh start! 🚀\n\n进度已重置。")
+            QMessageBox.information(self, "Reset", "Progress reset.")
 
     def refresh_group_list(self):
-        # Use SHARED manager
         groups = self.manager.get_groups()
-        
-        # Load active groups from current config (passed in init or loaded)
-        # We need to read it freshly to ensure sync
         current_config = {}
         if os.path.exists(self.config_file):
-            with open(self.config_file, 'r') as f:
-                current_config = json.load(f)
+            try:
+                with open(self.config_file, 'r') as f:
+                    current_config = json.load(f)
+            except: pass
         
         active_groups = current_config.get("active_groups", [])
-        # If active_groups is empty (first run), maybe default to ALL?
-        # Let's say if None or Empty, we check ALL by default for UX.
-        auto_check_all = len(active_groups) == 0
+        auto_check = len(active_groups) == 0
         
         self.list_groups.clear()
-        
-        # Special Item: "Default" might exist
         for g_name in groups:
             item = QListWidgetItem(g_name)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            
-            # Check state
-            if g_name in active_groups or auto_check_all:
+            if g_name in active_groups or auto_check:
                 item.setCheckState(Qt.CheckState.Checked)
             else:
                 item.setCheckState(Qt.CheckState.Unchecked)
-                
             self.list_groups.addItem(item)
             
     def delete_selected_group(self):
-        current_item = self.list_groups.currentItem()
-        if not current_item:
-            QMessageBox.warning(self, "Select Group", "Please click on a group name to select it first.")
-            return
-            
-        group_name = current_item.text()
-        confirm = QMessageBox.question(self, "Confirm Delete", f"Delete group '{group_name}' and all its vocabulary?", 
-                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        
-        if confirm == QMessageBox.StandardButton.Yes:
-             self.manager.delete_group(group_name)
-             self.refresh_group_list()
-             self.refresh_group_list()
+        item = self.list_groups.currentItem()
+        if item and QMessageBox.question(self, "Delete", f"Delete group '{item.text()}'?") == QMessageBox.StandardButton.Yes:
+            self.manager.delete_group(item.text())
+            self.refresh_group_list()
 
     def open_database_editor(self):
         from src.ui.database_editor import DatabaseEditor
-        # Pass the SHARED manager
         editor = DatabaseEditor(self, manager=self.manager)
         editor.exec()
-        # Refresh groups after editing (in case groups changed/deleted)
         self.refresh_group_list()
-            
+
     def get_settings(self):
         if os.path.exists(self.config_file):
             with open(self.config_file, 'r') as f:

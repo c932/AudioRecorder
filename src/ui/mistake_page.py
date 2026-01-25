@@ -41,6 +41,8 @@ class MistakePage(QWidget):
         
         self.chk_shuffle = QCheckBox("Shuffle (打乱顺序)")
         self.chk_shuffle.setChecked(True)
+        # Fix: Ensure text and indicator are visible against background
+        self.chk_shuffle.setStyleSheet("QCheckBox { font-size: 16px; color: #333; }")
         btn_box.addWidget(self.chk_shuffle)
         
         btn_review_all = QPushButton("Review ALL Mistakes (复习所有错题)")
