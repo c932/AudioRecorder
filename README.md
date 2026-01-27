@@ -13,7 +13,7 @@
   - **智能预加载**: 启动时自动预热模型，消除首词识别卡顿。
   - **优化 VAD**: 搭载高灵敏度语音活动检测，支持“自动化连续练习”模式，无需手动点击。
 - **🎮 游戏化体验 (Gamified)**:
-  - **双语反馈**: 提供 Google TTS (英语) 和 Microsoft Edge Neural TTS (中文 - 晓晓) 的生动语音反馈。
+  - **双语反馈**: 支持多种 TTS 引擎：**Kokoro TTS** (本地 GPU 加速，推荐)、Edge TTS (在线) 和 pyttsx3 (系统离线)。
   - **视觉激励**: 1-3 星评分系统，高分将获得金色奖杯 🏆，低分也有吉祥物暖心鼓励。
   - **吉祥物伴学**: 可爱的 AI 机器人全程陪伴学习。
 - **📚 智能练习 (Smart Practice)**:
@@ -24,9 +24,9 @@
 ## 🛠️ 安装指南 (Installation)
 
 ### 环境要求
-1.  **Python 3.10+**
+1.  **Python 3.12** (推荐，已验证支持 PyTorch CUDA)
 2.  **FFmpeg**: 音频处理必须组件。[下载 FFmpeg](https://ffmpeg.org/download.html) 并将其 `bin` 目录添加到系统环境变量 PATH 中。
-3.  **NVIDIA 显卡**: 推荐使用 RTX 3060 或以上显卡以获得最佳 Whisper 加速体验。
+3.  **NVIDIA 显卡**: 推荐使用 RTX 2050 或以上显卡，支持 CUDA 12.x 以获得最佳 Whisper 和 Kokoro TTS 加速体验。
 
 ### 第一步：安装 Python 依赖
 ```bash
@@ -34,9 +34,9 @@ pip install -r requirements.txt
 ```
 
 ### 第二步：安装 PyTorch (CUDA 版)
-为了启用 GPU 加速 (Whisper 运行的关键)，请运行以下命令：
+为了启用 GPU 加速 (Whisper 和 Kokoro TTS 运行的关键)，请运行以下命令：
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
 ### 第三步：配置 Ollama (可选，推荐)
@@ -85,5 +85,6 @@ AudioRecorder/
 
 ## 🤝 致谢
 - **OpenAI Whisper**: 提供了强大的语音识别能力。
+- **Kokoro TTS**: 提供了高质量的本地语音合成，支持 GPU 加速。
 - **Microsoft Edge TTS**: 提供了自然逼真的中文语音合成。
 - **PyQt6**: 构建了流畅的桌面客户端界面。

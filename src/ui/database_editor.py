@@ -57,11 +57,17 @@ class DatabaseEditor(QDialog):
         btn_delete.setStyleSheet("color: red;")
         btn_delete.clicked.connect(self.delete_selected)
         
+        btn_clean = QPushButton("Smart Clean (智能清理)")
+        btn_clean.setStyleSheet("color: #1976D2;")
+        btn_clean.setToolTip("Apply cleaning rules to selected or visible items")
+        btn_clean.clicked.connect(self.batch_clean_data)
+
         self.btn_save = QPushButton("Save Changes (保存修改)")
         self.btn_save.setEnabled(False) # Enable on edit
         self.btn_save.clicked.connect(self.save_changes)
         
         btn_box.addWidget(btn_delete)
+        btn_box.addWidget(btn_clean)
         btn_box.addStretch()
         btn_box.addWidget(self.btn_save)
         
@@ -210,7 +216,6 @@ class DatabaseEditor(QDialog):
             return
             
         count_changed = 0
-        cout_changed = 0
         for row in target_rows:
             if row < len(self.filtered_items):
                 data_item = self.filtered_items[row]

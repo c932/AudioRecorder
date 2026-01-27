@@ -63,7 +63,7 @@ def verify():
                         voices_data = json.load(f)
                         print("✅ Loaded voices.json as JSON text.")
                         self.voices = {k: np.array(v, dtype=np.float32) for k, v in voices_data.items()}
-                except:
+                except (json.JSONDecodeError, UnicodeDecodeError):
                     print("⚠️ JSON load failed, trying pickle...")
                     self.voices = np.load(voices_path, allow_pickle=True)
                 

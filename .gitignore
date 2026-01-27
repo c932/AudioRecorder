@@ -153,5 +153,21 @@ config.json
 *.onnx
 *.pth
 *.pt
+*.bin
 src/resources/kokoro/
 src/resources/piper/
+
+# Large binary files
+bin/
+*.exe
+
+# Backup files
+*_backup.json
+
+# Test audio files
+*.wav
+!src/resources/sounds/*.wav
+
+# Build outputs
+build_log.txt
+

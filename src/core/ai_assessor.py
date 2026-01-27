@@ -1,6 +1,33 @@
 import os
 import json
 import string
+import math
+import sys
+
+# Ensure ffmpeg is in PATH for Whisper
+def _setup_ffmpeg_path():
+    """Add bundled ffmpeg to PATH if it exists."""
+    # Try to find ffmpeg in bin folder (relative to project root)
+    possible_paths = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "bin"),  # dev: project_root/bin
+    ]
+
+    # For PyInstaller frozen app
+    if getattr(sys, 'frozen', False):
+        possible_paths.insert(0, os.path.join(os.path.dirname(sys.executable), "bin"))
+
+    for bin_path in possible_paths:
+        ffmpeg_exe = os.path.join(bin_path, "ffmpeg.exe")
+        if os.path.exists(ffmpeg_exe):
+            # Add to PATH if not already there
+            if bin_path not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH", "")
+                print(f"[AIAssessor] Added ffmpeg to PATH: {bin_path}")
+            return True
+    return False
+
+_setup_ffmpeg_path()
+
 try:
     import azure.cognitiveservices.speech as speechsdk
 except ImportError:
@@ -28,7 +55,8 @@ class PronunciationCoach:
                         self.speech_key = self.config.get("azure_key")
                     if self.config.get("azure_region"):
                         self.speech_region = self.config.get("azure_region")
-            except:
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"[AIAssessor] Error loading config: {e}")
                 pass
         
         self.use_dummy = (not self.speech_key or not self.speech_region or speechsdk is None)
@@ -51,8 +79,8 @@ class PronunciationCoach:
 
     def _assess_azure(self, audio_file, reference_text):
         if not speechsdk:
-            return {"accuracy_score": 0, "feedback": "Azure SDK 未安装。"}
-            
+            return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": "Azure SDK 未安装。"}
+
         try:
             speech_config = speechsdk.SpeechConfig(subscription=self.speech_key, region=self.speech_region)
             audio_config = speechsdk.audio.AudioConfig(filename=audio_file)
@@ -92,13 +120,13 @@ class PronunciationCoach:
                     "feedback": feedback
                 }
             elif result.reason == speechsdk.ResultReason.NoMatch:
-                return {"accuracy_score": 0, "feedback": "没有检测到语音，请大声一点。"}
+                return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": "没有检测到语音，请大声一点。"}
             else:
-                return {"accuracy_score": 0, "feedback": "无法识别，请再试一次。"}
-                
+                return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": "无法识别，请再试一次。"}
+
         except Exception as e:
             print(f"Azure Error: {e}")
-            return {"accuracy_score": 0, "feedback": f"AI 服务错误: {str(e)}"}
+            return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": f"AI 服务错误: {str(e)}"}
 
     def warmup(self):
         """Pre-loads the model if Whisper is selected as provider."""
@@ -123,10 +151,28 @@ class PronunciationCoach:
             import whisper
             import torch
             
-            print("Loading Whisper Model (small)...")
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            print(f"Whisper Device: {device}")
+            print("[Whisper] Loading Whisper Model (small)...")
+            print(f"[Whisper] PyTorch version: {torch.__version__}")
+            print(f"[Whisper] CUDA available: {torch.cuda.is_available()}")
+            print(f"[Whisper] CUDA built: {torch.backends.cuda.is_built() if hasattr(torch.backends, 'cuda') else 'N/A'}")
+
+            # Check CUDA availability with detailed info
+            if torch.cuda.is_available():
+                device = "cuda"
+                gpu_name = torch.cuda.get_device_name(0)
+                gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                print(f"[Whisper] ✅ GPU Detected: {gpu_name} ({gpu_mem:.1f} GB)")
+                print(f"[Whisper] Using CUDA for acceleration")
+            else:
+                device = "cpu"
+                print("[Whisper] ⚠️ No CUDA GPU detected, using CPU (slower)")
+                print("[Whisper] Your RTX 2050 requires PyTorch with CUDA support.")
+                print("[Whisper] To enable GPU acceleration, run:")
+                print("[Whisper]   pip uninstall torch torchvision torchaudio")
+                print("[Whisper]   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+
             self.whisper_model = whisper.load_model("small", device=device)
+            print(f"[Whisper] Model loaded on: {device.upper()}")
 
     def _assess_hybrid(self, audio_file, reference_text):
         """
@@ -163,23 +209,21 @@ class PronunciationCoach:
                 if result.get("segments"):
                    avg_logprob = result["segments"][0].get("avg_logprob", -1.0)
                 
-                import math
                 confidence = math.exp(avg_logprob)
                 
                 # Remove trailing punctuation for cleaner comparison
-                import string
                 recognized_text = recognized_text.translate(str.maketrans('', '', string.punctuation))
                 
                 print(f"Whisper: {recognized_text} (Conf: {confidence:.2f})")
                 
             except ImportError as e:
                  print(f"Whisper Import Error: {e}")
-                 return {"accuracy_score": 0, "feedback": f"Whisper 缺失依赖: {e}"}
+                 return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": f"Whisper 缺失依赖: {e}"}
             except Exception as e:
                  print(f"Whisper Error: {e}")
                  # Fallback?
-                 return {"accuracy_score": 0, "feedback": f"Whisper 识别出错: {e}"}
-        
+                 return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": f"Whisper 识别出错: {e}"}
+
         else:
             # Google Web Speech (Free & Simple)
             import speech_recognition as sr
@@ -190,12 +234,12 @@ class PronunciationCoach:
                     payload = r.recognize_google(audio_data, show_all=True)
                     
                     if not payload:
-                         return {"accuracy_score": 0, "feedback": "没有检测到清晰的语音。"}
-                         
+                         return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": "没有检测到清晰的语音。"}
+
                     alts = payload.get('alternative', [])
                     if not alts:
-                         return {"accuracy_score": 0, "feedback": "无法识别。"}
-                         
+                         return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": "无法识别。"}
+
                     for item in alts:
                         candidates.append(item.get('transcript', ''))
                     
@@ -206,7 +250,7 @@ class PronunciationCoach:
                     confidence = top_confidence
             except Exception as e:
                 print(f"Google STT Error: {e}")
-                return {"accuracy_score": 0, "feedback": "语音识别服务连接失败。"}
+                return {"accuracy_score": 0, "fluency_score": 0, "completeness_score": 0, "feedback": "语音识别服务连接失败。"}
 
         # --- SCORE SECTION ---
         # Base Similarity

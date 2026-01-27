@@ -21,7 +21,6 @@ class ImportDialog(QDialog):
         btn_browse = QPushButton("Browse PDF...")
         btn_browse.clicked.connect(self.browse_file)
         hbox.addWidget(self.lbl_file)
-        hbox.addWidget(self.lbl_file)
         hbox.addWidget(btn_browse)
         layout.addLayout(hbox)
         

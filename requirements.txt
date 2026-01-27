@@ -1,19 +1,36 @@
+# UI Framework
 PyQt6
+
+# Audio Processing
 sounddevice
 numpy
 soundfile
-azure-cognitiveservices-speech
-requests
-python-dotenv
-pdfplumber
+
+# Speech Recognition
 SpeechRecognition
-python-Levenshtein
-openai
 openai-whisper
 
+# TTS Engines
 edge-tts
-nest_asyncio
+pyttsx3
 kokoro-onnx
 huggingface_hub
-# Note: torch is required for Whisper but usually installed specifically for CUDA.
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# AI/LLM Integration
+openai
+requests
+
+# Text Processing
+python-Levenshtein
+pdfplumber
+
+# Utilities
+python-dotenv
+nest_asyncio
+
+# Azure (Optional)
+azure-cognitiveservices-speech
+
+# Note: PyTorch with CUDA support is required for Whisper and Kokoro TTS GPU acceleration.
+# Install it separately with the following command (for CUDA 12.4):
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124

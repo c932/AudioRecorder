@@ -3,7 +3,6 @@ from PyQt6.QtCore import QUrl, QObject, QThread, pyqtSignal
 import os
 import asyncio
 import tempfile
-import tempfile
 import edge_tts
 import numpy as np # Critical: Needed for silence padding
 
@@ -180,15 +179,37 @@ class TTSEngine(QObject):
                         self.config = KoKoroConfig(model_path, voices_path, espeak_config)
                         self.config.validate()
                         
-                        providers = ["CPUExecutionProvider"]
-                        try:
-                            import importlib.util
-                            if importlib.util.find_spec("onnxruntime-gpu"):
-                                providers = rt.get_available_providers()
-                        except: pass
-                            
-                        self.sess = rt.InferenceSession(model_path, providers=providers)
-                        
+                        # GPU Detection for ONNX Runtime
+                        available_providers = rt.get_available_providers()
+                        print(f"[Kokoro] Available ONNX providers: {available_providers}")
+
+                        # Try CUDA first, with fallback if CUDA libs are missing
+                        self.sess = None
+
+                        if "CUDAExecutionProvider" in available_providers:
+                            try:
+                                providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+                                self.sess = rt.InferenceSession(model_path, providers=providers)
+                                print("[Kokoro] ✅ Using CUDA GPU acceleration (RTX 2050)")
+                            except Exception as cuda_err:
+                                print(f"[Kokoro] ⚠️ CUDA init failed (missing CUDA Toolkit?)")
+                                print(f"[Kokoro]    Install CUDA 12.x: https://developer.nvidia.com/cuda-downloads")
+                                self.sess = None
+
+                        if self.sess is None and "DmlExecutionProvider" in available_providers:
+                            try:
+                                providers = ["DmlExecutionProvider", "CPUExecutionProvider"]
+                                self.sess = rt.InferenceSession(model_path, providers=providers)
+                                print("[Kokoro] ✅ Using DirectML GPU acceleration")
+                            except Exception as dml_err:
+                                print(f"[Kokoro] ⚠️ DirectML init failed")
+                                self.sess = None
+
+                        if self.sess is None:
+                            providers = ["CPUExecutionProvider"]
+                            self.sess = rt.InferenceSession(model_path, providers=providers)
+                            print("[Kokoro] Using CPU mode")
+
                         # THE CLUTCH FIX: Support both Pickle and JSON
                         import json
                         try:
@@ -328,7 +349,7 @@ class TTSEngine(QObject):
             try:
                 import pythoncom
                 pythoncom.CoInitialize()
-            except:
+            except ImportError:
                 pass
             
             import pyttsx3
@@ -346,4 +367,3 @@ class TTSEngine(QObject):
             engine.runAndWait()
         except Exception as e:
             print(f"[TTSEngine] Offline worker error: {e}")
-

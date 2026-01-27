@@ -30,7 +30,7 @@ def main():
             error_box.setInformativeText(str(e))
             error_box.setDetailedText(error_msg)
             error_box.exec()
-        except:
+        except Exception:
             pass
 
 if __name__ == "__main__":

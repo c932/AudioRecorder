@@ -874,7 +874,9 @@
             "text": "sweep the floor",
             "phonetic": "",
             "translation": "扫地",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 0,
+            "times_practiced": 1
         },
         {
             "text": "chat with somebody",
@@ -976,13 +978,17 @@
             "text": "food items",
             "phonetic": "/fuːd'aɪtəmz/",
             "translation": "食物类别名称",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 62,
+            "times_practiced": 1
         },
         {
             "text": "a few onions",
             "phonetic": "",
             "translation": "几个洋葱",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 0,
+            "times_practiced": 1
         },
         {
             "text": "sequence",
@@ -1012,7 +1018,9 @@
             "text": "frozen foods",
             "phonetic": "",
             "translation": "冷冻食品",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 66,
+            "times_practiced": 1
         },
         {
             "text": "Thanks for coming.(thank somebody for doing something)",
@@ -1026,19 +1034,25 @@
             "text": "cook something healthy for his mother",
             "phonetic": "",
             "translation": "为他妈妈做一些健康的食物",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 37,
+            "times_practiced": 1
         },
         {
             "text": "My pleasure.",
             "phonetic": "",
             "translation": "别客气。",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 64,
+            "times_practiced": 1
         },
         {
             "text": "cook something for somebody",
             "phonetic": "",
             "translation": "(为某人做…)",
-            "group": "6ATreasure Box"
+            "group": "6ATreasure Box",
+            "last_score": 29,
+            "times_practiced": 1
         },
         {
             "text": "buy some ingredients for a dish",

@@ -294,9 +294,8 @@ class SettingsDialog(QDialog):
                     self.chk_strict_cap.setChecked(config.get("scoring_strict_cap", True))
                     
             except Exception as e:
-                print(e)
-                pass
-                
+                print(f"[SettingsDialog] Failed to load settings: {e}")
+
     def save_settings(self):
         config = {
             "device_index": self.combo_devices.currentData(),
@@ -357,8 +356,9 @@ class SettingsDialog(QDialog):
             try:
                 with open(self.config_file, 'r') as f:
                     current_config = json.load(f)
-            except: pass
-        
+            except Exception as e:
+                print(f"[SettingsDialog] Error loading config for groups: {e}")
+
         active_groups = current_config.get("active_groups", [])
         auto_check = len(active_groups) == 0
         

@@ -66,8 +66,9 @@ class SummaryPage(QWidget):
                         cfg = json.load(f)
                         if cfg.get("feedback_language") == "zh":
                             lang_suffix = "_zh"
-                except: pass
-            
+                except (json.JSONDecodeError, IOError):
+                    pass
+
             if avg_score >= 95:
                 msg = "🏆 哇塞！完美发音！你就是英语小天才！(Genius!)"
                 color = "#2E7D32" # Green
@@ -140,7 +141,7 @@ class SummaryPage(QWidget):
             try:
                 winsound.PlaySound(full_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
                 return
-            except:
+            except Exception:
                 pass
         
         # Fallback: Use TTS to speak the Chinese message

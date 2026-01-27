@@ -106,16 +106,18 @@ class MainWindow(QMainWindow):
         self.chk_auto = QCheckBox("⚡ Auto Mode")
         self.chk_auto.setVisible(False) # Hide it
         
-        # Load default state
-        if os.path.exists("config.json"):
+        # Load default state from correct config path
+        config_path = get_user_data_path("config.json")
+        if os.path.exists(config_path):
              try:
-                with open("config.json", 'r') as f:
+                with open(config_path, 'r') as f:
                     config = json.load(f)
                     self.chk_auto.setChecked(config.get("auto_mode_default", True))
                     # Set TTS Mode
                     self.tts.set_mode(config.get("tts_engine", "Auto"))
-             except: pass
-        
+             except (json.JSONDecodeError, IOError):
+                 pass
+
         # Main Start Button (Merged)
         btn_start = QPushButton("🚀 Start Practice")
         btn_start.setStyleSheet(AppStyles.BIG_BUTTON)
@@ -304,8 +306,9 @@ class MainWindow(QMainWindow):
              try:
                 with open(config_path, 'r') as f:
                     config = json.load(f)
-             except: pass
-        
+             except (json.JSONDecodeError, IOError):
+                 pass
+
         active_groups = config.get("active_groups", [])
         practice_count = config.get("practice_count", 20)
         
@@ -386,28 +389,11 @@ class MainWindow(QMainWindow):
              return
              
         if step == "auto_start":
-            # Programmatically click record or call toggle
-            if not self.recorder_widget.is_recording:
-                # Load device idx from config
-                dev_idx = None
-                if os.path.exists("config.json"):
-                    try:
-                        with open("config.json", 'r') as f:
-                             dev_idx = json.load(f).get("device_index")
-                    except: 
-                        pass # Ignore config error
-
-                # Setup VAD callback
-                self.audio_recorder.start_recording(
-                    device_index=dev_idx,
-                    volume_callback=self.recorder_widget.on_volume_data,
-                    vad_enabled=True,
-                    stop_callback=self.signals.stop_signal.emit
-                )
-                self.recorder_widget.is_recording = True
-                self.recorder_widget.record_btn.setStyleSheet(AppStyles.RECORD_BUTTON_ACTIVE)
-                self.recorder_widget.status_label.setText("🎙️ Listening... (Auto Stop Enabled)")
-                # self.recorder_widget.device_combo.setEnabled(False) # Removed combo
+            self.start_auto_recording()
+        elif step == "auto_next":
+            self.next_exercise()
+        elif step == "play_tts":
+            self.play_tts_reference()
 
     def auto_stop_recording(self):
         # This slot is called when VAD detects silence
@@ -445,6 +431,12 @@ class MainWindow(QMainWindow):
         
     def process_recording(self, file_path):
         self.last_recording_path = file_path
+
+        # Safety check: ensure index is valid
+        if self.current_exercise_index >= len(self.current_exercise_list):
+            print("[MainWindow] Warning: process_recording called with invalid index.")
+            return
+
         current_data = self.current_exercise_list[self.current_exercise_index]
         reference_text = current_data.get("text", "")
         
@@ -491,8 +483,8 @@ class MainWindow(QMainWindow):
             stars = 1
             
         # Update Stars
-        path_on = os.path.join("src", "resources", "images", "star_gold.png")
-        path_off = os.path.join("src", "resources", "images", "star_gray.png")
+        path_on = get_resource_path(os.path.join("src", "resources", "images", "star_gold.png"))
+        path_off = get_resource_path(os.path.join("src", "resources", "images", "star_gray.png"))
         if os.path.exists(path_on) and os.path.exists(path_off):
             pix_on = QPixmap(path_on).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             pix_off = QPixmap(path_off).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
@@ -510,15 +502,6 @@ class MainWindow(QMainWindow):
             # If we played TTS, delay should be longer
             delay = 4500 if score < 90 else 2500
             self.status_next_step("auto_next", delay)
-            
-    def __process_step(self, step):
-        # Validation checks...
-        if step == "auto_next":
-            self.next_exercise()
-        elif step == "auto_start":
-            self.start_auto_recording()
-        elif step == "play_tts":
-             self.play_tts_reference()
 
     def play_last_recording(self):
         if self.last_recording_path and os.path.exists(self.last_recording_path):
@@ -526,6 +509,8 @@ class MainWindow(QMainWindow):
             winsound.PlaySound(self.last_recording_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
 
     def play_tts_reference(self):
+        if self.current_exercise_index >= len(self.current_exercise_list):
+            return
         current_data = self.current_exercise_list[self.current_exercise_index]
         text = current_data.get("text", "")
         self.tts.speak(text)
@@ -534,13 +519,14 @@ class MainWindow(QMainWindow):
         if not self.recorder_widget.is_recording:
              # Load device idx from config
              dev_idx = None
-             if os.path.exists("config.json"):
+             config_path = get_user_data_path("config.json")
+             if os.path.exists(config_path):
                  try:
-                    with open("config.json", 'r') as f:
+                    with open(config_path, 'r') as f:
                          dev_idx = json.load(f).get("device_index")
-                 except: 
-                     pass
-                      
+                 except Exception as e:
+                     print(f"[MainWindow] Config read error: {e}")
+
              self.audio_recorder.start_recording(
                 device_index=dev_idx,
                 volume_callback=self.recorder_widget.on_volume_data,

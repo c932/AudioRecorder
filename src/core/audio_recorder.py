@@ -53,7 +53,7 @@ class AudioRecorder:
             # Fallback
             try:
                 return [(i, d['name']) for i, d in enumerate(sd.query_devices()) if d['max_input_channels'] > 0]
-            except:
+            except Exception:
                 return []
         return devices
 
@@ -150,15 +150,23 @@ class AudioRecorder:
 
     def save_recording(self):
         if not self.frames:
+            print("[AudioRecorder] Warning: No audio frames captured.")
             return None
             
         try:
             # Concatenate all numpy arrays
             recording_data = np.concatenate(self.frames, axis=0)
+
+            # Check if recording is too short (less than 0.3 seconds)
+            min_samples = int(self.samplerate * 0.3)
+            if len(recording_data) < min_samples:
+                print(f"[AudioRecorder] Warning: Recording too short ({len(recording_data)} samples).")
+                return None
+
             # Save to WAV file
             sf.write(self.output_filename, recording_data, self.samplerate)
             return self.output_filename
         except Exception as e:
-            print(f"Error saving file: {e}")
+            print(f"[AudioRecorder] Error saving file: {e}")
             return None
 
