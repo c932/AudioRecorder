@@ -10,6 +10,9 @@ soundfile
 SpeechRecognition
 openai-whisper
 
+# Optional: faster-whisper (CTranslate2 backend, ~4x faster than openai-whisper)
+# Install with: pip install faster-whisper
+
 # TTS Engines
 edge-tts
 pyttsx3
@@ -23,6 +26,8 @@ requests
 # Text Processing
 python-Levenshtein
 pdfplumber
+PyMuPDF  # For rendering scanned PDF pages as images (vision fallback)
+Pillow  # For image compression when importing word images
 
 # Utilities
 python-dotenv

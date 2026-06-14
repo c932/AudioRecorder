@@ -55,6 +55,15 @@ class ExerciseManager:
                 groups.add(item.get('group', 'Default'))
         return sorted(list(groups))
 
+    def get_group_word_counts(self) -> dict:
+        """Returns a dict mapping group name -> word count."""
+        counts = {}
+        for category in self.exercises:
+            for item in self.exercises[category]:
+                g = item.get('group', 'Default')
+                counts[g] = counts.get(g, 0) + 1
+        return counts
+
     def delete_group(self, group_name):
         """Deletes all items belonging to the specified group."""
         changed = False
@@ -78,6 +87,39 @@ class ExerciseManager:
                     del item['times_practiced']
                 if 'last_score' in item:
                     del item['last_score']
+                if 'quiz_correct' in item:
+                    del item['quiz_correct']
+                if 'quiz_wrong' in item:
+                    del item['quiz_wrong']
                 count += 1
         self.save_data()
         return count
+
+    def update_quiz_stats(self, word_text, group, is_correct):
+        """Update quiz statistics for a specific word.
+        When quiz_correct reaches 2, reset both counters (word graduates from mistake list).
+        """
+        for category in self.exercises:
+            for item in self.exercises[category]:
+                if item['text'] == word_text and item.get('group', 'Default') == group:
+                    if is_correct:
+                        item['quiz_correct'] = item.get('quiz_correct', 0) + 1
+                        # Auto-remove from mistake list after 2 correct answers
+                        if item['quiz_correct'] >= 2:
+                            item['quiz_correct'] = 0
+                            item['quiz_wrong'] = 0
+                    else:
+                        item['quiz_wrong'] = item.get('quiz_wrong', 0) + 1
+                    return True
+        return False
+
+    def get_quiz_stats(self, word_text, group):
+        """Get quiz statistics for a specific word."""
+        for category in self.exercises:
+            for item in self.exercises[category]:
+                if item['text'] == word_text and item.get('group', 'Default') == group:
+                    return {
+                        'quiz_correct': item.get('quiz_correct', 0),
+                        'quiz_wrong': item.get('quiz_wrong', 0)
+                    }
+        return {'quiz_correct': 0, 'quiz_wrong': 0}

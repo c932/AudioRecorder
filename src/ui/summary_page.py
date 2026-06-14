@@ -16,7 +16,7 @@ class SummaryPage(QWidget):
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
         
-        header = QLabel("🎉 Practice Complete! 🎉")
+        header = QLabel("🎉 练习完成！🎉")
         header.setStyleSheet("font-size: 28px; font-weight: bold; color: #E91E63; margin: 20px;")
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(header)
@@ -30,7 +30,7 @@ class SummaryPage(QWidget):
         self.layout.addWidget(scroll)
         
         # Button
-        btn_home = QPushButton("🏠 Back to Home")
+        btn_home = QPushButton("🏠 返回首页")
         btn_home.setStyleSheet(AppStyles.BIG_BUTTON)
         btn_home.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.page_home))
         self.layout.addWidget(btn_home, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -70,19 +70,19 @@ class SummaryPage(QWidget):
                     pass
 
             if avg_score >= 95:
-                msg = "🏆 哇塞！完美发音！你就是英语小天才！(Genius!)"
+                msg = "🏆 哇塞！完美发音！你就是英语小天才！"
                 color = "#2E7D32" # Green
                 sound_file = f"perfect{lang_suffix}.wav"
             elif avg_score >= 90:
-                msg = "🌟 太棒啦！发音超级标准，给你比心心！(Excellent!)"
+                msg = "🌟 太棒啦！发音超级标准，给你比心心！"
                 color = "#2E7D32" 
                 sound_file = f"excellent{lang_suffix}.wav"
             elif avg_score >= 80:
-                msg = "👍 不错哟！进步很大，继续加油！(Good Job!)"
+                msg = "👍 不错哟！进步很大，继续加油！"
                 color = "#F57F17" # Orange
                 sound_file = f"good{lang_suffix}.wav"
             else:
-                msg = "💪 别灰心，多练几遍你一定行！(Keep Going!)"
+                msg = "💪 别灰心，多练几遍你一定行！"
                 color = "#5D4037" # Brown
                 sound_file = f"encourage{lang_suffix}.wav"
                 
@@ -97,7 +97,7 @@ class SummaryPage(QWidget):
                 lbl_img.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.scroll_layout.addWidget(lbl_img)
                 
-            report_card = QLabel(f"{msg}\n平均分 (Average Score): {avg_score:.1f}")
+            report_card = QLabel(f"{msg}\n平均分: {avg_score:.1f}")
             report_card.setAlignment(Qt.AlignmentFlag.AlignCenter)
             report_card.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {color}; margin-bottom: 20px; border: 2px dashed {color}; padding: 15px; border-radius: 10px;")
             self.scroll_layout.addWidget(report_card)
@@ -132,7 +132,6 @@ class SummaryPage(QWidget):
 
     def play_feedback_sound(self, filename, text_msg):
         """Plays a wav file from src/resources/sounds/ or falls back to TTS."""
-        # Check defaults first
         full_path = ""
         if filename:
             full_path = get_resource_path(os.path.join("src", "resources", "sounds", filename))
@@ -144,9 +143,6 @@ class SummaryPage(QWidget):
             except Exception:
                 pass
         
-        # Fallback: Use TTS to speak the Chinese message
-        # We need access to TTS engine. It's in main_window.tts
-        # Just speak the Chinese part (before the parenthesis if any)
-        speak_text = text_msg.split('(')[0]
+        # Fallback: Use TTS to speak the message
         if self.main_window and hasattr(self.main_window, 'tts'):
-            self.main_window.tts.speak(speak_text)
+            self.main_window.tts.speak(text_msg)

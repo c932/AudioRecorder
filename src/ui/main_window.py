@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, 
-                             QLabel, QPushButton, QHBoxLayout, QStackedWidget, QMessageBox, QCheckBox)
+                             QLabel, QPushButton, QHBoxLayout, QStackedWidget, QMessageBox, QCheckBox, QGridLayout)
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QIcon, QFont, QPixmap
 from src.ui.styles import AppStyles
@@ -40,6 +40,9 @@ class MainWindow(QMainWindow):
         self.signals = ValidSignal()
         self.signals.stop_signal.connect(self.auto_stop_recording)
         
+        # Connect async LLM feedback signal
+        self.ai_coach.signals.feedback_ready.connect(self.update_feedback_text)
+        
         # State
         self.auto_mode = False
         self.session_results = []
@@ -64,11 +67,15 @@ class MainWindow(QMainWindow):
         from src.ui.mistake_page import MistakePage
         self.page_mistakes = MistakePage(self)
         
+        from src.ui.quiz_page import QuizPage
+        self.page_quiz = QuizPage(self)
+        
         self.stack.addWidget(self.page_home)
         self.stack.addWidget(self.page_practice)
         self.stack.addWidget(self.page_result)
         self.stack.addWidget(self.page_summary)
         self.stack.addWidget(self.page_mistakes)
+        self.stack.addWidget(self.page_quiz)
         
         self.current_exercise_index = 0
         self.current_exercise_list = []
@@ -90,7 +97,7 @@ class MainWindow(QMainWindow):
         mascot_path = get_resource_path(os.path.join("src", "resources", "images", "mascot.png"))
         if os.path.exists(mascot_path):
             lbl_mascot = QLabel()
-            pixmap = QPixmap(mascot_path).scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pixmap = QPixmap(mascot_path).scaled(180, 180, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             lbl_mascot.setPixmap(pixmap)
             lbl_mascot.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(lbl_mascot)
@@ -100,7 +107,7 @@ class MainWindow(QMainWindow):
         header.setStyleSheet(AppStyles.HEADER_LABEL)
         layout.addWidget(header)
         
-        layout.addStretch()
+        layout.addSpacing(10)
         
         # Auto Mode Toggle (Active but hidden from UI, controlled by Settings)
         self.chk_auto = QCheckBox("⚡ Auto Mode")
@@ -118,29 +125,70 @@ class MainWindow(QMainWindow):
              except (json.JSONDecodeError, IOError):
                  pass
 
-        # Main Start Button (Merged)
-        btn_start = QPushButton("🚀 Start Practice")
-        btn_start.setStyleSheet(AppStyles.BIG_BUTTON)
-        btn_start.clicked.connect(self.start_practice)
-        layout.addWidget(btn_start, alignment=Qt.AlignmentFlag.AlignCenter)
+        # 2x2 Grid Layout for 4 modules
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(16)
+        grid_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Import Button
-        btn_import = QPushButton("Import from PDF 📄")
-        btn_import.setStyleSheet("background-color: #795548; color: white; font-size: 16px; padding: 10px; border-radius: 8px; margin-top: 10px;")
-        btn_import.clicked.connect(self.open_import_dialog)
-        layout.addWidget(btn_import, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Module button style template
+        def make_grid_btn_style(bg_color, hover_color):
+            return f"""
+                QPushButton {{
+                    background-color: {bg_color};
+                    color: white;
+                    font-size: 16px;
+                    font-weight: bold;
+                    padding: 30px 20px;
+                    border-radius: 16px;
+                    min-width: 240px;
+                    min-height: 100px;
+                }}
+                QPushButton:hover {{
+                    background-color: {hover_color};
+                }}
+                QPushButton:pressed {{
+                    background-color: {hover_color};
+                }}
+            """
         
-        # Mistake Review Button
-        btn_mistakes = QPushButton("Review Mistakes ❌")
-        btn_mistakes.setStyleSheet("background-color: #D32F2F; color: white; font-size: 16px; padding: 10px; border-radius: 8px; margin-top: 10px;")
+        # Row 0: 口语练习 + 中英互译练习
+        btn_practice = QPushButton("🎤\n口语练习\nStart Vocal Practice")
+        btn_practice.setStyleSheet(make_grid_btn_style("#E65100", "#BF360C"))
+        btn_practice.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_practice.clicked.connect(self.start_practice)
+        grid_layout.addWidget(btn_practice, 0, 0)
+        
+        btn_quiz = QPushButton("📝\n中英互译练习\nTranslation Quiz")
+        btn_quiz.setStyleSheet(make_grid_btn_style("#1565C0", "#0D47A1"))
+        btn_quiz.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_quiz.clicked.connect(self.open_quiz_page)
+        grid_layout.addWidget(btn_quiz, 0, 1)
+        
+        # Row 1: 复习错误 + 导入词库
+        btn_mistakes = QPushButton("❌\n复习错误\nReview Mistakes")
+        btn_mistakes.setStyleSheet(make_grid_btn_style("#C62828", "#B71C1C"))
+        btn_mistakes.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_mistakes.clicked.connect(self.open_mistakes_page)
-        layout.addWidget(btn_mistakes, alignment=Qt.AlignmentFlag.AlignCenter)
+        grid_layout.addWidget(btn_mistakes, 1, 0)
+        
+        btn_import = QPushButton("📄\n导入词库\nImport Words")
+        btn_import.setStyleSheet(make_grid_btn_style("#4E342E", "#3E2723"))
+        btn_import.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_import.clicked.connect(self.open_import_dialog)
+        grid_layout.addWidget(btn_import, 1, 1)
+        
+        # Make columns equal width
+        grid_layout.setColumnStretch(0, 1)
+        grid_layout.setColumnStretch(1, 1)
+        
+        layout.addLayout(grid_layout)
         
         layout.addStretch()
         return page
 
     def open_settings(self):
-        dialog = SettingsDialog(self, self.audio_recorder, self.exercise_manager)
+        quiz_engine = self.page_quiz.quiz_engine if hasattr(self, 'page_quiz') else None
+        dialog = SettingsDialog(self, self.audio_recorder, self.exercise_manager, quiz_engine=quiz_engine)
         if dialog.exec():
             # Reload AI config
             self.ai_coach.load_config()
@@ -280,6 +328,10 @@ class MainWindow(QMainWindow):
     def open_mistakes_page(self):
         self.page_mistakes.refresh_data()
         self.stack.setCurrentWidget(self.page_mistakes)
+    
+    def open_quiz_page(self):
+        self.page_quiz.reset_to_setup()
+        self.stack.setCurrentWidget(self.page_quiz)
 
     def start_practice_with_list(self, custom_list):
         """Starts practice with a specific list of items (e.g. mistakes)."""
@@ -440,6 +492,7 @@ class MainWindow(QMainWindow):
         current_data = self.current_exercise_list[self.current_exercise_index]
         reference_text = current_data.get("text", "")
         
+        # Assess synchronously (STT + scoring + rule-based feedback, fast)
         result = self.ai_coach.assess(file_path, reference_text)
         score = int(result.get("accuracy_score", 0))
         feedback_text = result.get("feedback", "")
@@ -448,8 +501,8 @@ class MainWindow(QMainWindow):
         print(f"[MainWindow DEBUG] Score: {score}")
         print(f"[MainWindow DEBUG] Result Raw: {result}")
         
-        
         self.last_details = result.get("details", {})
+        self.last_reference_text = reference_text  # Track for async feedback
         
         # Save Result to Session
         self.session_results.append({
@@ -460,10 +513,9 @@ class MainWindow(QMainWindow):
         # Save Stats to Persistent DB
         current_data['last_score'] = score
         current_data['times_practiced'] = current_data.get('times_practiced', 0) + 1
-        # Trigger save (Is this too frequent? Maybe. specific save?)
-        # For safety/real-time, saving now is fine.
         self.exercise_manager.save_data()
         
+        # Display results immediately
         self.lbl_score.setText(f"Score: {score}")
         self.lbl_feedback.setText(feedback_text)
         self.lbl_feedback.setWordWrap(True)
@@ -473,12 +525,10 @@ class MainWindow(QMainWindow):
             stars = 3
         elif score >= 70:
             self.lbl_score.setStyleSheet("font-size: 36px; font-weight: bold; color: #F57F17;")
-            # Auto Play Correct Pronunciation for mediocre scores too
             self.status_next_step("play_tts", 500)
             stars = 2
         else:
             self.lbl_score.setStyleSheet("font-size: 36px; font-weight: bold; color: #D32F2F;")
-            # Auto Play Correct Pronunciation
             self.status_next_step("play_tts", 500)
             stars = 1
             
@@ -497,11 +547,29 @@ class MainWindow(QMainWindow):
             
         self.stack.setCurrentWidget(self.page_result)
         
+        # Trigger async LLM feedback (non-blocking)
+        details = self.last_details
+        self.ai_coach.generate_feedback_async(
+            score=score,
+            confidence=details.get("confidence", 1.0),
+            reference_text=reference_text,
+            recognized_text=details.get("recognized", ""),
+            candidates=[]
+        )
+        
         if self.auto_mode:
-            # Auto next, but account for TTS time if score low
-            # If we played TTS, delay should be longer
             delay = 4500 if score < 90 else 2500
             self.status_next_step("auto_next", delay)
+
+    def update_feedback_text(self, reference_word, feedback_text):
+        """Slot for async LLM feedback. Only updates if still showing the same word."""
+        # Verify we're still on the result page AND showing the same word
+        if self.stack.currentWidget() != self.page_result:
+            return
+        if not hasattr(self, 'last_reference_text') or self.last_reference_text != reference_word:
+            return
+        
+        self.lbl_feedback.setText(feedback_text)
 
     def play_last_recording(self):
         if self.last_recording_path and os.path.exists(self.last_recording_path):
@@ -540,6 +608,10 @@ class MainWindow(QMainWindow):
     def show_debug_details(self):
         if hasattr(self, 'last_details') and self.last_details:
             d = self.last_details
+            word_scores_str = ""
+            if d.get('word_scores'):
+                word_scores_str = ", ".join([f"{s:.2f}" for s in d['word_scores']])
+            
             info_text = (
                 f" Recognized: {d.get('recognized', '')}\n"
                 f" Confidence: {d.get('confidence', 0):.2f}\n"
@@ -547,7 +619,9 @@ class MainWindow(QMainWindow):
                 f" Threshold: {d.get('threshold', 0)}\n"
                 f" Penalty Applied: -{d.get('penalty', 0):.1f}\n"
                 f" Raw Score: {d.get('raw_score', 0)}\n"
-                f" Capped: {d.get('capped', False)}"
+                f" Capped: {d.get('capped', False)}\n"
+                f" Scoring Method: {d.get('scoring_method', 'N/A')}\n"
+                f" Word Scores: [{word_scores_str}]"
             )
             QMessageBox.information(self, "Scoring Logic (Debug)", info_text)
         else:
