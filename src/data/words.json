@@ -2152,7 +2152,9 @@
             "text": "What do they look like?",
             "phonetic": "",
             "translation": "他们长得怎么样？",
-            "group": "Treasurebox-6BU1"
+            "group": "Treasurebox-6BU1",
+            "last_score": 98,
+            "times_practiced": 2
         },
         {
             "text": "the girl in the blue skirt",
@@ -2383,7 +2385,9 @@
             "text": "What makes her different from others?",
             "phonetic": "",
             "translation": "什么使她与其他人不同？",
-            "group": "Treasurebox-6BU1"
+            "group": "Treasurebox-6BU1",
+            "last_score": 98,
+            "times_practiced": 2
         },
         {
             "text": "make a self-introduction clear and unique",
@@ -2445,7 +2449,9 @@
             "text": "What weak point(s) will I work on?",
             "phonetic": "",
             "translation": "我会改进什么弱点？",
-            "group": "Treasurebox-6BU1"
+            "group": "Treasurebox-6BU1",
+            "last_score": 74,
+            "times_practiced": 2
         },
         {
             "text": "predict",
@@ -4605,7 +4611,328 @@
             "phonetic": "",
             "translation": "她的科研成果有助于治疗癌症。",
             "group": "Treasurebox-6BU6"
+        },
+        {
+            "text": "birth",
+            "translation": "出生",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 11,
+            "times_practiced": 1
+        },
+        {
+            "text": "born",
+            "translation": "出生的",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 78,
+            "times_practiced": 1
+        },
+        {
+            "text": "be from",
+            "translation": "出生（于）；来自",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 64,
+            "times_practiced": 1
+        },
+        {
+            "text": "birthday",
+            "translation": "生日",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 9,
+            "times_practiced": 1
+        },
+        {
+            "text": "Happy birthday",
+            "translation": "生日快乐",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 82,
+            "times_practiced": 1
+        },
+        {
+            "text": "name",
+            "translation": "名字",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 95,
+            "times_practiced": 1
+        },
+        {
+            "text": "age",
+            "translation": "年龄",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 94,
+            "times_practiced": 1
+        },
+        {
+            "text": "address",
+            "translation": "地址",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 73,
+            "times_practiced": 1
+        },
+        {
+            "text": "background",
+            "translation": "背景",
+            "group": "速记Day1",
+            "phonetic": "",
+            "last_score": 84,
+            "times_practiced": 1
         }
     ],
-    "sentences": []
+    "sentences": [
+        {
+            "text": "Please hand it to the police officer.",
+            "translation": "请把它交给警察。",
+            "group": "Treasurebox-6BU6",
+            "phonetic": "",
+            "last_score": 81,
+            "times_practiced": 1
+        },
+        {
+            "text": "We prepare for a weather report in class.",
+            "translation": "我们在课堂上为天气预报做准备。",
+            "group": "Treasurebox-6BU4",
+            "phonetic": "",
+            "last_score": 81,
+            "times_practiced": 1
+        },
+        {
+            "text": "This medicine helps you get better quickly with penicillin.",
+            "translation": "这种药含有青霉素，能帮你快速康复。",
+            "group": "Treasurebox-6BU6",
+            "phonetic": "",
+            "last_score": 94,
+            "times_practiced": 1
+        },
+        {
+            "text": "We learn different ways to predict weather at school.",
+            "translation": "我们在学校学习预测天气的不同方式。",
+            "group": "Treasurebox-6BU4",
+            "phonetic": "",
+            "last_score": 94,
+            "times_practiced": 1
+        },
+        {
+            "text": "I will try to do my homework now.",
+            "translation": "我现在将尽力做作业。",
+            "group": "Treasurebox-6BU2",
+            "phonetic": "",
+            "last_score": 60,
+            "times_practiced": 1
+        },
+        {
+            "text": "I can help! What habit(s) will I form by joining?",
+            "translation": "我可以帮忙！加入后我会养成什么习惯？",
+            "group": "🎲 随机会话_Treasurebox-6BU1_39轮",
+            "last_score": 88,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Okay, who else is performing?",
+            "translation": "好的，还有谁表演？",
+            "group": "🎲 随机会话_Treasurebox-6BU1_39轮",
+            "last_score": 88,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "And what about Mike?",
+            "translation": "迈克怎么样？",
+            "group": "🎲 随机会话_Treasurebox-6BU1_39轮",
+            "last_score": 95,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Is he one of the greatest composers of all time?",
+            "translation": "他是至今为止最伟大的作曲家之一吗？",
+            "group": "🎲 随机会话_Treasurebox-6BU1_39轮",
+            "last_score": 93,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Who will give a list of shows to the audience?",
+            "translation": "谁会给观众提供节目单？",
+            "group": "🎲 随机会话_Treasurebox-6BU1_39轮",
+            "last_score": 82,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Do we need special points for our acts?",
+            "translation": "我们的表演需要特点吗？",
+            "group": "🎲 随机会话_Treasurebox-6BU1_39轮",
+            "last_score": 90,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Yes! I need someone to help me with the props.",
+            "translation": "是的！我需要某人来帮我准备道具。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 37,
+            "times_practiced": 4,
+            "source": "scenario_session"
+        },
+        {
+            "text": "We will tell a fable about a brave little rabbit.",
+            "translation": "我们将讲一个关于勇敢小兔子的寓言故事。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 68,
+            "times_practiced": 4,
+            "source": "scenario_session"
+        },
+        {
+            "text": "I want to play the rabbit, but I need to practice jumping.",
+            "translation": "我想扮演兔子，但我需要练习跳跃。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 90,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Thanks, Lily. I hope I can sing well too.",
+            "translation": "谢谢，莉莉。我希望我也能唱得好。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 91,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "What about the set design for our stage?",
+            "translation": "那我们的舞台布景设计呢？",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 87,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Great idea! We can make it look like we are in a forest.",
+            "translation": "好主意！我们可以让它看起来像是在森林中。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 85,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "I am good at drawing. What should I draw?",
+            "translation": "我擅长画画。我应该画什么？",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 58,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Okay. Do we need to understand the moral of the story?",
+            "translation": "好的。我们需要理解故事的寓意吗？",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 88,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "I think the moral is that kindness is important.",
+            "translation": "我认为寓意是善良很重要。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 77,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Like when the rabbit feels scared or happy?",
+            "translation": "就像兔子感到害怕或快乐时那样？",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 85,
+            "times_practiced": 3,
+            "source": "scenario_session"
+        },
+        {
+            "text": "I will practice my facial expressions carefully.",
+            "translation": "我会仔细练习我的面部表情。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 96,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "My special points are being fast and energetic.",
+            "translation": "我的特点是速度快且充满活力。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 91,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "My strong points are my memory and my voice.",
+            "translation": "我的优点是记忆力好和嗓音好。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 93,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "We are good at different things, so we fit well.",
+            "translation": "我们擅长不同的事物，所以我们很合适。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 95,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "I will offer to help with the costumes.",
+            "translation": "我主动提出帮助处理服装。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 95,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "They can watch and learn from our show.",
+            "translation": "他们可以观看并从我们的表演中学习。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 77,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "I will try. I want to make a self-introduction clear and unique.",
+            "translation": "我会试试。我想使自我介绍清晰独特。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 97,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "In the future, I want to be a performer.",
+            "translation": "在未来，我想成为一名表演者。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 75,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Haha, maybe! In a few years, I hope I am famous.",
+            "translation": "哈哈，也许吧！几年后，我希望我很出名。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 94,
+            "times_practiced": 2,
+            "source": "scenario_session"
+        },
+        {
+            "text": "Yes! Let us have a beautiful voice and fun.",
+            "translation": "是的！让我们拥有美妙的嗓音和乐趣。",
+            "group": "情景会话_Treasurebox-6BU1_40轮",
+            "last_score": 81,
+            "times_practiced": 1,
+            "source": "scenario_session"
+        }
+    ]
 }

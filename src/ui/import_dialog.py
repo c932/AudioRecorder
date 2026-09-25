@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from src.core.content_parser import ContentParser
+from src.ui.styles import AppStyles, INK_SOFT
 from src.utils import get_user_data_path
 import os
 import json
@@ -37,7 +38,7 @@ class ImportDialog(QDialog):
         
         # Supported formats hint
         lbl_hint = QLabel("Supported: PDF, TXT, JPG, PNG, BMP, TIFF")
-        lbl_hint.setStyleSheet("color: gray; font-size: 12px;")
+        lbl_hint.setStyleSheet(AppStyles.BODY_LABEL)
         layout.addWidget(lbl_hint)
         
         # AI Option

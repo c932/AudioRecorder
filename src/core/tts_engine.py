@@ -98,14 +98,91 @@ class PiperWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
+class CosyVoiceWorker(QThread):
+    """Worker that calls CosyVoice FastAPI server for TTS.
+    
+    CosyVoice2-0.5B supports Chinese+English mixed text natively.
+    Server setup: python webui.py --port 50000 --model_dir pretrained_models/CosyVoice2-0.5B
+    Or: python runtime/python/fastapi/server.py --model_dir pretrained_models/CosyVoice2-0.5B
+    """
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, text, server_url="http://localhost:50000", spk_id="中文女"):
+        super().__init__()
+        self.text = text
+        self.server_url = server_url.rstrip("/")
+        self.spk_id = spk_id
+
+    def run(self):
+        try:
+            import hashlib
+            import requests
+            import struct
+            import wave
+
+            # Cache by text hash
+            text_hash = hashlib.md5(self.text.encode()).hexdigest()
+            filename = f"cosyvoice_{text_hash}.wav"
+            output_file = os.path.join(tempfile.gettempdir(), filename)
+
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
+                self.finished.emit(output_file)
+                return
+
+            # Call CosyVoice FastAPI /inference_sft endpoint
+            url = f"{self.server_url}/inference_sft"
+            data = {"tts_text": self.text, "spk_id": self.spk_id}
+            
+            response = requests.post(url, data=data, timeout=30, stream=True)
+            
+            if response.status_code != 200:
+                self.error.emit(f"CosyVoice server returned {response.status_code}: {response.text[:200]}")
+                return
+
+            # Response is raw PCM int16 data at 24000Hz
+            pcm_data = response.content
+            
+            if len(pcm_data) < 100:
+                self.error.emit("CosyVoice returned empty audio")
+                return
+
+            # Write as WAV file (16-bit PCM, mono, 24000Hz)
+            sample_rate = 24000
+            with wave.open(output_file, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)  # 16-bit
+                wf.setframerate(sample_rate)
+                wf.writeframes(pcm_data)
+
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 100:
+                self.finished.emit(output_file)
+            else:
+                self.error.emit("CosyVoice: output file is empty")
+
+        except requests.exceptions.ConnectionError:
+            self.error.emit("CosyVoice server not running. Start it with: python server.py --model_dir pretrained_models/CosyVoice2-0.5B")
+        except Exception as e:
+            self.error.emit(f"CosyVoice error: {str(e)}")
+
+
+def _has_chinese(text: str) -> bool:
+    """Check if text contains Chinese characters."""
+    return any('\u4e00' <= c <= '\u9fff' for c in text)
+
+
 class EdgeTTSWorker(QThread):
     finished = pyqtSignal(str) # Emits path to generated file
     error = pyqtSignal(str)
 
-    def __init__(self, text, voice="en-US-AriaNeural"):
+    def __init__(self, text, voice=None):
         super().__init__()
         self.text = text
-        self.voice = voice
+        # Auto-select voice: Chinese voice for Chinese+English mixed text
+        if voice is None:
+            self.voice = "zh-CN-XiaoxiaoNeural" if _has_chinese(text) else "en-US-AriaNeural"
+        else:
+            self.voice = voice
 
     def run(self):
         try:
@@ -244,15 +321,28 @@ class TTSEngine(QObject):
         
         self.failure_count = 0
         self.engine_mode = "Auto" # Default
+        
+        # CosyVoice server config
+        self.cosyvoice_url = "http://localhost:50000"
+        self.cosyvoice_spk = "中文女"
 
     def set_mode(self, mode_str):
         # mode_str comes from UI combo box, e.g. "Kokoro (Local Neural...)"
-        if "Kokoro" in mode_str: self.engine_mode = "Kokoro"
+        if "CosyVoice" in mode_str: self.engine_mode = "CosyVoice"
+        elif "Kokoro" in mode_str: self.engine_mode = "Kokoro"
         elif "Piper" in mode_str: self.engine_mode = "Piper"
         elif "Edge" in mode_str: self.engine_mode = "Edge"
         elif "System" in mode_str: self.engine_mode = "System"
         else: self.engine_mode = "Auto"
         print(f"[TTSEngine] Mode set to: {self.engine_mode}")
+
+    def set_cosyvoice_config(self, url: str, spk_id: str = ""):
+        """Set CosyVoice server URL and speaker ID."""
+        if url:
+            self.cosyvoice_url = url.rstrip("/")
+        if spk_id:
+            self.cosyvoice_spk = spk_id
+        print(f"[TTSEngine] CosyVoice config: url={self.cosyvoice_url}, spk={self.cosyvoice_spk}")
 
     def speak(self, text):
         if not text:
@@ -261,6 +351,7 @@ class TTSEngine(QObject):
         self.last_text = text
         
         # Decide which engine to use
+        use_cosyvoice = (self.engine_mode == "CosyVoice")
         use_kokoro = (self.engine_mode == "Kokoro") or (self.engine_mode == "Auto" and self.use_kokoro)
         use_piper = (self.engine_mode == "Piper") or (self.engine_mode == "Auto" and self.use_piper and not self.use_kokoro)
         use_edge = (self.engine_mode == "Edge") or (self.engine_mode == "Auto" and not self.use_piper and not self.use_kokoro)
@@ -269,6 +360,15 @@ class TTSEngine(QObject):
         if self.engine_mode == "System":
              self._fallback_offline(text)
              return
+        
+        # 0. CosyVoice (Local server, Chinese+English)
+        if use_cosyvoice:
+            print(f"[TTSEngine] Requesting CosyVoice TTS for: {text[:50]}...")
+            self.worker = CosyVoiceWorker(text, self.cosyvoice_url, self.cosyvoice_spk)
+            self.worker.finished.connect(self._play_file)
+            self.worker.error.connect(self._on_cosyvoice_error)
+            self.worker.start()
+            return
         
         # 1. Kokoro
         if use_kokoro:
@@ -314,6 +414,14 @@ class TTSEngine(QObject):
     def _on_kokoro_error(self, error):
         print(f"[TTSEngine] Kokoro Failed: {error}. Falling back.")
         self._fallback_offline(self.last_text)
+
+    def _on_cosyvoice_error(self, error):
+        print(f"[TTSEngine] CosyVoice Failed: {error}. Falling back to Edge TTS.")
+        # Fallback to Edge TTS for Chinese+English
+        self.worker = EdgeTTSWorker(self.last_text, voice="zh-CN-XiaoxiaoNeural")
+        self.worker.finished.connect(self._play_file)
+        self.worker.error.connect(self._on_edge_error)
+        self.worker.start()
 
     def _on_piper_error(self, error):
         print(f"[TTSEngine] Piper Failed: {error}. Falling back to offline.")

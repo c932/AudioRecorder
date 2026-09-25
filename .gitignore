@@ -171,3 +171,11 @@ bin/
 # Build outputs
 build_log.txt
 
+# Development/temp files
+temp_pdf_images/
+tests/preview_shots/
+tests/preview_design.html
+tests/preview_design.py
+.claude/
+.qoder/
+

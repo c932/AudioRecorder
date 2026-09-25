@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QLineEdit, QLabel, QComboBox, QCheckBox)
 from PyQt6.QtCore import Qt
 from src.core.exercise_manager import ExerciseManager
+from src.ui.styles import AppStyles, CLAY, MANGO
 
 class DatabaseEditor(QDialog):
     def __init__(self, parent=None, manager=None):
@@ -53,12 +54,12 @@ class DatabaseEditor(QDialog):
         # Actions
         btn_box = QHBoxLayout()
         
-        btn_delete = QPushButton("Delete Selected (删除选中)")
-        btn_delete.setStyleSheet("color: red;")
+        btn_delete = QPushButton("Delete Selected")
+        btn_delete.setStyleSheet(f"color: {CLAY};")
         btn_delete.clicked.connect(self.delete_selected)
-        
-        btn_clean = QPushButton("Smart Clean (智能清理)")
-        btn_clean.setStyleSheet("color: #1976D2;")
+
+        btn_clean = QPushButton("Smart Clean")
+        btn_clean.setStyleSheet(f"color: {MANGO};")
         btn_clean.setToolTip("Apply cleaning rules to selected or visible items")
         btn_clean.clicked.connect(self.batch_clean_data)
 

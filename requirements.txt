@@ -28,6 +28,8 @@ python-Levenshtein
 pdfplumber
 PyMuPDF  # For rendering scanned PDF pages as images (vision fallback)
 Pillow  # For image compression when importing word images
+reportlab  # For memorization card PDF export
+python-docx  # For memorization card DOCX export
 
 # Utilities
 python-dotenv
@@ -36,6 +38,18 @@ nest_asyncio
 # Azure (Optional)
 azure-cognitiveservices-speech
 
-# Note: PyTorch with CUDA support is required for Whisper and Kokoro TTS GPU acceleration.
+# GOP (Goodness of Pronunciation) — phoneme-level scoring kernel
+# torch / torchaudio install separately with CUDA wheel (see note below)
+torch>=2.1
+torchaudio>=2.1
+transformers>=4.35
+g2p-en>=2.1.0
+
+# GOP remote service (server-side only)
+fastapi
+uvicorn
+
+# Note: PyTorch with CUDA support is required for Whisper, Kokoro TTS GPU acceleration
+# and GOP wav2vec2 alignment.
 # Install it separately with the following command (for CUDA 12.4):
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124

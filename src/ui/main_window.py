@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QLabel, QPushButton, QHBoxLayout, QStackedWidget, QMessageBox, QCheckBox, QGridLayout)
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QIcon, QFont, QPixmap
-from src.ui.styles import AppStyles
+from src.ui.styles import AppStyles, FONT_FALLBACK, PAPER, DESK, INK, INK_SOFT, MANGO, LEAF, CLAY, SP_3, SP_4, SP_5, RADIUS
 from src.ui.recording_widget import RecordingWidget
 from src.ui.summary_page import SummaryPage
 from src.ui.settings_dialog import SettingsDialog
@@ -35,6 +35,10 @@ class MainWindow(QMainWindow):
         
         self.exercise_manager = ExerciseManager(get_user_data_path("words.json"))
         self.tts = TTSEngine()
+        
+        # Scenario dialogue engine (LLM-generated A/B chat scripts)
+        from src.core.scenario_engine import ScenarioEngine
+        self.scenario_engine = ScenarioEngine(self.exercise_manager)
         
         # Signals
         self.signals = ValidSignal()
@@ -70,128 +74,156 @@ class MainWindow(QMainWindow):
         from src.ui.quiz_page import QuizPage
         self.page_quiz = QuizPage(self)
         
+        from src.ui.oral_test_page import OralTestPage
+        self.page_oral_test = OralTestPage(self)
+        
+        from src.ui.oral_hub_page import OralHubPage
+        self.page_oral_hub = OralHubPage(self)
+        
+        from src.ui.scenario_chat_page import ScenarioChatPage
+        self.page_scenario = ScenarioChatPage(self)
+        
+        from src.ui.tutor_page import TutorPage
+        self.page_tutor = TutorPage(self)
+
+        from src.ui.memorize_page import MemorizePage
+        self.page_memorize = MemorizePage(self)
+        
         self.stack.addWidget(self.page_home)
         self.stack.addWidget(self.page_practice)
         self.stack.addWidget(self.page_result)
         self.stack.addWidget(self.page_summary)
         self.stack.addWidget(self.page_mistakes)
         self.stack.addWidget(self.page_quiz)
+        self.stack.addWidget(self.page_oral_test)
+        self.stack.addWidget(self.page_oral_hub)
+        self.stack.addWidget(self.page_scenario)
+        self.stack.addWidget(self.page_tutor)
+        self.stack.addWidget(self.page_memorize)
         
         self.current_exercise_index = 0
         self.current_exercise_list = []
         
     def create_home_page(self):
         page = QWidget()
+        page.setStyleSheet(AppStyles.MAIN_WINDOW_BG)
         layout = QVBoxLayout(page)
-        
-        # Top Bar (Settings)
+        layout.setContentsMargins(SP_5, SP_5, SP_5, SP_5)
+        layout.setSpacing(SP_4)
+
+        # Top Bar — Settings, right-aligned, quiet
         top_layout = QHBoxLayout()
         top_layout.addStretch()
-        btn_settings = QPushButton("⚙ Settings")
-        btn_settings.setStyleSheet("background-color: #607D8B; color: white; border-radius: 5px; padding: 8px;")
+        btn_settings = QPushButton("Settings")
+        btn_settings.setStyleSheet(AppStyles.GHOST_BUTTON)
         btn_settings.clicked.connect(self.open_settings)
         top_layout.addWidget(btn_settings)
         layout.addLayout(top_layout)
-        
+
         # Mascot Image
         mascot_path = get_resource_path(os.path.join("src", "resources", "images", "mascot.png"))
         if os.path.exists(mascot_path):
             lbl_mascot = QLabel()
-            pixmap = QPixmap(mascot_path).scaled(180, 180, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pixmap = QPixmap(mascot_path).scaled(140, 140, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             lbl_mascot.setPixmap(pixmap)
             lbl_mascot.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(lbl_mascot)
-        
-        header = QLabel("Welcome to English Coach!")
+
+        header = QLabel("Welcome to English Coach")
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet(AppStyles.HEADER_LABEL)
         layout.addWidget(header)
-        
-        layout.addSpacing(10)
-        
+
+        sub = QLabel("Pick something to practice")
+        sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sub.setStyleSheet(AppStyles.SUBTITLE_LABEL)
+        layout.addWidget(sub)
+
+        layout.addSpacing(SP_4)
+
         # Auto Mode Toggle (Active but hidden from UI, controlled by Settings)
-        self.chk_auto = QCheckBox("⚡ Auto Mode")
-        self.chk_auto.setVisible(False) # Hide it
-        
+        self.chk_auto = QCheckBox("Auto Mode")
+        self.chk_auto.setVisible(False)
+
         # Load default state from correct config path
         config_path = get_user_data_path("config.json")
         if os.path.exists(config_path):
              try:
-                with open(config_path, 'r') as f:
+                with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
                     self.chk_auto.setChecked(config.get("auto_mode_default", True))
                     # Set TTS Mode
                     self.tts.set_mode(config.get("tts_engine", "Auto"))
+                    # Set CosyVoice config
+                    self.tts.set_cosyvoice_config(
+                        config.get("cosyvoice_url", "http://localhost:50000"),
+                        config.get("cosyvoice_spk", "中文女")
+                    )
              except (json.JSONDecodeError, IOError):
                  pass
 
-        # 2x2 Grid Layout for 4 modules
+        # Module grid 2×3 — paper cards, one active (mango left border)
         grid_layout = QGridLayout()
-        grid_layout.setSpacing(16)
+        grid_layout.setSpacing(SP_3)
         grid_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Module button style template
-        def make_grid_btn_style(bg_color, hover_color):
-            return f"""
-                QPushButton {{
-                    background-color: {bg_color};
-                    color: white;
-                    font-size: 16px;
-                    font-weight: bold;
-                    padding: 30px 20px;
-                    border-radius: 16px;
-                    min-width: 240px;
-                    min-height: 100px;
-                }}
-                QPushButton:hover {{
-                    background-color: {hover_color};
-                }}
-                QPushButton:pressed {{
-                    background-color: {hover_color};
-                }}
-            """
-        
-        # Row 0: 口语练习 + 中英互译练习
-        btn_practice = QPushButton("🎤\n口语练习\nStart Vocal Practice")
-        btn_practice.setStyleSheet(make_grid_btn_style("#E65100", "#BF360C"))
-        btn_practice.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_practice.clicked.connect(self.start_practice)
+
+        def _module_card(chinese, english, active=False):
+            btn = QPushButton(f"{chinese}\n{english}")
+            btn.setStyleSheet(AppStyles.MODULE_CARD(active))
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setMinimumHeight(110)
+            return btn
+
+        # Row 0: 口语练习 + 中英互译
+        btn_practice = _module_card("口语练习", "Oral Practice", active=True)
+        btn_practice.clicked.connect(self.open_oral_hub_page)
         grid_layout.addWidget(btn_practice, 0, 0)
-        
-        btn_quiz = QPushButton("📝\n中英互译练习\nTranslation Quiz")
-        btn_quiz.setStyleSheet(make_grid_btn_style("#1565C0", "#0D47A1"))
-        btn_quiz.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        btn_quiz = _module_card("中英互译", "Translation Quiz")
         btn_quiz.clicked.connect(self.open_quiz_page)
         grid_layout.addWidget(btn_quiz, 0, 1)
-        
+
         # Row 1: 复习错误 + 导入词库
-        btn_mistakes = QPushButton("❌\n复习错误\nReview Mistakes")
-        btn_mistakes.setStyleSheet(make_grid_btn_style("#C62828", "#B71C1C"))
-        btn_mistakes.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_mistakes = _module_card("复习错误", "Review Mistakes")
         btn_mistakes.clicked.connect(self.open_mistakes_page)
         grid_layout.addWidget(btn_mistakes, 1, 0)
-        
-        btn_import = QPushButton("📄\n导入词库\nImport Words")
-        btn_import.setStyleSheet(make_grid_btn_style("#4E342E", "#3E2723"))
-        btn_import.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        btn_import = _module_card("导入词库", "Import Words")
         btn_import.clicked.connect(self.open_import_dialog)
         grid_layout.addWidget(btn_import, 1, 1)
-        
-        # Make columns equal width
+
+        btn_memorize = _module_card("分类速记", "28-Day Memorize")
+        btn_memorize.clicked.connect(self.open_memorize_page)
+        grid_layout.addWidget(btn_memorize, 2, 0)
+
         grid_layout.setColumnStretch(0, 1)
         grid_layout.setColumnStretch(1, 1)
-        
+
         layout.addLayout(grid_layout)
-        
         layout.addStretch()
         return page
 
     def open_settings(self):
         quiz_engine = self.page_quiz.quiz_engine if hasattr(self, 'page_quiz') else None
-        dialog = SettingsDialog(self, self.audio_recorder, self.exercise_manager, quiz_engine=quiz_engine)
+        oral_engine = self.page_oral_test.oral_engine if hasattr(self, 'page_oral_test') else None
+        dialog = SettingsDialog(self, self.audio_recorder, self.exercise_manager,
+                                quiz_engine=quiz_engine, oral_engine=oral_engine,
+                                scenario_engine=self.scenario_engine)
         if dialog.exec():
             # Reload AI config
             self.ai_coach.load_config()
+            # Reload TTS config (must use same path as settings dialog)
+            try:
+                config_path = get_user_data_path("config.json")
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    cfg = json.load(f)
+                self.tts.set_mode(cfg.get("tts_engine", "Auto"))
+                self.tts.set_cosyvoice_config(
+                    cfg.get("cosyvoice_url", "http://localhost:50000"),
+                    cfg.get("cosyvoice_spk", "中文女")
+                )
+            except Exception:
+                pass
 
     def open_import_dialog(self):
         from src.ui.import_dialog import ImportDialog
@@ -204,54 +236,56 @@ class MainWindow(QMainWindow):
 
     def create_practice_page(self):
         page = QWidget()
+        page.setStyleSheet(AppStyles.MAIN_WINDOW_BG)
         layout = QVBoxLayout(page)
+        layout.setContentsMargins(SP_5, SP_5, SP_5, SP_5)
+        layout.setSpacing(SP_4)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Navigation back
+
         # Navigation back
         top_bar = QHBoxLayout()
-        btn_back = QPushButton("⏹ End Practice (Exit)")
+        btn_back = QPushButton("End Practice")
         btn_back.clicked.connect(self.stop_and_home)
-        btn_back.setStyleSheet("font-size: 16px; padding: 5px; background-color: #f4fab4; color: #555;")
+        btn_back.setStyleSheet(AppStyles.GHOST_BUTTON)
         top_bar.addWidget(btn_back)
         top_bar.addStretch()
         layout.addLayout(top_bar)
-        
+
         layout.addStretch()
-        
-        # Word Display
+
+        # Word Display — the hero
         self.lbl_word = QLabel("Apple")
         self.lbl_word.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_word.setStyleSheet(AppStyles.WORD_DISPLAY)
-        self.lbl_word.setWordWrap(True) # SENTENCES need wrap
+        self.lbl_word.setWordWrap(True)
         layout.addWidget(self.lbl_word)
-        
+
         self.lbl_phonetic = QLabel("/ˈæp.əl/")
         self.lbl_phonetic.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_phonetic.setStyleSheet(AppStyles.PHONETIC_DISPLAY)
         layout.addWidget(self.lbl_phonetic)
-        
+
         self.lbl_translation = QLabel("苹果")
         self.lbl_translation.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_translation.setStyleSheet("font-size: 20px; color: #666;")
+        self.lbl_translation.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: 20px; color: {INK_SOFT};")
         self.lbl_translation.setWordWrap(True)
         layout.addWidget(self.lbl_translation)
-        
+
         layout.addStretch()
-        
+
         # Recorder
         self.recorder_widget = RecordingWidget(self.audio_recorder)
         self.recorder_widget.recording_finished.connect(self.process_recording)
         layout.addWidget(self.recorder_widget)
-        
+
         layout.addStretch()
-        
-        # Next Button (Hidden initially)
-        self.btn_next = QPushButton("Skip / Next ➡")
+
+        # Next Button
+        self.btn_next = QPushButton("Skip / Next")
         self.btn_next.clicked.connect(self.next_exercise)
-        self.btn_next.setStyleSheet("font-size: 18px; padding: 10px; background-color: #ddd;")
+        self.btn_next.setStyleSheet(AppStyles.CARD_BUTTON)
         layout.addWidget(self.btn_next)
-        
+
         return page
         
     def stop_and_home(self):
@@ -266,17 +300,32 @@ class MainWindow(QMainWindow):
 
     def create_result_page(self):
         page = QWidget()
+        page.setStyleSheet(AppStyles.MAIN_WINDOW_BG)
         layout = QVBoxLayout(page)
+        layout.setContentsMargins(SP_5, SP_5, SP_5, SP_5)
+        layout.setSpacing(SP_3)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
+        # Reference sentence
+        self.lbl_result_reference = QLabel("")
+        self.lbl_result_reference.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_result_reference.setStyleSheet(
+            f"font-family: {FONT_FALLBACK}; font-size: 20px; font-weight: 700; "
+            f"color: {INK}; background: {DESK}; padding: {SP_3}px; "
+            f"border-radius: {RADIUS}px; margin: 0 40px;"
+        )
+        self.lbl_result_reference.setWordWrap(True)
+        layout.addWidget(self.lbl_result_reference)
+
         self.lbl_score = QLabel("Score: 95")
-        self.lbl_score.setStyleSheet("font-size: 36px; font-weight: bold; color: #2E7D32;")
+        self.lbl_score.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_score.setStyleSheet(AppStyles.SCORE_LABEL("high"))
         layout.addWidget(self.lbl_score)
-        
-        # Star Rating Layout
+
+        # Star Rating
         self.stars_layout = QHBoxLayout()
         self.stars_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.star_labels = [] 
+        self.star_labels = []
         for _ in range(3):
             l = QLabel()
             l.setFixedSize(60, 60)
@@ -284,45 +333,46 @@ class MainWindow(QMainWindow):
             self.stars_layout.addWidget(l)
             self.star_labels.append(l)
         layout.addLayout(self.stars_layout)
-        
+
         self.lbl_feedback = QLabel("Excellent!")
-        self.lbl_feedback.setStyleSheet("font-size: 24px; color: #333;")
+        self.lbl_feedback.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_feedback.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: 20px; color: {INK};")
         layout.addWidget(self.lbl_feedback)
-        
-        # Actions
+
+        # Actions — secondary buttons for non-primary, primary for continue
         btn_layout = QHBoxLayout()
-        
-        btn_play = QPushButton("🔊 Listen")
-        btn_play.setStyleSheet(AppStyles.BIG_BUTTON)
+
+        btn_play = QPushButton("Listen")
+        btn_play.setStyleSheet(AppStyles.CARD_BUTTON)
         btn_play.clicked.connect(self.play_last_recording)
         btn_layout.addWidget(btn_play)
-        
-        btn_tts = QPushButton("🗣 Standard")
-        btn_tts.setStyleSheet("background-color: #9C27B0; color: white; font-size: 20px; padding: 15px; border-radius: 10px; min-width: 150px;")
+
+        btn_tts = QPushButton("Standard")
+        btn_tts.setStyleSheet(AppStyles.CARD_BUTTON)
         btn_tts.clicked.connect(self.play_tts_reference)
         btn_layout.addWidget(btn_tts)
-        
-        btn_retry = QPushButton("Try Again 🔄")
-        btn_retry.setStyleSheet(AppStyles.BIG_BUTTON)
+
+        btn_retry = QPushButton("Try Again")
+        btn_retry.setStyleSheet(AppStyles.CARD_BUTTON)
         btn_retry.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_practice))
         btn_layout.addWidget(btn_retry)
-        
+
         layout.addLayout(btn_layout)
-        
-        # Debug Details Button (Small)
-        btn_details = QPushButton("🔍 Scoring Details")
+
+        # Debug Details (ghost, subtle)
+        btn_details = QPushButton("Scoring Details")
         btn_details.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_details.setStyleSheet("background: transparent; color: #888; border: none; text-decoration: underline;")
+        btn_details.setStyleSheet(AppStyles.GHOST_BUTTON)
         btn_details.clicked.connect(self.show_debug_details)
         layout.addWidget(btn_details)
-        
-        btn_continue = QPushButton("Next Word ➡")
-        btn_continue.setStyleSheet("background-color: #0288D1; color: white; font-size: 20px; padding: 15px; border-radius: 10px; margin-top: 20px;")
+
+        btn_continue = QPushButton("Next  (Space)")
+        btn_continue.setStyleSheet(AppStyles.BIG_BUTTON)
         btn_continue.clicked.connect(self.next_exercise)
         layout.addWidget(btn_continue)
-        
+
         self.last_recording_path = None
-        
+
         return page
 
     def open_mistakes_page(self):
@@ -332,6 +382,25 @@ class MainWindow(QMainWindow):
     def open_quiz_page(self):
         self.page_quiz.reset_to_setup()
         self.stack.setCurrentWidget(self.page_quiz)
+    
+    def open_oral_test_page(self):
+        self.page_oral_test.showEvent(None)  # Refresh data
+        self.stack.setCurrentWidget(self.page_oral_test)
+    
+    def open_oral_hub_page(self):
+        self.stack.setCurrentWidget(self.page_oral_hub)
+    
+    def open_scenario_chat_page(self):
+        self.page_scenario.reset_to_setup()
+        self.stack.setCurrentWidget(self.page_scenario)
+
+    def open_tutor_page(self):
+        self.page_tutor.reset_to_setup()
+        self.stack.setCurrentWidget(self.page_tutor)
+
+    def open_memorize_page(self):
+        self.page_memorize.refresh_data()
+        self.stack.setCurrentWidget(self.page_memorize)
 
     def start_practice_with_list(self, custom_list):
         """Starts practice with a specific list of items (e.g. mistakes)."""
@@ -356,7 +425,7 @@ class MainWindow(QMainWindow):
         config = {}
         if os.path.exists(config_path):
              try:
-                with open(config_path, 'r') as f:
+                with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
              except (json.JSONDecodeError, IOError):
                  pass
@@ -510,10 +579,52 @@ class MainWindow(QMainWindow):
             "score": score
         })
         
-        # Save Stats to Persistent DB
+        # Save Stats to Persistent DB (local copy)
         current_data['last_score'] = score
         current_data['times_practiced'] = current_data.get('times_practiced', 0) + 1
+
+        # --- 同步到 exercise_manager（错题本持久化）---
+        # 当 current_data 已经是 exercise_manager 中对象的引用（start_practice 流程），
+        # 上面的赋值已经完成了更新，无需额外处理。
+        # 当 current_data 是副本（oral_test_page / start_practice_with_list），
+        # 需要找到对应条目并更新，找不到则添加。
+        if not any(
+            current_data is item
+            for cat in self.exercise_manager.exercises
+            for item in self.exercise_manager.exercises[cat]
+        ):
+            text = current_data.get('text', '')
+            group = current_data.get('group', 'Default')
+            if text:
+                found = None
+                for cat in self.exercise_manager.exercises:
+                    for item in self.exercise_manager.exercises[cat]:
+                        if item.get('text') == text and item.get('group', 'Default') == group:
+                            found = item
+                            break
+                    if found:
+                        break
+                if found:
+                    found['last_score'] = score
+                    found['times_practiced'] = found.get('times_practiced', 0) + 1
+                else:
+                    new_item = {
+                        'text': text,
+                        'translation': current_data.get('translation', ''),
+                        'group': group,
+                        'phonetic': current_data.get('phonetic', ''),
+                        'last_score': score,
+                        'times_practiced': 1,
+                    }
+                    cat = 'sentences' if len(text.split()) > 2 else 'words'
+                    if cat not in self.exercise_manager.exercises:
+                        self.exercise_manager.exercises[cat] = []
+                    self.exercise_manager.exercises[cat].append(new_item)
+
         self.exercise_manager.save_data()
+        
+        # 在评价页展示原句
+        self.lbl_result_reference.setText(reference_text)
         
         # Display results immediately
         self.lbl_score.setText(f"Score: {score}")
@@ -521,14 +632,14 @@ class MainWindow(QMainWindow):
         self.lbl_feedback.setWordWrap(True)
         
         if score >= 90:
-            self.lbl_score.setStyleSheet("font-size: 36px; font-weight: bold; color: #2E7D32;")
+            self.lbl_score.setStyleSheet(AppStyles.SCORE_LABEL("high"))
             stars = 3
         elif score >= 70:
-            self.lbl_score.setStyleSheet("font-size: 36px; font-weight: bold; color: #F57F17;")
+            self.lbl_score.setStyleSheet(AppStyles.SCORE_LABEL("mid"))
             self.status_next_step("play_tts", 500)
             stars = 2
         else:
-            self.lbl_score.setStyleSheet("font-size: 36px; font-weight: bold; color: #D32F2F;")
+            self.lbl_score.setStyleSheet(AppStyles.SCORE_LABEL("low"))
             self.status_next_step("play_tts", 500)
             stars = 1
             
@@ -547,7 +658,7 @@ class MainWindow(QMainWindow):
             
         self.stack.setCurrentWidget(self.page_result)
         
-        # Trigger async LLM feedback (non-blocking)
+        # Trigger optional async LLM feedback (post-hoc explanation only).
         details = self.last_details
         self.ai_coach.generate_feedback_async(
             score=score,
@@ -557,9 +668,27 @@ class MainWindow(QMainWindow):
             candidates=[]
         )
         
+        # 读取配置中的停留时间（秒）
+        # dwell > 0：评价页停留 dwell 秒后自动进入下一题（无论是否自动模式）
+        # dwell == 0：手动模式，按空格 / Enter / 点击“下一题”
+        dwell = 0
+        config_path = get_user_data_path("config.json")
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    cfg = json.load(f)
+                    dwell = cfg.get("result_dwell_seconds", 0)
+            except (json.JSONDecodeError, IOError):
+                pass
+
         if self.auto_mode:
             delay = 4500 if score < 90 else 2500
+            if dwell > 0:
+                delay = dwell * 1000
             self.status_next_step("auto_next", delay)
+        elif dwell > 0:
+            # 非自动模式但配置了停留时间，也自动进入下一题
+            self.status_next_step("auto_next", dwell * 1000)
 
     def update_feedback_text(self, reference_word, feedback_text):
         """Slot for async LLM feedback. Only updates if still showing the same word."""
@@ -590,7 +719,7 @@ class MainWindow(QMainWindow):
              config_path = get_user_data_path("config.json")
              if os.path.exists(config_path):
                  try:
-                    with open(config_path, 'r') as f:
+                    with open(config_path, 'r', encoding='utf-8') as f:
                          dev_idx = json.load(f).get("device_index")
                  except Exception as e:
                      print(f"[MainWindow] Config read error: {e}")
@@ -608,21 +737,48 @@ class MainWindow(QMainWindow):
     def show_debug_details(self):
         if hasattr(self, 'last_details') and self.last_details:
             d = self.last_details
-            word_scores_str = ""
-            if d.get('word_scores'):
-                word_scores_str = ", ".join([f"{s:.2f}" for s in d['word_scores']])
-            
-            info_text = (
-                f" Recognized: {d.get('recognized', '')}\n"
-                f" Confidence: {d.get('confidence', 0):.2f}\n"
-                f" Similarity: {d.get('similarity', 0):.2f}\n"
-                f" Threshold: {d.get('threshold', 0)}\n"
-                f" Penalty Applied: -{d.get('penalty', 0):.1f}\n"
-                f" Raw Score: {d.get('raw_score', 0)}\n"
-                f" Capped: {d.get('capped', False)}\n"
-                f" Scoring Method: {d.get('scoring_method', 'N/A')}\n"
-                f" Word Scores: [{word_scores_str}]"
-            )
-            QMessageBox.information(self, "Scoring Logic (Debug)", info_text)
+            scoring_method = d.get('scoring_method', 'N/A')
+
+            lines = [
+                f" Scoring Method: {scoring_method}",
+                f" Reference: {d.get('reference', '')}",
+                f" Recognized (ASR): {d.get('recognized', '')}",
+                f" Overall Score: {d.get('overall_score', 'N/A')}",
+            ]
+
+            # GOP-specific details (words / errors / fingerprint).
+            if scoring_method.startswith("gop"):
+                lines.append(f" Model Fingerprint: {d.get('model_fingerprint', '')}")
+                lines.append(f" Pipeline Version: {d.get('pipeline_version', '')}")
+                lines.append(f" Elapsed: {d.get('elapsed_ms', 0)} ms")
+                words = d.get('words') or []
+                if words:
+                    word_str = ", ".join(f"{w.get('word','')}={w.get('score',0)}" for w in words)
+                    lines.append(f" Word Scores: {word_str}")
+                errors = d.get('errors') or []
+                if errors:
+                    err_str = "; ".join(
+                        f"{e.get('type','')}({e.get('expected','')}->{e.get('actual','')}@{e.get('word','')})"
+                        for e in errors[:6]
+                    )
+                    lines.append(f" Errors: {err_str}")
+
+            if d.get("error"):
+                lines.append(f" Error: {d['error']}")
+
+            QMessageBox.information(self, "Scoring Logic (Debug)", "\n".join(lines))
         else:
             QMessageBox.information(self, "Debug", "No details available for this recording.")
+
+    # ========== 全局快捷键 ==========
+    def keyPressEvent(self, event):
+        """Handle global keyboard shortcuts.
+
+        - 评价页：按空格键 / Enter 键进入下一题
+        """
+        # Space / Enter on result page -> next exercise
+        if self.stack.currentWidget() == self.page_result:
+            if event.key() in (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.next_exercise()
+                return
+        super().keyPressEvent(event)

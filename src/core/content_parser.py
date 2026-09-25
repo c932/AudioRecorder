@@ -8,6 +8,20 @@ import mimetypes
 import io
 
 
+def _normalize_openai_base_url(base_url: str) -> str:
+    """Ensure base_url ends with '/v1' so the OpenAI SDK can correctly build
+    '/chat/completions'. If user input lacks the suffix, append it.
+    Most OpenAI-compatible servers (llama.cpp, vLLM, Ollama, OpenAI) expose
+    '/v1/chat/completions', so a missing '/v1' yields a 404 {"detail":"Not Found"}.
+    """
+    if not base_url:
+        return base_url
+    base_url = base_url.rstrip("/")
+    if not base_url.endswith("/v1"):
+        base_url = base_url + "/v1"
+    return base_url
+
+
 def _get_llm_client_and_model(config):
     """
     Returns (OpenAI_client, model_name) based on config's ai_provider.
@@ -18,7 +32,7 @@ def _get_llm_client_and_model(config):
     provider = config.get("ai_provider", "")
     
     if "Custom" in provider:
-        base_url = config.get("custom_base", "http://localhost:8080/v1")
+        base_url = _normalize_openai_base_url(config.get("custom_base", "http://localhost:8080/v1"))
         api_key = config.get("custom_key") or "not-needed"
         model = config.get("custom_model", "")
         if not model:
@@ -26,20 +40,36 @@ def _get_llm_client_and_model(config):
         return OpenAI(base_url=base_url, api_key=api_key), model
         
     elif "Ollama" in provider:
-        base_url = config.get("ollama_base", "http://localhost:11434/v1")
+        base_url = _normalize_openai_base_url(config.get("ollama_base", "http://localhost:11434/v1"))
         api_key = "ollama"
         model = config.get("ollama_model", "qwen2.5")
         return OpenAI(base_url=base_url, api_key=api_key), model
         
     elif "OpenAI" in provider:
-        base_url = config.get("openai_base", "https://api.openai.com/v1")
+        base_url = _normalize_openai_base_url(config.get("openai_base", "https://api.openai.com/v1"))
         api_key = config.get("openai_key", "")
         model = config.get("openai_model", "gpt-4o")
         if not api_key:
             raise RuntimeError("OpenAI API key not configured.")
         return OpenAI(base_url=base_url, api_key=api_key), model
-    
+
     raise RuntimeError(f"No LLM provider configured. ai_provider='{provider}'. Please configure in Settings > AI Engine.")
+
+
+def _get_omni_client(config):
+    """Factory for the MiniCPM-o OmniClient (custom JWT+SSE API).
+
+    Returns an OmniClient instance, or raises if omni is not configured.
+    Use this instead of _get_llm_client_and_model when ai_provider is Omni.
+    """
+    from src.core.omni_client import OmniClient, OmniConfig
+    return OmniClient(OmniConfig.from_config(config))
+
+
+def _is_omni_provider(config) -> bool:
+    """True if the config's ai_provider selects the MiniCPM-o omni channel."""
+    provider = config.get("ai_provider", "")
+    return "Omni" in provider or "MiniCPM" in provider
 
 
 class ContentParser:

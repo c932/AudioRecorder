@@ -1,0 +1,3268 @@
+{
+  "banks": [
+    {
+      "id": "40729b39",
+      "name": "口语测试_Treasurebox-6B",
+      "source_groups": [
+        "Treasurebox-6BU1",
+        "Treasurebox-6BU2",
+        "Treasurebox-6BU3",
+        "Treasurebox-6BU4",
+        "Treasurebox-6BU5",
+        "Treasurebox-6BU6"
+      ],
+      "sentence_count": 406,
+      "created_at": "2026-06-20T14:34:45.708652",
+      "sentences": [
+        {
+          "type": "generated",
+          "text": "I admire sb. most for his kindness.",
+          "translation": "我最钦佩某人的善良。",
+          "source_word": "admire sb. most",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "admire sb. most"
+        },
+        {
+          "type": "generated",
+          "text": "Everyone is unique and special.",
+          "translation": "每个人都是独一无二的。",
+          "source_word": "Everyone is unique.",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "Everyone is unique."
+        },
+        {
+          "type": "generated",
+          "text": "It's our turn to make a change.",
+          "translation": "轮到我们做出改变了。",
+          "source_word": "It's our turn to make a change.",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "It's our turn to make a change."
+        },
+        {
+          "type": "generated",
+          "text": "Winning the game is a great achievement.",
+          "translation": "赢得比赛是一项伟大的成就。",
+          "source_word": "achievement",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "achievement"
+        },
+        {
+          "type": "generated",
+          "text": "We should take action to make Singapore greener.",
+          "translation": "我们应该采取行动让新加坡更环保。",
+          "source_word": "take action to make Singapore greener",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "take action to make Singapore greener"
+        },
+        {
+          "type": "generated",
+          "text": "The story brings the characters to life.",
+          "translation": "这个故事使人物栩栩如生。",
+          "source_word": "bring ... to life",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "bring ... to life"
+        },
+        {
+          "type": "generated",
+          "text": "She wants to impress her teacher with good work.",
+          "translation": "她想用出色的表现给老师留下深刻印象。",
+          "source_word": "impress sb.",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "impress sb."
+        },
+        {
+          "type": "generated",
+          "text": "We love environmental protection to keep the earth clean.",
+          "translation": "我们热爱环境保护，以保持地球清洁。",
+          "source_word": "environmental protection",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "environmental protection"
+        },
+        {
+          "type": "generated",
+          "text": "Try to make a self-introduction clear and unique.",
+          "translation": "试着使自我介绍清晰独特。",
+          "source_word": "make a self-introduction clear and unique",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "make a self-introduction clear and unique"
+        },
+        {
+          "type": "generated",
+          "text": "I need someone to help me.",
+          "translation": "我需要有人来帮我。",
+          "source_word": "need someone to help",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "need someone to help"
+        },
+        {
+          "type": "generated",
+          "text": "Please read the signs and rules carefully before entering.",
+          "translation": "进入之前请仔细阅读标志和规则。",
+          "source_word": "signs and rules",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "signs and rules"
+        },
+        {
+          "type": "generated",
+          "text": "I want to speak good English.",
+          "translation": "我想说一口流利的英语。",
+          "source_word": "speak good English",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "speak good English"
+        },
+        {
+          "type": "generated",
+          "text": "Please remember: No leaning. on the windows.",
+          "translation": "请记住：禁止倚靠窗户。",
+          "source_word": "No leaning.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "No leaning."
+        },
+        {
+          "type": "generated",
+          "text": "In the early 1610s, he went back to his hometown and kept writing.",
+          "translation": "在17世纪10年代早期，他回到家乡，继续写作。",
+          "source_word": "In the early 1610s, he went back to his hometown and kept writing.",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "kept writing"
+        },
+        {
+          "type": "generated",
+          "text": "Please share a short biography with us.",
+          "translation": "请与我们分享一则简短的人物传记。",
+          "source_word": "share a short biography",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "share a short biography"
+        },
+        {
+          "type": "generated",
+          "text": "She has curly hair that looks very nice.",
+          "translation": "她有看起来很漂亮的卷发。",
+          "source_word": "curly/ straight hair",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "curly/ straight hair"
+        },
+        {
+          "type": "generated",
+          "text": "You can try your luck at the game.",
+          "translation": "你可以在游戏中碰碰运气。",
+          "source_word": "try one's luck",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "try one's luck"
+        },
+        {
+          "type": "generated",
+          "text": "The trash can had some rotten cabbage.",
+          "translation": "垃圾桶里有一些烂卷心菜。",
+          "source_word": "some rotten cabbage",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "some rotten cabbage"
+        },
+        {
+          "type": "generated",
+          "text": "He wants to write a famous book.",
+          "translation": "他想写一本著名的书。",
+          "source_word": "write a famous book on Traditional Chinese Medicine",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "write"
+        },
+        {
+          "type": "generated",
+          "text": "Students like to act in plays at school.",
+          "translation": "学生们喜欢在学校里在剧中扮演角色。",
+          "source_word": "act in plays",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "act in plays"
+        },
+        {
+          "type": "generated",
+          "text": "We read about five great scientists who changed the world.",
+          "translation": "我们阅读了关于五位改变了世界的伟大科学家。",
+          "source_word": "five great scientists who changed the world",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "five great scientists who changed the world"
+        },
+        {
+          "type": "generated",
+          "text": "We are be good at different things in class.",
+          "translation": "我们在课堂上擅长不同的事物。",
+          "source_word": "be good at different things",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "be good at different things"
+        },
+        {
+          "type": "generated",
+          "text": "This temple has a history of thousands of years.",
+          "translation": "这座寺庙拥有几千年的历史。",
+          "source_word": "with a history of thousands of years",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a history of thousands of years"
+        },
+        {
+          "type": "generated",
+          "text": "Please mind the gap on the stairs.",
+          "translation": "请注意楼梯上的间隙。",
+          "source_word": "mind the gap",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "mind the gap"
+        },
+        {
+          "type": "generated",
+          "text": "I will visit you in a few years.",
+          "translation": "几年后我会去看望你。",
+          "source_word": "in a few years",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "in a few years"
+        },
+        {
+          "type": "generated",
+          "text": "It is illegal to break into a house.",
+          "translation": "破门闯入一间房子是违法的。",
+          "source_word": "break into a house",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "break into a house"
+        },
+        {
+          "type": "generated",
+          "text": "We eat sweet dumplings at the Lantern Festival.",
+          "translation": "我们在元宵节吃汤圆。",
+          "source_word": "Lantern Festival",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "Lantern Festival"
+        },
+        {
+          "type": "generated",
+          "text": "We can make useful things out of rubbish.",
+          "translation": "我们可以变废为宝。",
+          "source_word": "make useful things out of rubbish",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "make useful things out of rubbish"
+        },
+        {
+          "type": "generated",
+          "text": "I am Asian and I like Chinese food.",
+          "translation": "我是亚洲人，我喜欢中国食物。",
+          "source_word": "Asian",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "Asian"
+        },
+        {
+          "type": "generated",
+          "text": "You can use a weather app.",
+          "translation": "你可以使用一个天气应用程序。",
+          "source_word": "use a weather app",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "use a weather app"
+        },
+        {
+          "type": "generated",
+          "text": "Can you understand the moral of this story?",
+          "translation": "你能理解这个故事的寓意吗？",
+          "source_word": "understand the moral",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "understand the moral"
+        },
+        {
+          "type": "generated",
+          "text": "You can walk or cycle to school.",
+          "translation": "你可以步行或骑车去学校。",
+          "source_word": "walk or cycle to school",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "walk or cycle to school"
+        },
+        {
+          "type": "generated",
+          "text": "It is twelve degrees Celsius below zero today.",
+          "translation": "今天是零下 12 摄氏度。",
+          "source_word": "twelve degrees Celsius below zero / minus twelve degrees Celsius",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "twelve degrees Celsius below zero / minus twelve degrees Celsius"
+        },
+        {
+          "type": "generated",
+          "text": "I have a dream of flying in the sky.",
+          "translation": "我有一个在天空中飞翔的梦。",
+          "source_word": "have a dream",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "have a dream"
+        },
+        {
+          "type": "generated",
+          "text": "We encourage people to take public transport.",
+          "translation": "我们鼓励人们乘坐公共交通。",
+          "source_word": "encourage people to take public transport",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "encourage people to take public transport"
+        },
+        {
+          "type": "generated",
+          "text": "The water is ten Celsius degrees hot.",
+          "translation": "水是十摄氏度的热度。",
+          "source_word": "Celsius",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "Celsius"
+        },
+        {
+          "type": "generated",
+          "text": "We mustn't swim in the water when we see a red flag.",
+          "translation": "当看到红旗的时候，我们禁止在海里游泳。",
+          "source_word": "We mustn't swim in the water when we see a red flag.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "We mustn't swim in the water when we see a red flag."
+        },
+        {
+          "type": "generated",
+          "text": "How about drumming by Lin Dong?",
+          "translation": "林东来打鼓怎么样？",
+          "source_word": "How about drumming by Lin Dong?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "How about drumming by Lin Dong?"
+        },
+        {
+          "type": "generated",
+          "text": "Do not miss a turn.",
+          "translation": "不要轮空一次。",
+          "source_word": "miss a turn",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "miss a turn"
+        },
+        {
+          "type": "generated",
+          "text": "Please keep quiet during the movie.",
+          "translation": "看电影时请保持安静。",
+          "source_word": "keep quiet",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "keep quiet"
+        },
+        {
+          "type": "generated",
+          "text": "He hopes to become a famous writer and speaker.",
+          "translation": "他希望成为一名著名的作家和演说家。",
+          "source_word": "become a famous writer and speaker",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "become a famous writer and speaker"
+        },
+        {
+          "type": "generated",
+          "text": "Please take it off now.",
+          "translation": "请现在把它拿走。",
+          "source_word": "take it off",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "take it off"
+        },
+        {
+          "type": "generated",
+          "text": "We study the effect of weather on our lives.",
+          "translation": "我们研究天气对我们生活的影响。",
+          "source_word": "the effect of weather on our lives",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "the effect of weather on our lives"
+        },
+        {
+          "type": "generated",
+          "text": "The bird has beautiful feathers and dancing skills.",
+          "translation": "这只鸟有美丽的羽毛和舞技。",
+          "source_word": "with beautiful feathers and dancing skills",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "beautiful feathers and dancing skills"
+        },
+        {
+          "type": "generated",
+          "text": "A bear lives in a forest.",
+          "translation": "一只熊住在森林里。",
+          "source_word": "in a forest",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "in a forest"
+        },
+        {
+          "type": "generated",
+          "text": "We make cloth bags for shopping.",
+          "translation": "我们制作布袋用于购物。",
+          "source_word": "make cloth bags",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "make cloth bags"
+        },
+        {
+          "type": "generated",
+          "text": "I love learning about Chinese celebrations like Spring Festival.",
+          "translation": "我喜欢了解像春节这样的中国的庆祝方式。",
+          "source_word": "Chinese celebrations",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "Chinese celebrations"
+        },
+        {
+          "type": "generated",
+          "text": "We collect information about the wind direction and wind speed.",
+          "translation": "我们收集风向和风速信息。",
+          "source_word": "collect information about the wind direction and wind speed",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "collect information about the wind direction and wind speed"
+        },
+        {
+          "type": "generated",
+          "text": "He arrived in the late 1580s.",
+          "translation": "他在16世纪80年代末到达。",
+          "source_word": "in the late 1580s",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "in the late 1580s"
+        },
+        {
+          "type": "generated",
+          "text": "I like the story of Chang'e flying to the moon.",
+          "translation": "我喜欢嫦娥奔月的故事。",
+          "source_word": "the story of Chang'e flying to the moon",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "the story of Chang'e flying to the moon"
+        },
+        {
+          "type": "generated",
+          "text": "Kids meet with problems in their lives.",
+          "translation": "孩子们在他们的生活中遇到困难。",
+          "source_word": "meet with problems in their lives",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "meet with problems in their lives"
+        },
+        {
+          "type": "generated",
+          "text": "This medicine helps you get better quickly with penicillin.",
+          "translation": "这种药含有青霉素，能帮你快速康复。",
+          "source_word": "penicillin",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "penicillin"
+        },
+        {
+          "type": "generated",
+          "text": "Let us go to the beach today.",
+          "translation": "让我们今天去海边吧。",
+          "source_word": "go to the beach",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "go to the beach"
+        },
+        {
+          "type": "generated",
+          "text": "There are millions of Shakespeare fans here.",
+          "translation": "这里有数百万的莎士比亚粉丝。",
+          "source_word": "millions of Shakespeare fans",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "millions of Shakespeare fans"
+        },
+        {
+          "type": "generated",
+          "text": "I recommend this book for you.",
+          "translation": "我向你推荐这本书。",
+          "source_word": "recommend",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "recommend"
+        },
+        {
+          "type": "generated",
+          "text": "He is a Brazilian football player.",
+          "translation": "他是一名巴西足球运动员。",
+          "source_word": "Brazilian",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "Brazilian"
+        },
+        {
+          "type": "generated",
+          "text": "The high humidity makes me feel hot.",
+          "translation": "高湿度让我感觉很热。",
+          "source_word": "humidity",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "humidity"
+        },
+        {
+          "type": "generated",
+          "text": "I like to experience hot weather in summer.",
+          "translation": "我喜欢在夏天体验炎热天气。",
+          "source_word": "experience hot weather",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "experience hot weather"
+        },
+        {
+          "type": "generated",
+          "text": "Our class will have a spring outing.",
+          "translation": "我们班将进行一次春游。",
+          "source_word": "have a spring outing",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "have a spring outing"
+        },
+        {
+          "type": "generated",
+          "text": "Shakespeare wrote his four famous tragedies.",
+          "translation": "莎士比亚写了他四大悲剧。",
+          "source_word": "his four famous tragedies",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "his four famous tragedies"
+        },
+        {
+          "type": "generated",
+          "text": "We use clocks to tell time.",
+          "translation": "我们使用钟表来报时。",
+          "source_word": "tell time",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "tell time"
+        },
+        {
+          "type": "generated",
+          "text": "We play games during summer holidays.",
+          "translation": "我们在暑假期间做游戏。",
+          "source_word": "during summer holidays",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "during summer holidays"
+        },
+        {
+          "type": "generated",
+          "text": "It is time to get started on your homework.",
+          "translation": "是时候开始做你的作业了。",
+          "source_word": "get started",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "get started"
+        },
+        {
+          "type": "generated",
+          "text": "Please share your thoughts and feelings.",
+          "translation": "请分享你的想法和感受。",
+          "source_word": "share your thoughts and feelings",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "share your thoughts and feelings"
+        },
+        {
+          "type": "generated",
+          "text": "He will fall ill if he does not rest.",
+          "translation": "如果他不停休息，他就会病倒。",
+          "source_word": "fall ill(fall-fell-fallen)",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "fall ill(fall-fell-fallen)"
+        },
+        {
+          "type": "generated",
+          "text": "Please give me a thumbs-up.",
+          "translation": "请给我点赞。",
+          "source_word": "give me a thumbs-up",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "give me a thumbs-up"
+        },
+        {
+          "type": "generated",
+          "text": "Please ask for repetition if you do not hear clearly.",
+          "translation": "如果你没听清，请请求重复。",
+          "source_word": "ask for repetition",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "ask for repetition"
+        },
+        {
+          "type": "generated",
+          "text": "Our school will have a student talent show.",
+          "translation": "我们学校将举办学生才艺秀。",
+          "source_word": "have a student talent show",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "have a student talent show"
+        },
+        {
+          "type": "generated",
+          "text": "Please be quiet, as it is now my turn to do sth.",
+          "translation": "请保持安静，因为现在轮到我做某事了。",
+          "source_word": "It's sb.'s turn to do sth.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "turn to do sth"
+        },
+        {
+          "type": "generated",
+          "text": "What are your favourite seasons and activities?",
+          "translation": "你最喜欢的季节和活动是什么？",
+          "source_word": "favourite seasons and activities",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "favourite seasons and activities"
+        },
+        {
+          "type": "generated",
+          "text": "Besides the weather, what else does the weatherman say?",
+          "translation": "除了天气之外，气象员还说了什么？",
+          "source_word": "Besides the weather, what else does the weatherman say?",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "Besides the weather, what else does the weatherman say?"
+        },
+        {
+          "type": "generated",
+          "text": "My cat is different from your dog.",
+          "translation": "我的猫和你的狗不一样。",
+          "source_word": "be different from",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "be different from"
+        },
+        {
+          "type": "generated",
+          "text": "Please wait at the yellow line for the bus.",
+          "translation": "请在黄线处等候公交车。",
+          "source_word": "wait at the yellow line",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "wait at the yellow line"
+        },
+        {
+          "type": "generated",
+          "text": "The rising average temperature worries many people.",
+          "translation": "不断上升的平均气温让许多人感到担忧。",
+          "source_word": "rising average temperature",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "rising average temperature"
+        },
+        {
+          "type": "generated",
+          "text": "We use a scale to weigh the rocks.",
+          "translation": "我们使用秤来给石头称重。",
+          "source_word": "weigh the rocks",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "weigh the rocks"
+        },
+        {
+          "type": "generated",
+          "text": "Please pay attention to the teacher.",
+          "translation": "请注意老师。",
+          "source_word": "pay attention to sb. /sth.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "pay attention to sb. /sth."
+        },
+        {
+          "type": "generated",
+          "text": "We love the Earth Day celebrations at school.",
+          "translation": "我们喜欢学校里的地球日庆典。",
+          "source_word": "Earth Day celebrations",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "Earth Day celebrations"
+        },
+        {
+          "type": "generated",
+          "text": "Be careful on the escalator.",
+          "translation": "在自动扶梯上要小心。",
+          "source_word": "on the escalator",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "on the escalator"
+        },
+        {
+          "type": "generated",
+          "text": "My finger will feel pain if I touch the fire.",
+          "translation": "如果我的手碰到火，手指会感到疼痛。",
+          "source_word": "feel pain",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "feel pain"
+        },
+        {
+          "type": "generated",
+          "text": "We love our environmental classes.",
+          "translation": "我们喜欢我们的环保类课程。",
+          "source_word": "environmental classes",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "environmental classes"
+        },
+        {
+          "type": "generated",
+          "text": "The artist likes to design stamps of famous people.",
+          "translation": "这位艺术家喜欢设计名人邮票。",
+          "source_word": "design stamps of famous people",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "design stamps of famous people"
+        },
+        {
+          "type": "generated",
+          "text": "They pour water over one another for good luck.",
+          "translation": "他们互相泼水以求好运。",
+          "source_word": "pour water over one another for good luck",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "pour water over one another for good luck"
+        },
+        {
+          "type": "generated",
+          "text": "Einstein is famous for his theory of relativity.",
+          "translation": "爱因斯坦因他的相对论理论而闻名。",
+          "source_word": "relativity",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "relativity"
+        },
+        {
+          "type": "generated",
+          "text": "I saw him in the underground station.",
+          "translation": "我在地铁站看到了他。",
+          "source_word": "in the underground station",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "in the underground station"
+        },
+        {
+          "type": "generated",
+          "text": "We read information about the waves.",
+          "translation": "我们阅读关于海浪的信息。",
+          "source_word": "information about the waves",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "information about the waves"
+        },
+        {
+          "type": "generated",
+          "text": "You can express feelings by drawing pictures.",
+          "translation": "你可以通过画画来表达感情。",
+          "source_word": "express feelings",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "express feelings"
+        },
+        {
+          "type": "generated",
+          "text": "You should give your seat to anyone in need.",
+          "translation": "你应该给任何有需要的人让座。",
+          "source_word": "give your seat to anyone in need",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "give your seat to anyone in need"
+        },
+        {
+          "type": "generated",
+          "text": "You can try writing plays at home.",
+          "translation": "你可以在家试着写剧本。",
+          "source_word": "try writing plays",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "try writing plays"
+        },
+        {
+          "type": "generated",
+          "text": "I see signs everywhere in the park.",
+          "translation": "我在公园里到处都能看到标志。",
+          "source_word": "see signs everywhere",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "see signs everywhere"
+        },
+        {
+          "type": "generated",
+          "text": "The musician can play The Butterfly Lovers.",
+          "translation": "这位音乐家能演奏《梁祝》。",
+          "source_word": "play The Butterfly Lovers",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "play The Butterfly Lovers"
+        },
+        {
+          "type": "generated",
+          "text": "Please roll the dice now.",
+          "translation": "请现在掷骰子。",
+          "source_word": "roll the dice",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "roll the dice"
+        },
+        {
+          "type": "generated",
+          "text": "What rules do you think students must follow?",
+          "translation": "你认为学生必须遵守哪些规则？",
+          "source_word": "What rules do you think students must follow?",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "What rules do you think students must follow?"
+        },
+        {
+          "type": "generated",
+          "text": "You can shoot in one minute.",
+          "translation": "你可以在一分钟内投篮。",
+          "source_word": "shoot in one minute",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "shoot in one minute"
+        },
+        {
+          "type": "generated",
+          "text": "My class visited the Science and Technology Museum.",
+          "translation": "我的班级参观了科技博物馆。",
+          "source_word": "the Science and Technology Museum",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "the Science and Technology Museum"
+        },
+        {
+          "type": "generated",
+          "text": "What can we learn from them?",
+          "translation": "我们能从他们身上学到什么？",
+          "source_word": "What can we learn from them?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "What can we learn from them?"
+        },
+        {
+          "type": "generated",
+          "text": "She loves to dance ballet.",
+          "translation": "她喜欢跳芭蕾。",
+          "source_word": "ballet",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "ballet"
+        },
+        {
+          "type": "generated",
+          "text": "I can hear my mom's voice.",
+          "translation": "我能听到妈妈的声音。",
+          "source_word": "hear sb.'s voice",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "hear sb.'s voice"
+        },
+        {
+          "type": "generated",
+          "text": "Plants grow big and strong with water.",
+          "translation": "植物浇水后会长得高大结实。",
+          "source_word": "grow big and strong",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "grow big and strong"
+        },
+        {
+          "type": "generated",
+          "text": "We hope for a long life.",
+          "translation": "我们祈愿长寿。",
+          "source_word": "hope for a long life",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "hope for a long life"
+        },
+        {
+          "type": "generated",
+          "text": "The turtle moves at a different speed than the rabbit.",
+          "translation": "乌龟以不同于兔子的速度移动。",
+          "source_word": "at a different speed",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "at a different speed"
+        },
+        {
+          "type": "generated",
+          "text": "What do they look like?",
+          "translation": "他们长得怎么样？",
+          "source_word": "What do they look like?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "What do they look like?"
+        },
+        {
+          "type": "generated",
+          "text": "Can you predict if it will rain today?",
+          "translation": "你能预测今天会下雨吗？",
+          "source_word": "predict",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "predict"
+        },
+        {
+          "type": "generated",
+          "text": "The frog can jump far in the pond.",
+          "translation": "这只青蛙能在池塘里跳得很远。",
+          "source_word": "jump far",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "jump far"
+        },
+        {
+          "type": "generated",
+          "text": "Solar power is a type of clean energy.",
+          "translation": "太阳能是一种清洁的能源。",
+          "source_word": "clean energy",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "clean energy"
+        },
+        {
+          "type": "generated",
+          "text": "Rules make our school a better place.",
+          "translation": "规则让我们的学校变得更好。",
+          "source_word": "School will be a better place without any rules.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "School will be a better place without any rules."
+        },
+        {
+          "type": "generated",
+          "text": "What makes her different from others?",
+          "translation": "什么使她与其他人不同？",
+          "source_word": "What makes her different from others?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "What makes her different from others?"
+        },
+        {
+          "type": "generated",
+          "text": "She likes to show interest in art.",
+          "translation": "她喜欢在艺术方面展现兴趣。",
+          "source_word": "show interest in...",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "show interest in..."
+        },
+        {
+          "type": "generated",
+          "text": "Remember, no food or drinks in the lab.",
+          "translation": "记住，实验室里禁止饮食。",
+          "source_word": "No food or drinks in the lab.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "No food or drinks in the lab."
+        },
+        {
+          "type": "generated",
+          "text": "The teacher will teach us how to plant sunflowers.",
+          "translation": "老师将教我们如何种向日葵。",
+          "source_word": "teach us how to plant sunflowers",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "teach us how to plant sunflowers"
+        },
+        {
+          "type": "generated",
+          "text": "We prepare a group presentation for class.",
+          "translation": "我们为课堂准备了一个小组展示。",
+          "source_word": "prepare a group presentation",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "prepare a group presentation"
+        },
+        {
+          "type": "generated",
+          "text": "I will write a diary about green experiences.",
+          "translation": "我将写一篇有关绿色经历的日记。",
+          "source_word": "write a diary about green experiences",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "write a diary about green experiences"
+        },
+        {
+          "type": "generated",
+          "text": "Please give clear and precise instructions.",
+          "translation": "请给出清楚又明确的指示。",
+          "source_word": "clear and precise",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "clear and precise"
+        },
+        {
+          "type": "generated",
+          "text": "We use fans to deal with the heat.",
+          "translation": "我们使用风扇来应对高温。",
+          "source_word": "do with/deal with the heat",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "deal with the heat"
+        },
+        {
+          "type": "generated",
+          "text": "Sun Tzu's book is one of the most famous Chinese books about warfare.",
+          "translation": "孙子的书是最著名的中国兵书书籍之一。",
+          "source_word": "one of the most famous Chinese books about warfare",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "one of the most famous Chinese books about warfare"
+        },
+        {
+          "type": "generated",
+          "text": "We will make a display board about seasonal activities.",
+          "translation": "我们将制作一个关于季节性活动的展示板。",
+          "source_word": "make a display board about seasonal activities",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "make a display board about seasonal activities"
+        },
+        {
+          "type": "generated",
+          "text": "We eat lucky foods on New Year's Day.",
+          "translation": "我们在新年那天吃幸运食物。",
+          "source_word": "lucky foods",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "lucky foods"
+        },
+        {
+          "type": "generated",
+          "text": "Please offer to help your classmates with homework.",
+          "translation": "请主动提出帮助同学做作业。",
+          "source_word": "offer to do sth.",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "offer to do sth."
+        },
+        {
+          "type": "generated",
+          "text": "How happy we were at the party!",
+          "translation": "我们在聚会上是多么高兴啊！",
+          "source_word": "How happy we were!",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "How happy we were!"
+        },
+        {
+          "type": "generated",
+          "text": "Please listen to others carefully in class.",
+          "translation": "请上课认真听别人发言。",
+          "source_word": "Listen to others carefully in class.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "listen to others carefully in class"
+        },
+        {
+          "type": "generated",
+          "text": "Let us guess riddles together during the party.",
+          "translation": "让我们在聚会期间一起猜谜。",
+          "source_word": "guess riddles",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "guess riddles"
+        },
+        {
+          "type": "generated",
+          "text": "He wants to publish a paper on space.",
+          "translation": "他想发表一篇关于太空的论文。",
+          "source_word": "publish a paper on ...",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "publish a paper on ..."
+        },
+        {
+          "type": "generated",
+          "text": "The teacher will teach a lesson about honesty.",
+          "translation": "老师将上一堂关于诚实的课。",
+          "source_word": "teach a lesson",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "teach a lesson"
+        },
+        {
+          "type": "generated",
+          "text": "We can play indoors when it rains.",
+          "translation": "下雨时我们可以在室内玩耍。",
+          "source_word": "play indoors",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "play indoors"
+        },
+        {
+          "type": "generated",
+          "text": "She draws pictures for our noticeboards.",
+          "translation": "她为我们的布告栏画画。",
+          "source_word": "draw pictures for our noticeboards",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "draw pictures for our noticeboards"
+        },
+        {
+          "type": "generated",
+          "text": "It can make the light bulb work for over 13 hours.",
+          "translation": "它能使电灯泡持续工作超过13个小时。",
+          "source_word": "make the light bulb work for over 13 hours",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "make the light bulb work for over 13 hours"
+        },
+        {
+          "type": "generated",
+          "text": "It helps in many areas.",
+          "translation": "它在许多领域都有帮助。",
+          "source_word": "in many areas",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "in many areas"
+        },
+        {
+          "type": "generated",
+          "text": "We enjoyed a big meal together.",
+          "translation": "我们一起享用了一顿丰盛的晚餐。",
+          "source_word": "a big meal",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a big meal"
+        },
+        {
+          "type": "generated",
+          "text": "The baby's head began to wobble.",
+          "translation": "婴儿的头开始摇晃起来。",
+          "source_word": "wobble",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "wobble"
+        },
+        {
+          "type": "generated",
+          "text": "I see the girl in the blue skirt.",
+          "translation": "我看见那个穿蓝色裙子的女孩。",
+          "source_word": "the girl in the blue skirt",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "the girl in the blue skirt"
+        },
+        {
+          "type": "generated",
+          "text": "We eat dinner on New Year's Eve.",
+          "translation": "我们在除夕夜吃晚餐。",
+          "source_word": "on New Year's Eve",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "on New Year's Eve"
+        },
+        {
+          "type": "generated",
+          "text": "Where else can you find the sign?",
+          "translation": "你还能在哪儿找到那个标志？",
+          "source_word": "Where else can you find the sign...?",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "sign"
+        },
+        {
+          "type": "generated",
+          "text": "Why not go on an outing today?",
+          "translation": "为什么今天不去郊游呢？",
+          "source_word": "Why not go on an outing?",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "Why not go on an outing?"
+        },
+        {
+          "type": "generated",
+          "text": "Scientists launch weather balloons to check the sky.",
+          "translation": "科学家发射气象气球来检查天空。",
+          "source_word": "weather balloons",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "weather balloons"
+        },
+        {
+          "type": "generated",
+          "text": "This tea is be made from herbs.",
+          "translation": "这种茶是由草药制成的。",
+          "source_word": "be made from herbs",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "be made from herbs"
+        },
+        {
+          "type": "generated",
+          "text": "We can collect some information from the library.",
+          "translation": "我们可以从图书馆收集一些信息。",
+          "source_word": "collect some information",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "collect some information"
+        },
+        {
+          "type": "generated",
+          "text": "You can start your conversation with a comment.",
+          "translation": "你可以用评论开始你们的对话。",
+          "source_word": "start your conversation with a comment",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "start your conversation with a comment"
+        },
+        {
+          "type": "generated",
+          "text": "You need to turn right at the corner.",
+          "translation": "你需要在拐角处向右转。",
+          "source_word": "turn right/left",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "turn right/left"
+        },
+        {
+          "type": "generated",
+          "text": "We often read books at lunchtime.",
+          "translation": "我们经常在午餐时间读书。",
+          "source_word": "at lunchtime",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "at lunchtime"
+        },
+        {
+          "type": "generated",
+          "text": "Her scientific work helped treat cancer.",
+          "translation": "她的科研成果有助于治疗癌症。",
+          "source_word": "Her scientific work helped treat cancer.",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "Her scientific work helped treat cancer."
+        },
+        {
+          "type": "generated",
+          "text": "We throw a plate in the air for good luck.",
+          "translation": "我们把一个盘子扔到空中以求好运。",
+          "source_word": "throw a plate in the air",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "throw a plate in the air"
+        },
+        {
+          "type": "generated",
+          "text": "What happened to the UK?",
+          "translation": "英国怎么了？",
+          "source_word": "What happened to the UK?",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "What happened to the UK?"
+        },
+        {
+          "type": "generated",
+          "text": "We eat mooncakes on the 15th day of the eighth month.",
+          "translation": "我们在八月十五吃月饼。",
+          "source_word": "the 15th day of the eighth month",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "the 15th day of the eighth month"
+        },
+        {
+          "type": "generated",
+          "text": "We watch lantern shows at night.",
+          "translation": "我们在晚上观赏灯会。",
+          "source_word": "watch lantern shows",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "watch lantern shows"
+        },
+        {
+          "type": "generated",
+          "text": "We met at a local tea house yesterday.",
+          "translation": "我们昨天在一家本地的茶馆见面。",
+          "source_word": "a local tea house",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a local tea house"
+        },
+        {
+          "type": "generated",
+          "text": "Please underline the details in the text.",
+          "translation": "请在课文中划出细节。",
+          "source_word": "underline the details",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "underline the details"
+        },
+        {
+          "type": "generated",
+          "text": "He likes to repair old items.",
+          "translation": "他喜欢修理旧物。",
+          "source_word": "repair old items",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "repair old items"
+        },
+        {
+          "type": "generated",
+          "text": "Ignoring it will make it worse day by day.",
+          "translation": "忽视它会使情况一天比一天糟。",
+          "source_word": "make it worse day by day",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "make it worse day by day"
+        },
+        {
+          "type": "generated",
+          "text": "We must stop people who cut down forests.",
+          "translation": "我们必须阻止那些砍伐森林的人。",
+          "source_word": "cut down forests",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "cut down forests"
+        },
+        {
+          "type": "generated",
+          "text": "He put a seal on the letter.",
+          "translation": "他在信上盖了一个印章。",
+          "source_word": "seal",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "seal"
+        },
+        {
+          "type": "generated",
+          "text": "We should save electricity by turning off lights.",
+          "translation": "我们应该通过关灯来节约电。",
+          "source_word": "save / waste electricity",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "save / waste electricity"
+        },
+        {
+          "type": "generated",
+          "text": "I will read a speech on Earth Day.",
+          "translation": "我将在地球日读一篇演讲。",
+          "source_word": "read a speech on Earth Day",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "read a speech on Earth Day"
+        },
+        {
+          "type": "generated",
+          "text": "She wants to break records.",
+          "translation": "她想打破记录。",
+          "source_word": "break records(break-broke-broken)",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "break records(break-broke-broken)"
+        },
+        {
+          "type": "generated",
+          "text": "The museum is open to the public every day.",
+          "translation": "博物馆每天向公众开放。",
+          "source_word": "the public",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "the public"
+        },
+        {
+          "type": "generated",
+          "text": "I want to travel in the future.",
+          "translation": "我想在未来去旅行。",
+          "source_word": "in the future",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "in the future"
+        },
+        {
+          "type": "generated",
+          "text": "I love reading a funny fable.",
+          "translation": "我喜欢读有趣的寓言故事。",
+          "source_word": "fable",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "fable"
+        },
+        {
+          "type": "generated",
+          "text": "He enjoyed his later life in the countryside.",
+          "translation": "他在乡下享受了他的晚年。",
+          "source_word": "later life",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "later life"
+        },
+        {
+          "type": "generated",
+          "text": "We use solar power to light our home.",
+          "translation": "我们使用太阳能来照亮我们的家。",
+          "source_word": "solar power",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "solar power"
+        },
+        {
+          "type": "generated",
+          "text": "I love fruits, especially apples.",
+          "translation": "我喜欢水果，尤其是苹果。",
+          "source_word": "especially",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "especially"
+        },
+        {
+          "type": "generated",
+          "text": "Can you say years and dates in English now?",
+          "translation": "你现在能用英语说出年份和日期吗？",
+          "source_word": "say years and dates in English",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "say years and dates in English"
+        },
+        {
+          "type": "generated",
+          "text": "The train stops on the platform.",
+          "translation": "火车在站台上停靠。",
+          "source_word": "on the platform",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "on the platform"
+        },
+        {
+          "type": "generated",
+          "text": "We have it on the same day as in China.",
+          "translation": "我们和中国在同一天庆祝。",
+          "source_word": "We have it on the same day as in China.",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "We have it on the same day as in China."
+        },
+        {
+          "type": "generated",
+          "text": "We can create many unique characters.",
+          "translation": "我们可以创造许多独特的角色。",
+          "source_word": "create many unique characters",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "create many unique characters"
+        },
+        {
+          "type": "generated",
+          "text": "Do not take sb.'s food without asking.",
+          "translation": "不要在没有询问的情况下拿走别人的食物。",
+          "source_word": "take sb.'s food without asking",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "take sb.'s food without asking"
+        },
+        {
+          "type": "generated",
+          "text": "Listen to the announcements for passengers.",
+          "translation": "听乘客通告。",
+          "source_word": "announcements for passengers",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "announcements for passengers"
+        },
+        {
+          "type": "generated",
+          "text": "I visited my grandma one day last week.",
+          "translation": "上周的某一天我拜访了我的奶奶。",
+          "source_word": "one day",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "one day"
+        },
+        {
+          "type": "generated",
+          "text": "They got married in a beautiful garden last spring.",
+          "translation": "他们去年春天在一个美丽的花园里成婚了。",
+          "source_word": "got married",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "got married"
+        },
+        {
+          "type": "generated",
+          "text": "This is a new kind of medicine.",
+          "translation": "这是一种新的药物。",
+          "source_word": "a new kind of medicine",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "a new kind of medicine"
+        },
+        {
+          "type": "generated",
+          "text": "Please give me precise instructions.",
+          "translation": "请给我准确的指示。",
+          "source_word": "precise",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "precise"
+        },
+        {
+          "type": "generated",
+          "text": "Isn't it a lovely day?",
+          "translation": "今天难道不是好天气吗？",
+          "source_word": "Isn't it a lovely day?",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "Isn't it a lovely day?"
+        },
+        {
+          "type": "generated",
+          "text": "Send best regards to your family.",
+          "translation": "向你的家人致以最好的祝福。",
+          "source_word": "best regards",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "best regards"
+        },
+        {
+          "type": "generated",
+          "text": "The movie was a sad tragedy.",
+          "translation": "这部电影是一部悲伤的悲剧。",
+          "source_word": "tragedy",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "tragedy"
+        },
+        {
+          "type": "generated",
+          "text": "My mom makes delicious spring rolls.",
+          "translation": "我妈妈做美味的春卷。",
+          "source_word": "spring rolls",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "spring rolls"
+        },
+        {
+          "type": "generated",
+          "text": "We can use plastic bottles to make works of art.",
+          "translation": "我们可以用塑料瓶来做艺术品。",
+          "source_word": "use plastic bottles to make works of art",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "use plastic bottles to make works of art"
+        },
+        {
+          "type": "generated",
+          "text": "Please do not smoke on the train.",
+          "translation": "请不要在火车上吸烟。",
+          "source_word": "Don't smoke on the train.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "smoke"
+        },
+        {
+          "type": "generated",
+          "text": "The red flag waves in the wind.",
+          "translation": "红旗在风中飘扬。",
+          "source_word": "flag",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "flag"
+        },
+        {
+          "type": "generated",
+          "text": "What a quiet night it was!",
+          "translation": "多么宁静的夜晚啊！",
+          "source_word": "What a quiet night it was!",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "What a quiet night it was!"
+        },
+        {
+          "type": "generated",
+          "text": "We sort rubbish at home.",
+          "translation": "我们在家里进行垃圾分类。",
+          "source_word": "sort rubbish",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "sort rubbish"
+        },
+        {
+          "type": "generated",
+          "text": "I will make an invitation today.",
+          "translation": "我今天会发出邀请。",
+          "source_word": "make an invitation",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "make an invitation"
+        },
+        {
+          "type": "generated",
+          "text": "Reading is one of my strong points.",
+          "translation": "阅读是我的优点之一。",
+          "source_word": "strong points",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "strong points"
+        },
+        {
+          "type": "generated",
+          "text": "They prepare for the programme every day.",
+          "translation": "他们每天为节目做准备。",
+          "source_word": "prepare for the programme",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "prepare for the programme"
+        },
+        {
+          "type": "generated",
+          "text": "Please read the notice for an activity carefully.",
+          "translation": "请仔细阅读这项活动的通知。",
+          "source_word": "a notice for an activity",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "a notice for an activity"
+        },
+        {
+          "type": "generated",
+          "text": "We want to live in an ideal green neighborhood.",
+          "translation": "我们想住在一个理想的环保小区。",
+          "source_word": "an ideal green neighborhood",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "an ideal green neighborhood"
+        },
+        {
+          "type": "generated",
+          "text": "Do not throw tomatoes at each other.",
+          "translation": "不要朝彼此扔番茄。",
+          "source_word": "throw tomatoes at each other",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "throw tomatoes at each other"
+        },
+        {
+          "type": "generated",
+          "text": "Do not laugh at sb. who makes mistakes.",
+          "translation": "不要嘲笑犯错的人。",
+          "source_word": "laugh at sb.",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "laugh at sb."
+        },
+        {
+          "type": "generated",
+          "text": "It is small, but in fact it is very strong.",
+          "translation": "它很小，但实际上它非常强壮。",
+          "source_word": "in fact",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "in fact"
+        },
+        {
+          "type": "generated",
+          "text": "The party will take place today.",
+          "translation": "派对将在今天举行。",
+          "source_word": "take place",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "take place"
+        },
+        {
+          "type": "generated",
+          "text": "It was very hot; It reached 40.3°C.",
+          "translation": "天气很热，气温达到了40.3°C。",
+          "source_word": "It reached 40.3°C.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "It reached 40.3°C."
+        },
+        {
+          "type": "generated",
+          "text": "Please turn off the tap now.",
+          "translation": "请现在关闭水龙头。",
+          "source_word": "turn off the tap",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "turn off the tap"
+        },
+        {
+          "type": "generated",
+          "text": "Do not wear open-toed shoes in the rain.",
+          "translation": "下雨天不要穿露趾鞋。",
+          "source_word": "wear open-toed shoes",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "wear open-toed shoes"
+        },
+        {
+          "type": "generated",
+          "text": "We learn about festivals in different cultures.",
+          "translation": "我们了解不同文化中的节日。",
+          "source_word": "festivals in different cultures",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "festivals in different cultures"
+        },
+        {
+          "type": "generated",
+          "text": "Can you identify the red apple in the basket?",
+          "translation": "你能辨认出篮子里的苹果吗？",
+          "source_word": "identify",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "identify"
+        },
+        {
+          "type": "generated",
+          "text": "Bad weather is coming.",
+          "translation": "坏天气要来了。",
+          "source_word": "Bad weather is coming.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "Bad weather is coming."
+        },
+        {
+          "type": "generated",
+          "text": "You can make a difference by helping others.",
+          "translation": "你可以通过帮助他人来带来变化。",
+          "source_word": "make a difference",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "make a difference"
+        },
+        {
+          "type": "generated",
+          "text": "We learned about the uses of electricity today.",
+          "translation": "今天我们学习了电的用途。",
+          "source_word": "uses of electricity",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "uses of electricity"
+        },
+        {
+          "type": "generated",
+          "text": "Look at this simple diagram.",
+          "translation": "看这个简单的图表。",
+          "source_word": "diagram",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "diagram"
+        },
+        {
+          "type": "generated",
+          "text": "We flew to the Philippines last week.",
+          "translation": "我们上周飞往了菲律宾。",
+          "source_word": "the Philippines",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "the Philippines"
+        },
+        {
+          "type": "generated",
+          "text": "Close your eyes and make wishes.",
+          "translation": "闭上眼睛许愿吧。",
+          "source_word": "make wishes",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "make wishes"
+        },
+        {
+          "type": "generated",
+          "text": "The an exchange student lives with my family this year.",
+          "translation": "今年一位交换生住在我家。",
+          "source_word": "an exchange student",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "an exchange student"
+        },
+        {
+          "type": "generated",
+          "text": "We celebrate the Mid-Autumn Festival together.",
+          "translation": "我们一起庆祝中秋节。",
+          "source_word": "celebrate the Mid-Autumn Festival",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "celebrate the Mid-Autumn Festival"
+        },
+        {
+          "type": "generated",
+          "text": "It's also fun to celebrate the Spring Festival with my family.",
+          "translation": "和家人一起过春节也很有趣。",
+          "source_word": "It's also fun to celebrate the Spring Festival with my family.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "It's also fun to celebrate the Spring Festival with my family."
+        },
+        {
+          "type": "generated",
+          "text": "We prepare for a weather report in class.",
+          "translation": "我们在课堂上为天气预报做准备。",
+          "source_word": "prepare for a weather report in class",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "prepare for a weather report in class"
+        },
+        {
+          "type": "generated",
+          "text": "Remember to take one's umbrella when it rains.",
+          "translation": "下雨时记得带上雨伞。",
+          "source_word": "take one's umbrella",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "take one's umbrella"
+        },
+        {
+          "type": "generated",
+          "text": "Please throw broken glass into the broken glass container safely.",
+          "translation": "请安全地把碎玻璃扔进碎玻璃容器。",
+          "source_word": "throw broken glass into the broken glass container",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "throw broken glass into the broken glass container"
+        },
+        {
+          "type": "generated",
+          "text": "We love to plant trees in spring.",
+          "translation": "我们喜欢在春天植树。",
+          "source_word": "plant trees",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "plant trees"
+        },
+        {
+          "type": "generated",
+          "text": "We take turns to do the chores at home.",
+          "translation": "我们在家轮流做家务。",
+          "source_word": "take turns to do sth.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "take turns to do sth."
+        },
+        {
+          "type": "generated",
+          "text": "We went to the park in late spring.",
+          "translation": "我们在晚春去了公园。",
+          "source_word": "late spring",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "late spring"
+        },
+        {
+          "type": "generated",
+          "text": "Let's make a big outdoor fire tonight.",
+          "translation": "我们今晚在户外生一堆篝火吧。",
+          "source_word": "make a big outdoor fire",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "make a big outdoor fire"
+        },
+        {
+          "type": "generated",
+          "text": "Please reach the mark on the wall.",
+          "translation": "请到达墙上的标记处。",
+          "source_word": "reach the mark",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "reach the mark"
+        },
+        {
+          "type": "generated",
+          "text": "I have never seen a musical before, so I want to see a musical.",
+          "translation": "我从来没有看过音乐剧，所以我想看一场音乐剧。",
+          "source_word": "I've never seen a musical before!",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "see a musical"
+        },
+        {
+          "type": "generated",
+          "text": "She decided to spend her life taking care of sick people.",
+          "translation": "她决定用她的毕生照顾病人。",
+          "source_word": "spend her life taking care of sick people",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "spend her life taking care of sick people"
+        },
+        {
+          "type": "generated",
+          "text": "She hopes to win the Nobel Prize.",
+          "translation": "她希望获得诺贝尔奖。",
+          "source_word": "win the Nobel Prize",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "win the Nobel Prize"
+        },
+        {
+          "type": "generated",
+          "text": "Let's try to cool down in the shade.",
+          "translation": "让我们在阴凉处试着凉快下来。",
+          "source_word": "try to cool down",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "try to cool down"
+        },
+        {
+          "type": "generated",
+          "text": "I wonder what habit I will form today.",
+          "translation": "我想知道我今天会养成什么习惯。",
+          "source_word": "What habit(s) will I form?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "What habit(s) will I form?"
+        },
+        {
+          "type": "generated",
+          "text": "This gift will bring wealth to you.",
+          "translation": "这个礼物将为你带来富贵。",
+          "source_word": "bring wealth",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "bring wealth"
+        },
+        {
+          "type": "generated",
+          "text": "We watched the big waves crash on the shore.",
+          "translation": "我们看着大浪拍打着海岸。",
+          "source_word": "big waves",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "big waves"
+        },
+        {
+          "type": "generated",
+          "text": "I read the newspaper headline this morning.",
+          "translation": "我今天早上读了报纸标题。",
+          "source_word": "the newspaper headline",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "the newspaper headline"
+        },
+        {
+          "type": "generated",
+          "text": "This book has a different theme.",
+          "translation": "这本书有一个不同的主题。",
+          "source_word": "a different theme",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a different theme"
+        },
+        {
+          "type": "generated",
+          "text": "We enjoy family reunions during the holiday.",
+          "translation": "我们在假期里享受家人团聚的时光。",
+          "source_word": "family reunions",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "family reunions"
+        },
+        {
+          "type": "generated",
+          "text": "People lived in the Han dynasty long ago.",
+          "translation": "很久以前人们生活在汉朝。",
+          "source_word": "the Han dynasty",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "the Han dynasty"
+        },
+        {
+          "type": "generated",
+          "text": "We mark the level of the water.",
+          "translation": "我们标记水位。",
+          "source_word": "mark the level of the water",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "mark the level of the water"
+        },
+        {
+          "type": "generated",
+          "text": "The children like to play with snow in winter.",
+          "translation": "孩子们喜欢在冬天玩雪。",
+          "source_word": "play with snow",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "play with snow"
+        },
+        {
+          "type": "generated",
+          "text": "The rain can affect our picnic plans.",
+          "translation": "雨水可能会影响我们的野餐计划。",
+          "source_word": "affect",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "affect"
+        },
+        {
+          "type": "generated",
+          "text": "She began to find her talent in painting.",
+          "translation": "她开始发现她在绘画方面的天赋。",
+          "source_word": "find one's talent in...",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "find one's talent in..."
+        },
+        {
+          "type": "generated",
+          "text": "He is one of his favourite writers.",
+          "translation": "他是他最喜欢的作家之一。",
+          "source_word": "one of his favourite writers",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "one of his favourite writers"
+        },
+        {
+          "type": "generated",
+          "text": "The opening event was very fun and exciting.",
+          "translation": "开幕式非常有趣且令人兴奋。",
+          "source_word": "an opening event",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "an opening event"
+        },
+        {
+          "type": "generated",
+          "text": "She wrote a poem about the coming students.",
+          "translation": "她写了一首关于即将到来的学生的诗。",
+          "source_word": "a poem about the coming students",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "a poem about the coming students"
+        },
+        {
+          "type": "generated",
+          "text": "Please meet at the school gate.",
+          "translation": "请在学校大门口集合。",
+          "source_word": "meet at the school gate",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "meet at the school gate"
+        },
+        {
+          "type": "generated",
+          "text": "She will conclude the speech with a thank you.",
+          "translation": "她将用谢谢来给演讲收尾。",
+          "source_word": "conclude the speech",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "conclude the speech"
+        },
+        {
+          "type": "generated",
+          "text": "The little puppy began to look sad when it was alone.",
+          "translation": "当小狗独自一人的时候，它开始看上去很难过。",
+          "source_word": "look sad",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "look sad"
+        },
+        {
+          "type": "generated",
+          "text": "Science helps shape the future of mankind.",
+          "translation": "科学有助于塑造人类的未来。",
+          "source_word": "the future of mankind",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "the future of mankind"
+        },
+        {
+          "type": "generated",
+          "text": "The smell of cookies is in the air.",
+          "translation": "空气中弥漫着饼干的香味。",
+          "source_word": "in the air",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "in the air"
+        },
+        {
+          "type": "generated",
+          "text": "A cat appeared in the garden.",
+          "translation": "一只猫出现在花园里。",
+          "source_word": "appear",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "appear"
+        },
+        {
+          "type": "generated",
+          "text": "It is the thirtieth of March today.",
+          "translation": "今天是三月三十日。",
+          "source_word": "It's the thirtieth of March.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "It's the thirtieth of March."
+        },
+        {
+          "type": "generated",
+          "text": "We like to play on the beach.",
+          "translation": "我们喜欢在沙滩上玩。",
+          "source_word": "play on the beach",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "play on the beach"
+        },
+        {
+          "type": "generated",
+          "text": "It is time for school.",
+          "translation": "该去上学了。",
+          "source_word": "It's time for school.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "school"
+        },
+        {
+          "type": "generated",
+          "text": "His stories make us laugh, cry and think.",
+          "translation": "他的故事能让我们欢笑、落泪，还能引发思考。",
+          "source_word": "His works make us laugh, cry and think.",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "make us laugh, cry and think"
+        },
+        {
+          "type": "generated",
+          "text": "I like to read a news article.",
+          "translation": "我喜欢读一篇新闻文章。",
+          "source_word": "read a news article",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "read a news article"
+        },
+        {
+          "type": "generated",
+          "text": "Children under 6 must be accompanied by a parent.",
+          "translation": "六岁以下的儿童必须由家长陪同。",
+          "source_word": "Children under 6 must be accompanied by a parent.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "Children under 6 must be accompanied by a parent."
+        },
+        {
+          "type": "generated",
+          "text": "That is a very good thinking for the game.",
+          "translation": "那是游戏的一个好主意。",
+          "source_word": "good thinking",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "good thinking"
+        },
+        {
+          "type": "generated",
+          "text": "She won a writing competition.",
+          "translation": "她赢得了一个写作比赛。",
+          "source_word": "a writing competition",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "a writing competition"
+        },
+        {
+          "type": "generated",
+          "text": "My sister can sing well.",
+          "translation": "我妹妹唱得很好。",
+          "source_word": "sing well",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "sing well"
+        },
+        {
+          "type": "generated",
+          "text": "Mix the flour with the powder.",
+          "translation": "将面粉与粉末混合。",
+          "source_word": "powder",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "powder"
+        },
+        {
+          "type": "generated",
+          "text": "This beach is a surfing area.",
+          "translation": "这个海滩是一个冲浪区。",
+          "source_word": "a surfing area",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "a surfing area"
+        },
+        {
+          "type": "generated",
+          "text": "He is a student from Singapore visiting our school.",
+          "translation": "他是一个来自新加坡的学生，正在参观我们的学校。",
+          "source_word": "a student from Singapore",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "a student from Singapore"
+        },
+        {
+          "type": "generated",
+          "text": "The UK heatwave hits a new high.",
+          "translation": "英国热浪达到新高。",
+          "source_word": "UK heatwave hits a new high",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "UK heatwave hits a new high"
+        },
+        {
+          "type": "generated",
+          "text": "Her happy expression showed she loved the gift.",
+          "translation": "她快乐的表情显示出她很喜欢这份礼物。",
+          "source_word": "expression",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "expression"
+        },
+        {
+          "type": "generated",
+          "text": "Do you like to eat iced vegetables?",
+          "translation": "你喜欢吃冰镇蔬菜吗？",
+          "source_word": "eat iced vegetables",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "eat iced vegetables"
+        },
+        {
+          "type": "generated",
+          "text": "How heavy is it?",
+          "translation": "它有多重？",
+          "source_word": "How heavy is it?",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "How heavy is it?"
+        },
+        {
+          "type": "generated",
+          "text": "Biking is good for the environment.",
+          "translation": "骑自行车对环境有好处。",
+          "source_word": "be good for the environment",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "be good for the environment"
+        },
+        {
+          "type": "generated",
+          "text": "She will respond to an invitation to the party soon.",
+          "translation": "她很快会回复聚会的邀请。",
+          "source_word": "respond to an invitation",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "respond to an invitation"
+        },
+        {
+          "type": "generated",
+          "text": "Do you think of me when you see this?",
+          "translation": "当你看到这个时，你会想起我吗？",
+          "source_word": "think of",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "think of"
+        },
+        {
+          "type": "generated",
+          "text": "The party will take place tomorrow.",
+          "translation": "派对将在明天举行。",
+          "source_word": "take place",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "take place"
+        },
+        {
+          "type": "generated",
+          "text": "Suddenly, Fires broke out. in the old wooden house.",
+          "translation": "突然，老木屋里发生了火灾。",
+          "source_word": "Fires broke out.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "Fires broke out."
+        },
+        {
+          "type": "generated",
+          "text": "Please help me polish my email.",
+          "translation": "请帮我润色我的邮件。",
+          "source_word": "polish their emails",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "polish"
+        },
+        {
+          "type": "generated",
+          "text": "Please follow the rule: No littering.",
+          "translation": "请遵守规定：禁止乱扔垃圾。",
+          "source_word": "No littering.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "No littering."
+        },
+        {
+          "type": "generated",
+          "text": "I read a comic strip for ideas.",
+          "translation": "我读四格漫画获取灵感。",
+          "source_word": "read a comic strip for ideas",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "read a comic strip for ideas"
+        },
+        {
+          "type": "generated",
+          "text": "He hopes to invent a safe and inexpensive light bulb.",
+          "translation": "他希望发明一种安全且价格低廉的电灯泡。",
+          "source_word": "invent a safe and inexpensive light bulb",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "invent a safe and inexpensive light bulb"
+        },
+        {
+          "type": "generated",
+          "text": "People have different skin colours.",
+          "translation": "人们有不同的肤色。",
+          "source_word": "skin colours",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "skin colours"
+        },
+        {
+          "type": "generated",
+          "text": "Let me share a rule story with sb.",
+          "translation": "让我与某人分享一个规则故事。",
+          "source_word": "share a rule story with sb.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "share a rule story with sb."
+        },
+        {
+          "type": "generated",
+          "text": "I love reading plays, poems and stories.",
+          "translation": "我喜欢读戏剧、诗歌和故事。",
+          "source_word": "love reading plays, poems and stories",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "love reading plays, poems and stories"
+        },
+        {
+          "type": "generated",
+          "text": "The speaker's main purpose is to teach.",
+          "translation": "说话者的主要目的是教学。",
+          "source_word": "speaker's main purpose",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "speaker's main purpose"
+        },
+        {
+          "type": "generated",
+          "text": "Please wait in line politely.",
+          "translation": "请有礼貌地排队等候。",
+          "source_word": "wait in line politely",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "wait in line politely"
+        },
+        {
+          "type": "generated",
+          "text": "This change will greatly affect the lives of people in the UK.",
+          "translation": "这一变化将极大影响英国人民的生活。",
+          "source_word": "greatly affect the lives of people in the UK",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "greatly affect the lives of people in the UK"
+        },
+        {
+          "type": "generated",
+          "text": "We had fun at the summer carnival.",
+          "translation": "我们在夏季嘉年华玩得很开心。",
+          "source_word": "carnival",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "carnival"
+        },
+        {
+          "type": "generated",
+          "text": "She did it on her own.",
+          "translation": "她靠自己完成了这件事。",
+          "source_word": "on one's own",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "on one's own"
+        },
+        {
+          "type": "generated",
+          "text": "Please check out our website for more information about the trip.",
+          "translation": "请查看我们的网站以获取关于这次旅行的更多信息。",
+          "source_word": "Check out our website for more information.",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "check out our website for more information"
+        },
+        {
+          "type": "generated",
+          "text": "What will cause the problem?",
+          "translation": "什么会导致这个问题？",
+          "source_word": "cause the problem",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "cause the problem"
+        },
+        {
+          "type": "generated",
+          "text": "The wise old tree stands in the park.",
+          "translation": "那棵智慧古树矗立在公园里。",
+          "source_word": "the wise old tree",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "the wise old tree"
+        },
+        {
+          "type": "generated",
+          "text": "Never leave rubbish on the floor.",
+          "translation": "不要把垃圾丢在地板上。",
+          "source_word": "Never leave rubbish on the floor.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "rubbish"
+        },
+        {
+          "type": "generated",
+          "text": "She will miss her friends when she goes away.",
+          "translation": "当她离开时，她会想念她的朋友们。",
+          "source_word": "miss her friends",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "miss her friends"
+        },
+        {
+          "type": "generated",
+          "text": "Li Bai was a great writer in Chinese history.",
+          "translation": "李白是中国历史上一位伟大的作家。",
+          "source_word": "a great writer in Chinese history",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "a great writer in Chinese history"
+        },
+        {
+          "type": "generated",
+          "text": "You should offer help to your monitor.",
+          "translation": "你应该给你的班长提供帮助。",
+          "source_word": "offer help to your monitor",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "offer help to your monitor"
+        },
+        {
+          "type": "generated",
+          "text": "We watched a beautiful opera last night.",
+          "translation": "我们昨晚看了一场美丽的歌剧。",
+          "source_word": "opera",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "opera"
+        },
+        {
+          "type": "generated",
+          "text": "We celebrate these festivals with family.",
+          "translation": "我们和家人一起庆祝这些节日。",
+          "source_word": "celebrate these festivals",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "celebrate these festivals"
+        },
+        {
+          "type": "generated",
+          "text": "Helen Keller was blind and deaf.",
+          "translation": "海伦·凯勒又失明又失聪。",
+          "source_word": "be blind and deaf",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "be blind and deaf"
+        },
+        {
+          "type": "generated",
+          "text": "He is one of the greatest composers of all time.",
+          "translation": "他是至今为止最伟大的作曲家之一。",
+          "source_word": "one of the greatest composers of all time",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "one of the greatest composers of all time"
+        },
+        {
+          "type": "generated",
+          "text": "Please return books soon. Don't keep books for too long.",
+          "translation": "请尽快还书。不要借阅图书太久。",
+          "source_word": "Don't keep books for too long.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "Don't keep books for too long."
+        },
+        {
+          "type": "generated",
+          "text": "What is your favorite park location?",
+          "translation": "你最喜欢的公园地点在哪里？",
+          "source_word": "location",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "location"
+        },
+        {
+          "type": "generated",
+          "text": "The carnival walks are very colorful.",
+          "translation": "狂欢节游行非常多彩。",
+          "source_word": "carnival walks",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "carnival walks"
+        },
+        {
+          "type": "generated",
+          "text": "We can watch a full moon tonight.",
+          "translation": "我们今晚可以观赏一轮满月。",
+          "source_word": "watch a full moon",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "watch a full moon"
+        },
+        {
+          "type": "generated",
+          "text": "This old book is said to be rare.",
+          "translation": "据说这本旧书很稀有。",
+          "source_word": "sth. is said to be...",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "is said to be"
+        },
+        {
+          "type": "generated",
+          "text": "We watched the closing fireworks concert last night.",
+          "translation": "我们昨晚观看了闭幕烟火音乐会。",
+          "source_word": "the closing fireworks concert",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "the closing fireworks concert"
+        },
+        {
+          "type": "generated",
+          "text": "Everyone should do their share at home.",
+          "translation": "每个人在家里都应该尽自己的一份力量。",
+          "source_word": "do one's share",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "do one's share"
+        },
+        {
+          "type": "generated",
+          "text": "Leaves come in many sizes and shapes.",
+          "translation": "叶子有各种大小和外形。",
+          "source_word": "sizes and shapes",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "sizes and shapes"
+        },
+        {
+          "type": "generated",
+          "text": "She helped start the first school for nurses.",
+          "translation": "她帮助创办了第一所护士学校。",
+          "source_word": "start the first school for nurses",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "start the first school for nurses"
+        },
+        {
+          "type": "generated",
+          "text": "The sign says No photos. inside the library.",
+          "translation": "图书馆里的标志写着禁止拍照。",
+          "source_word": "No photos.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "No photos."
+        },
+        {
+          "type": "generated",
+          "text": "We must follow rules.",
+          "translation": "我们必须遵守规则。",
+          "source_word": "follow rules",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "follow rules"
+        },
+        {
+          "type": "generated",
+          "text": "What is special about the festival?",
+          "translation": "这个节日有什么特别之处？",
+          "source_word": "What is special about the festival?",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "What is special about the festival?"
+        },
+        {
+          "type": "generated",
+          "text": "I want to visit Brazil one day.",
+          "translation": "我想有一天去巴西旅行。",
+          "source_word": "Brazil",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "Brazil"
+        },
+        {
+          "type": "generated",
+          "text": "Please sign your signature here.",
+          "translation": "请在这里签上你的签名。",
+          "source_word": "signature",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "signature"
+        },
+        {
+          "type": "generated",
+          "text": "Let’s watch a light show tonight.",
+          "translation": "我们今晚去看一场灯光秀吧。",
+          "source_word": "watch a light show",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "watch a light show"
+        },
+        {
+          "type": "generated",
+          "text": "These are the special points of the city.",
+          "translation": "这些是这个城市的特点。",
+          "source_word": "special points",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "special points"
+        },
+        {
+          "type": "generated",
+          "text": "The cat sleeps in the sun.",
+          "translation": "猫在阳光下睡觉。",
+          "source_word": "in the sun",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "in the sun"
+        },
+        {
+          "type": "generated",
+          "text": "Please help me pick up litter in the park.",
+          "translation": "请帮我在公园里捡起垃圾。",
+          "source_word": "pick up litter",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "pick up litter"
+        },
+        {
+          "type": "generated",
+          "text": "This park has facilities for children only.",
+          "translation": "这个公园有儿童专用设施。",
+          "source_word": "facilities for children only",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "facilities for children only"
+        },
+        {
+          "type": "generated",
+          "text": "The nineteenth of July saw an extreme heatwave in the UK.",
+          "translation": "7月19日，英国经历了一场极端的热浪。",
+          "source_word": "The nineteenth of July saw an extreme heatwave in the UK.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "The nineteenth of July saw an extreme heatwave in the UK."
+        },
+        {
+          "type": "generated",
+          "text": "Music is an important part of our lives.",
+          "translation": "音乐是我们生活中重要的一部分。",
+          "source_word": "part of our lives",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "part of our lives"
+        },
+        {
+          "type": "generated",
+          "text": "They help open the first power station.",
+          "translation": "他们帮忙开办第一座发电站。",
+          "source_word": "open the first power station",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "open the first power station"
+        },
+        {
+          "type": "generated",
+          "text": "We celebrate a harvest festival in autumn.",
+          "translation": "我们在秋天庆祝丰收节。",
+          "source_word": "a harvest festival",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a harvest festival"
+        },
+        {
+          "type": "generated",
+          "text": "This game can last a long time.",
+          "translation": "这个游戏可以持续一段时间。",
+          "source_word": "last a long time",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "last a long time"
+        },
+        {
+          "type": "generated",
+          "text": "Sorry, I didn't quite catch that.",
+          "translation": "抱歉，我刚才没听太清那句话。",
+          "source_word": "I didn't quite catch that.",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "I didn't quite catch that."
+        },
+        {
+          "type": "generated",
+          "text": "Yuan Longping helped grow the world's first hybrid rice plants.",
+          "translation": "袁隆平帮助种植了世界上第一株杂交水稻。",
+          "source_word": "grow the world's first hybrid rice plants",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "grow the world's first hybrid rice plants"
+        },
+        {
+          "type": "generated",
+          "text": "We plan to go on a family trip to sp. soon.",
+          "translation": "我们计划很快全家去某地旅行。",
+          "source_word": "go on a family trip to sp.",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "go on a family trip to sp."
+        },
+        {
+          "type": "generated",
+          "text": "The food fight lasts for an hour.",
+          "translation": "这场食物大战持续了一小时。",
+          "source_word": "The food fight lasts for an hour.",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "The food fight lasts for an hour."
+        },
+        {
+          "type": "generated",
+          "text": "We visited a partner school last week.",
+          "translation": "我们上周参观了一所合作学校。",
+          "source_word": "a partner school",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "a partner school"
+        },
+        {
+          "type": "generated",
+          "text": "Please slow down when you run.",
+          "translation": "当你跑的时候请减速。",
+          "source_word": "slow down",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "slow down"
+        },
+        {
+          "type": "generated",
+          "text": "The visiting students are very friendly.",
+          "translation": "这些访问学生非常友好。",
+          "source_word": "visiting students",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "visiting students"
+        },
+        {
+          "type": "generated",
+          "text": "The seeds start to break open in spring.",
+          "translation": "种子在春天开始爆开。",
+          "source_word": "start to break open",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "start to break open"
+        },
+        {
+          "type": "generated",
+          "text": "The children shout happily at the game.",
+          "translation": "孩子们高兴地对着游戏喊叫。",
+          "source_word": "shout happily",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "shout happily"
+        },
+        {
+          "type": "generated",
+          "text": "Marie Curie discovered radium.",
+          "translation": "玛丽·居里发现了镭。",
+          "source_word": "radium",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "radium"
+        },
+        {
+          "type": "generated",
+          "text": "We watched street shows yesterday.",
+          "translation": "我们昨天看了街头表演。",
+          "source_word": "street shows",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "street shows"
+        },
+        {
+          "type": "generated",
+          "text": "We must be ready to do our chores.",
+          "translation": "我们必须准备好做家务。",
+          "source_word": "be ready to do sth.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "be ready to do sth."
+        },
+        {
+          "type": "generated",
+          "text": "He will get his first real job soon.",
+          "translation": "他很快就能获得他的第一份真正的工作。",
+          "source_word": "get his first real job",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "get his first real job"
+        },
+        {
+          "type": "generated",
+          "text": "She has a beautiful voice.",
+          "translation": "她拥有美妙的嗓音。",
+          "source_word": "have a beautiful voice",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "have a beautiful voice"
+        },
+        {
+          "type": "generated",
+          "text": "Please smile to greet the audience at the start.",
+          "translation": "请在开始时微笑以和观众打招呼。",
+          "source_word": "greet the audience",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "greet the audience"
+        },
+        {
+          "type": "generated",
+          "text": "I like reading about the characters in fables.",
+          "translation": "我喜欢阅读寓言里的角色故事。",
+          "source_word": "the characters in fables",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "the characters in fables"
+        },
+        {
+          "type": "generated",
+          "text": "The museum has many sensory exhibits.",
+          "translation": "博物馆有许多感官展览。",
+          "source_word": "sensory",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "sensory"
+        },
+        {
+          "type": "generated",
+          "text": "We talk about ways to build a green neighborhood.",
+          "translation": "我们谈论建造环保小区的方法。",
+          "source_word": "talk about ways to build a green neighborhood",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "talk about ways to build a green neighborhood"
+        },
+        {
+          "type": "generated",
+          "text": "Can you describe festival activities to your new friend?",
+          "translation": "你能向新朋友描述节日活动吗？",
+          "source_word": "describe festival activities",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "describe festival activities"
+        },
+        {
+          "type": "generated",
+          "text": "What's the meaning of this sign?",
+          "translation": "这个标志是什么意思？",
+          "source_word": "What's the meaning of this sign?",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "What's the meaning of this sign?"
+        },
+        {
+          "type": "generated",
+          "text": "This flower is a special hybrid.",
+          "translation": "这种花是一种特殊的杂交植物。",
+          "source_word": "hybrid",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "hybrid"
+        },
+        {
+          "type": "generated",
+          "text": "We must follow the rules in different places.",
+          "translation": "我们必须遵守不同地方的规则。",
+          "source_word": "rules in different places",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "rules in different places"
+        },
+        {
+          "type": "generated",
+          "text": "Children love to enjoy making snowmen in winter.",
+          "translation": "孩子们喜欢在冬天享受堆雪人的乐趣。",
+          "source_word": "enjoy making snowmen",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "enjoy making snowmen"
+        },
+        {
+          "type": "generated",
+          "text": "We learn different ways to predict weather at school.",
+          "translation": "我们在学校学习预测天气的不同方式。",
+          "source_word": "different ways to predict weather",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "different ways to predict weather"
+        },
+        {
+          "type": "generated",
+          "text": "He has a model plane.",
+          "translation": "他有一架模型飞机。",
+          "source_word": "a model plane",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "a model plane"
+        },
+        {
+          "type": "generated",
+          "text": "We search for clues in the garden.",
+          "translation": "我们在花园里搜索线索。",
+          "source_word": "search for",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "search for"
+        },
+        {
+          "type": "generated",
+          "text": "We follow the Chinese lunar calendar for holidays.",
+          "translation": "我们按照中国的农历来过节日。",
+          "source_word": "follow the Chinese lunar calendar",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "follow the Chinese lunar calendar"
+        },
+        {
+          "type": "generated",
+          "text": "What weak point(s) will I work on?",
+          "translation": "我会改进什么弱点？",
+          "source_word": "What weak point(s) will I work on?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "What weak point(s) will I work on?"
+        },
+        {
+          "type": "generated",
+          "text": "You should record your experience in a diary.",
+          "translation": "你应该在日记里记录你的经历。",
+          "source_word": "record your experience",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "record your experience"
+        },
+        {
+          "type": "generated",
+          "text": "I listened to a podcast about festival foods.",
+          "translation": "我听了一个关于节日食物的播客。",
+          "source_word": "a podcast about festival foods",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a podcast about festival foods"
+        },
+        {
+          "type": "generated",
+          "text": "You must stay with the groups during the trip.",
+          "translation": "在旅行期间，你必须和小组待在一起。",
+          "source_word": "stay with the groups",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "stay with the groups"
+        },
+        {
+          "type": "generated",
+          "text": "The temperature drops to 3 degrees Celsius.",
+          "translation": "气温降至 3 摄氏度。",
+          "source_word": "The temperature drops to 3 degrees Celsius.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "The temperature drops to 3 degrees Celsius."
+        },
+        {
+          "type": "generated",
+          "text": "I will try my best to do my homework.",
+          "translation": "我会尽力做我的作业。",
+          "source_word": "try one's best to do sth.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "try one's best to do sth."
+        },
+        {
+          "type": "generated",
+          "text": "Please make a presentation about your hobby.",
+          "translation": "请就你的爱好做一场展示。",
+          "source_word": "make a presentation about sth.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "make a presentation about sth."
+        },
+        {
+          "type": "generated",
+          "text": "I will be tall in about ten years' time.",
+          "translation": "大约在十年后，我会长高。",
+          "source_word": "in about ten years' time",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "in about ten years' time"
+        },
+        {
+          "type": "generated",
+          "text": "He wore a formal suit to the party.",
+          "translation": "他穿了一套正式的西装去参加派对。",
+          "source_word": "formal",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "formal"
+        },
+        {
+          "type": "generated",
+          "text": "Please look at a web page on the screen.",
+          "translation": "请在屏幕上查看一个网页。",
+          "source_word": "look at a web page",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "look at a web page"
+        },
+        {
+          "type": "generated",
+          "text": "You must wear the right clothes for school.",
+          "translation": "你必须穿合适的衣服去上学。",
+          "source_word": "wear the right clothes.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "wear the right clothes."
+        },
+        {
+          "type": "generated",
+          "text": "Doctors are life savers in history.",
+          "translation": "医生是历史上的拯救者。",
+          "source_word": "life savers in history",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "life savers in history"
+        },
+        {
+          "type": "generated",
+          "text": "Please hand it to the police officer.",
+          "translation": "请把它交给警察。",
+          "source_word": "hand it to the police",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "hand it to the police"
+        },
+        {
+          "type": "generated",
+          "text": "You must wear safety gloves.",
+          "translation": "你必须戴安全手套。",
+          "source_word": "wear safety gloves",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "wear safety gloves"
+        },
+        {
+          "type": "generated",
+          "text": "The doctor tried to save him, but he did lose his life at the war hospital.",
+          "translation": "医生试图救他，但他还是在战地医院中丧生了。",
+          "source_word": "lose one's life at the war hospital",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "lose one's life at the war hospital"
+        },
+        {
+          "type": "generated",
+          "text": "She likes to introduce food traditions of New Year's Eve.",
+          "translation": "她喜欢介绍除夕夜的食物传统。",
+          "source_word": "introduce food traditions of New Year's Eve",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "introduce food traditions of New Year's Eve"
+        },
+        {
+          "type": "generated",
+          "text": "Please describe the main points clearly.",
+          "translation": "请清楚地描述主要观点。",
+          "source_word": "describe the main points",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "describe the main points"
+        },
+        {
+          "type": "generated",
+          "text": "Please don't keep your eyes only on your phone.",
+          "translation": "请不要只盯着你的手机。",
+          "source_word": "Don't keep your eyes only on your phone.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "Don't keep your eyes only on your phone."
+        },
+        {
+          "type": "generated",
+          "text": "Spring is the best time to visit London.",
+          "translation": "春天是游览伦敦的最佳时间。",
+          "source_word": "the best time to visit London",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "the best time to visit London"
+        },
+        {
+          "type": "generated",
+          "text": "Eat well to stay healthy every day.",
+          "translation": "吃得好以便每天保持健康。",
+          "source_word": "stay healthy",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "stay healthy"
+        },
+        {
+          "type": "generated",
+          "text": "Dumplings are our most traditional food.",
+          "translation": "饺子是我们最传统的食物。",
+          "source_word": "our most traditional food",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "our most traditional food"
+        },
+        {
+          "type": "generated",
+          "text": "I loved every part of a festival experience.",
+          "translation": "我喜欢节日经历的每一个部分。",
+          "source_word": "a festival experience",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "a festival experience"
+        },
+        {
+          "type": "generated",
+          "text": "Gravity pulls everything down to the ground.",
+          "translation": "重力把万物拉向地面。",
+          "source_word": "gravity",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "gravity"
+        },
+        {
+          "type": "generated",
+          "text": "I like to share with my friend my snacks.",
+          "translation": "我喜欢和我的好朋友分享我的零食。",
+          "source_word": "share with sb. sth.",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "share with sb. sth."
+        },
+        {
+          "type": "generated",
+          "text": "Do not mix sth. up with waste foods.",
+          "translation": "不要和厨余垃圾混在一起。",
+          "source_word": "don't mix sth. up with waste foods",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "don't mix sth. up with waste foods"
+        },
+        {
+          "type": "generated",
+          "text": "We must stop the temperature from increasing.",
+          "translation": "我们必须阻止气温上升。",
+          "source_word": "stop the temperature from increasing",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "stop the temperature from increasing"
+        },
+        {
+          "type": "generated",
+          "text": "We count down the seconds to midnight.",
+          "translation": "我们倒计时直到午夜。",
+          "source_word": "count down the seconds",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "count down the seconds"
+        },
+        {
+          "type": "generated",
+          "text": "We can pass on good luck to our friends.",
+          "translation": "我们可以把好运传递给朋友们。",
+          "source_word": "pass on good luck",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "pass on good luck"
+        },
+        {
+          "type": "generated",
+          "text": "The price will increase by ten dollars.",
+          "translation": "价格将上涨十美元。",
+          "source_word": "increase by",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "increase by"
+        },
+        {
+          "type": "generated",
+          "text": "He looks sad because he lost his toy and will look unhappy.",
+          "translation": "他因为弄丢了玩具而看起来很不开心。",
+          "source_word": "look unhappy",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "look unhappy"
+        },
+        {
+          "type": "generated",
+          "text": "We had an informal chat at lunch.",
+          "translation": "我们在午餐时进行了一次非正式的聊天。",
+          "source_word": "informal",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "informal"
+        },
+        {
+          "type": "generated",
+          "text": "We make a profile of “future me” today.",
+          "translation": "我们今天制作“未来的我”简介。",
+          "source_word": "make a profile of “future me”",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "make a profile of “future me”"
+        },
+        {
+          "type": "generated",
+          "text": "Please point out the red apple.",
+          "translation": "请指出那个红苹果。",
+          "source_word": "point out",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "point out"
+        },
+        {
+          "type": "generated",
+          "text": "Can you give a list of shows?",
+          "translation": "你能提供节目单吗？",
+          "source_word": "give a list of shows",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "give a list of shows"
+        },
+        {
+          "type": "generated",
+          "text": "I love to travel on a red double-decker bus.",
+          "translation": "我喜欢乘坐红色双层巴士旅行。",
+          "source_word": "travel on a red double-decker bus",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "travel on a red double-decker bus"
+        },
+        {
+          "type": "generated",
+          "text": "These low-energy buildings help save electricity every day.",
+          "translation": "这些低耗能大楼每天帮助节省电力。",
+          "source_word": "low-energy buildings",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "low-energy buildings"
+        },
+        {
+          "type": "generated",
+          "text": "We should try green lifestyles to help the earth.",
+          "translation": "我们应该尝试绿色生活方式来帮助地球。",
+          "source_word": "green lifestyles",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "green lifestyles"
+        },
+        {
+          "type": "generated",
+          "text": "The doctor managed to save many Chinese soldiers.",
+          "translation": "医生设法拯救了许多中国士兵。",
+          "source_word": "save many Chinese soldiers",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "save many Chinese soldiers"
+        },
+        {
+          "type": "generated",
+          "text": "We take action to keep cool in summer.",
+          "translation": "我们在夏天采取行动保持凉爽。",
+          "source_word": "take action to keep cool",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "take action to keep cool"
+        },
+        {
+          "type": "generated",
+          "text": "Scientists work at many weather stations around the world.",
+          "translation": "科学家们在世界各地的许多气象站工作。",
+          "source_word": "weather stations",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "weather stations"
+        },
+        {
+          "type": "generated",
+          "text": "He decided to make his first successful invention.",
+          "translation": "他决定做出他的第一项成功的发明。",
+          "source_word": "make his first successful invention",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "make his first successful invention"
+        },
+        {
+          "type": "generated",
+          "text": "I visit my grandma from time to time.",
+          "translation": "我时不时地去看望我的奶奶。",
+          "source_word": "from time to time",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "from time to time"
+        },
+        {
+          "type": "generated",
+          "text": "Can you find out the moving rule?",
+          "translation": "你能找出运动规律吗？",
+          "source_word": "find out the moving rule",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "find out the moving rule"
+        },
+        {
+          "type": "generated",
+          "text": "Please put the bottle in a recycling bin.",
+          "translation": "请把瓶子放进可回收垃圾桶里。",
+          "source_word": "a recycling bin",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "a recycling bin"
+        },
+        {
+          "type": "generated",
+          "text": "Please measure the length of the table.",
+          "translation": "请测量桌子的长度。",
+          "source_word": "measure",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "measure"
+        },
+        {
+          "type": "generated",
+          "text": "The bell marks the end of class.",
+          "translation": "铃声标志着下课。",
+          "source_word": "mark the end of sth.",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "mark the end of sth."
+        },
+        {
+          "type": "generated",
+          "text": "Please attend the events today.",
+          "translation": "请今天参加活动。",
+          "source_word": "attend the events",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "attend the events"
+        },
+        {
+          "type": "generated",
+          "text": "We eat Laba porridge on the Laba Festival.",
+          "translation": "我们在腊八节吃腊八粥。",
+          "source_word": "Laba porridge",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "Laba porridge"
+        },
+        {
+          "type": "generated",
+          "text": "I will try to do my homework now.",
+          "translation": "我现在将尽力做作业。",
+          "source_word": "try to do sth.",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "try to do sth."
+        },
+        {
+          "type": "generated",
+          "text": "People have lived here since the late 1700s.",
+          "translation": "人们自18世纪末以来就住在这里。",
+          "source_word": "since the late 1700s",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "since the late 1700s"
+        },
+        {
+          "type": "generated",
+          "text": "She is, without doubt, the best player.",
+          "translation": "毫无疑问，她是最好的选手。",
+          "source_word": "without (any) doubt",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "without doubt"
+        },
+        {
+          "type": "generated",
+          "text": "The structure of the bridge is strong.",
+          "translation": "这座桥的结构很坚固。",
+          "source_word": "structure",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "structure"
+        },
+        {
+          "type": "generated",
+          "text": "We like to talk about rules in class.",
+          "translation": "我们喜欢在课堂上讨论规则。",
+          "source_word": "talk about rules in class",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "talk about rules in class"
+        },
+        {
+          "type": "generated",
+          "text": "I wake up at seven.",
+          "translation": "我在七点醒来。",
+          "source_word": "wake up",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "wake up"
+        },
+        {
+          "type": "generated",
+          "text": "Please bring your reusable shopping bags.",
+          "translation": "请带上你的可重复使用的购物袋。",
+          "source_word": "reusable shopping bags",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "reusable shopping bags"
+        },
+        {
+          "type": "generated",
+          "text": "Please make a table for the data.",
+          "translation": "请为数据做一个表格。",
+          "source_word": "make a table",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "make a table"
+        },
+        {
+          "type": "generated",
+          "text": "Reading gives you the ability to do sth. well.",
+          "translation": "阅读赋予你做好某事的能力。",
+          "source_word": "the ability to do sth.",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "the ability to do sth."
+        },
+        {
+          "type": "generated",
+          "text": "The price includes breakfast.",
+          "translation": "价格包含早餐。",
+          "source_word": "include",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "include"
+        },
+        {
+          "type": "generated",
+          "text": "This story is based on true events.",
+          "translation": "这个故事是基于真实事件创作的。",
+          "source_word": "based on",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "based on"
+        },
+        {
+          "type": "generated",
+          "text": "We use weather satellites to check the sky.",
+          "translation": "我们使用气象卫星来观察天空。",
+          "source_word": "weather satellites",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "weather satellites"
+        },
+        {
+          "type": "generated",
+          "text": "It is nice to go hiking and enjoy the sunshine.",
+          "translation": "去徒步旅行，享受阳光真是太好了。",
+          "source_word": "It's nice to go hiking and enjoy the sunshine.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "It's nice to go hiking and enjoy the sunshine."
+        },
+        {
+          "type": "generated",
+          "text": "Write a short profile for school.",
+          "translation": "为学校写一个简短的个人简介。",
+          "source_word": "profile",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "profile"
+        },
+        {
+          "type": "generated",
+          "text": "Grandma likes to tell a fable.",
+          "translation": "奶奶喜欢讲寓言故事。",
+          "source_word": "tell a fable",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "tell a fable"
+        },
+        {
+          "type": "generated",
+          "text": "We should go green today.",
+          "translation": "我们今天应该采取环保行动。",
+          "source_word": "go green",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "go green"
+        },
+        {
+          "type": "generated",
+          "text": "This half-moon-shaped rice cake is sweet and tasty.",
+          "translation": "这个半月形米糕又甜又好吃。",
+          "source_word": "It's a half-moon-shaped rice cake with nuts and sugar.",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "half-moon-shaped rice cake"
+        },
+        {
+          "type": "generated",
+          "text": "I want to see a musical group perform Cats.",
+          "translation": "我想看音乐剧团表演《猫》。",
+          "source_word": "see a musical group perform Cats",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "see a musical group perform Cats"
+        },
+        {
+          "type": "generated",
+          "text": "How is everything going lately?",
+          "translation": "最近一切还顺利吗？",
+          "source_word": "How is everything going lately?",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "How is everything going lately?"
+        },
+        {
+          "type": "generated",
+          "text": "She likes to play the violin.",
+          "translation": "她喜欢演奏小提琴。",
+          "source_word": "play the violin",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "play the violin"
+        },
+        {
+          "type": "generated",
+          "text": "Please look at a display board in the clubroom.",
+          "translation": "请看社团教室里的展板。",
+          "source_word": "look at a display board in the clubroom",
+          "source_group": "Treasurebox-6BU2",
+          "target_word": "look at a display board in the clubroom"
+        },
+        {
+          "type": "generated",
+          "text": "What does Yiming suggest about the programme?",
+          "translation": "一鸣对节目提出了什么建议？",
+          "source_word": "What does Yiming suggest about the programme?",
+          "source_group": "Treasurebox-6BU1",
+          "target_word": "What does Yiming suggest about the programme?"
+        },
+        {
+          "type": "generated",
+          "text": "We take electric taxis to school.",
+          "translation": "我们乘坐电动出租车去学校。",
+          "source_word": "take electric taxis",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "take electric taxis"
+        },
+        {
+          "type": "generated",
+          "text": "We saw clouds of smoke from the burning of coal.",
+          "translation": "我们看到了煤炭燃烧产生的滚滚浓烟。",
+          "source_word": "clouds of smoke from the burning of coal",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "clouds of smoke from the burning of coal"
+        },
+        {
+          "type": "generated",
+          "text": "Please draw the timeline of her life.",
+          "translation": "请绘制她的人生时间轴。",
+          "source_word": "draw the timeline of her life",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "draw the timeline of her life"
+        },
+        {
+          "type": "generated",
+          "text": "Let's list some features of the cat.",
+          "translation": "让我们罗列一些猫的特征。",
+          "source_word": "list some features",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "list some features"
+        },
+        {
+          "type": "generated",
+          "text": "He is a famous British painter.",
+          "translation": "他是一位著名的英国画家。",
+          "source_word": "a famous British painter",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "a famous British painter"
+        },
+        {
+          "type": "generated",
+          "text": "Music can spread joy to everyone.",
+          "translation": "音乐可以将快乐传播给每个人。",
+          "source_word": "spread",
+          "source_group": "Treasurebox-6BU3",
+          "target_word": "spread"
+        },
+        {
+          "type": "generated",
+          "text": "The government builds many schools.",
+          "translation": "政府建造了许多学校。",
+          "source_word": "the government",
+          "source_group": "Treasurebox-6BU5",
+          "target_word": "the government"
+        },
+        {
+          "type": "generated",
+          "text": "Smoke used to cover the sky of the city.",
+          "translation": "烟雾过去笼罩着城市的天空。",
+          "source_word": "Smoke used to cover the sky of the city.",
+          "source_group": "Treasurebox-6BU4",
+          "target_word": "Smoke used to cover the sky of the city."
+        },
+        {
+          "type": "generated",
+          "text": "She danced gracefully on the stage.",
+          "translation": "她在舞台上优雅地跳舞。",
+          "source_word": "on the stage",
+          "source_group": "Treasurebox-6BU6",
+          "target_word": "on the stage"
+        }
+      ]
+    }
+  ]
+}

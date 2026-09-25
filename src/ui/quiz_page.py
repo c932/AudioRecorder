@@ -7,7 +7,11 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QFrame, QMessageBox, QGroupBox, QSpinBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
-from src.ui.styles import AppStyles
+from src.ui.styles import (AppStyles, FONT_FALLBACK, PAPER, DESK, INK,
+                            INK_SOFT, MANGO, MANGO_DK, LEAF, CLAY,
+                            LEAF_SOFT, CLAY_SOFT, DESK_LINE,
+                            SP_3, SP_4, SP_5, RADIUS,
+                            SIZE_BODY, SIZE_UI, SIZE_TITLE, SIZE_SECTION)
 from src.core.quiz_engine import QuizEngine
 
 
@@ -29,7 +33,10 @@ class QuizPage(QWidget):
     
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
-        
+
+        # Page background
+        self.setStyleSheet(f"background-color: {PAPER};")
+
         self.inner_stack = QStackedWidget()
         self.layout.addWidget(self.inner_stack)
         
@@ -45,13 +52,14 @@ class QuizPage(QWidget):
     # ========== SETUP VIEW ==========
     def _create_setup_view(self):
         page = QWidget()
+        page.setStyleSheet(f"background-color: {PAPER};")
         layout = QVBoxLayout(page)
         
         # Top bar
         top_bar = QHBoxLayout()
-        btn_back = QPushButton("⬅ 返回")
+        btn_back = QPushButton("Back")
         btn_back.clicked.connect(self._go_home)
-        btn_back.setStyleSheet("font-size: 16px; padding: 5px; background: transparent; color: #555;")
+        btn_back.setStyleSheet(AppStyles.GHOST_BUTTON)
         top_bar.addWidget(btn_back)
         top_bar.addStretch()
         layout.addLayout(top_bar)
@@ -68,11 +76,12 @@ class QuizPage(QWidget):
         
         # Quiz bank selector
         bank_group = QGroupBox("选择题库")
+        bank_group.setStyleSheet(AppStyles.GROUP_BOX)
         bank_layout = QVBoxLayout(bank_group)
         
         combo_row = QHBoxLayout()
         self.combo_bank = QComboBox()
-        self.combo_bank.setStyleSheet("font-size: 15px; padding: 8px; min-width: 300px;")
+        self.combo_bank.setStyleSheet(AppStyles.INPUT + f"\nQComboBox {{ min-width: 300px; }}")
         self.combo_bank.currentIndexChanged.connect(self._on_bank_selected)
         combo_row.addWidget(self.combo_bank, 1)
         bank_layout.addLayout(combo_row)
@@ -80,7 +89,7 @@ class QuizPage(QWidget):
         # Bank details label
         self.lbl_bank_details = QLabel("")
         self.lbl_bank_details.setWordWrap(True)
-        self.lbl_bank_details.setStyleSheet("font-size: 13px; color: #555; padding: 5px; background: #F5F5F5; border-radius: 5px;")
+        self.lbl_bank_details.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_BODY}px; color: {INK_SOFT}; padding: 5px; background: {DESK}; border-radius: {RADIUS}px;")
         self.lbl_bank_details.setVisible(False)
         bank_layout.addWidget(self.lbl_bank_details)
         
@@ -90,18 +99,19 @@ class QuizPage(QWidget):
         
         # Question count selector
         count_group = QGroupBox("题目数量")
+        count_group.setStyleSheet(AppStyles.GROUP_BOX)
         count_layout = QHBoxLayout(count_group)
         count_layout.addWidget(QLabel("抽取:"))
         self.spin_count = QSpinBox()
         self.spin_count.setRange(1, 200)
         self.spin_count.setValue(10)
-        self.spin_count.setStyleSheet("font-size: 15px; padding: 5px;")
+        self.spin_count.setStyleSheet(AppStyles.INPUT)
         self.spin_count.setToolTip("从题库中抽取的题目数量")
         count_layout.addWidget(self.spin_count)
         count_layout.addWidget(QLabel("题"))
         
         self.chk_all = QCheckBox("全部")
-        self.chk_all.setStyleSheet("font-size: 14px;")
+        self.chk_all.setStyleSheet(AppStyles.CHECKBOX)
         self.chk_all.toggled.connect(self._on_all_toggled)
         count_layout.addWidget(self.chk_all)
         count_layout.addStretch()
@@ -110,16 +120,8 @@ class QuizPage(QWidget):
         layout.addSpacing(15)
         
         # Start button
-        self.btn_start = QPushButton("🚀 开始测验")
-        self.btn_start.setStyleSheet("""
-            QPushButton {
-                background-color: #1565C0; color: white;
-                font-size: 22px; padding: 15px; border-radius: 12px;
-                min-width: 250px;
-            }
-            QPushButton:hover { background-color: #0D47A1; }
-            QPushButton:disabled { background-color: #BDBDBD; }
-        """)
+        self.btn_start = QPushButton("开始测验")
+        self.btn_start.setStyleSheet(AppStyles.BIG_BUTTON)
         self.btn_start.clicked.connect(self._start_quiz)
         self.btn_start.setEnabled(False)
         layout.addWidget(self.btn_start, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -127,7 +129,7 @@ class QuizPage(QWidget):
         # Empty state hint
         self.lbl_empty_hint = QLabel("暂无题库，请在设置 > 题库页生成")
         self.lbl_empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_empty_hint.setStyleSheet("font-size: 15px; color: #C62828; padding: 15px; background: #FFF3E0; border-radius: 8px;")
+        self.lbl_empty_hint.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_UI}px; color: {CLAY}; padding: 15px; background: {CLAY_SOFT}; border-radius: {RADIUS}px;")
         self.lbl_empty_hint.setVisible(False)
         layout.addWidget(self.lbl_empty_hint)
         
@@ -137,17 +139,18 @@ class QuizPage(QWidget):
     # ========== QUIZ VIEW ==========
     def _create_quiz_view(self):
         page = QWidget()
+        page.setStyleSheet(f"background-color: {PAPER};")
         layout = QVBoxLayout(page)
         
         # Top bar
         top_bar = QHBoxLayout()
-        btn_quit = QPushButton("⏹ 退出")
+        btn_quit = QPushButton("Quit")
         btn_quit.clicked.connect(self._confirm_quit)
-        btn_quit.setStyleSheet("font-size: 14px; padding: 5px; background: #FFCDD2; color: #C62828; border-radius: 5px;")
+        btn_quit.setStyleSheet(AppStyles.CARD_BUTTON)
         top_bar.addWidget(btn_quit)
         
         self.lbl_progress = QLabel("1/10")
-        self.lbl_progress.setStyleSheet("font-size: 16px; font-weight: bold; color: #1565C0;")
+        self.lbl_progress.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_UI}px; font-weight: bold; color: {MANGO_DK};")
         top_bar.addWidget(self.lbl_progress)
         top_bar.addStretch()
         layout.addLayout(top_bar)
@@ -161,22 +164,22 @@ class QuizPage(QWidget):
         layout.addSpacing(10)
         
         # Question type indicator
-        self.lbl_type = QLabel("中译英")
-        self.lbl_type.setStyleSheet("font-size: 14px; color: #888; background: #E3F2FD; padding: 5px; border-radius: 5px;")
+        self.lbl_type = QLabel("中英互译")
+        self.lbl_type.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_BODY}px; color: {PAPER}; background: {MANGO}; padding: 5px; border-radius: {RADIUS}px;")
         self.lbl_type.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lbl_type)
         
         # Question display area
         self.lbl_question = QLabel("")
         self.lbl_question.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_question.setStyleSheet("font-size: 32px; font-weight: bold; color: #1A237E; padding: 20px;")
+        self.lbl_question.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_SECTION}px; font-weight: bold; color: {INK}; padding: 20px;")
         self.lbl_question.setWordWrap(True)
         layout.addWidget(self.lbl_question)
         
         # Chinese hint (for fill-in-blank)
         self.lbl_hint = QLabel("")
         self.lbl_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_hint.setStyleSheet("font-size: 18px; color: #666;")
+        self.lbl_hint.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_TITLE}px; color: {INK_SOFT};")
         self.lbl_hint.setWordWrap(True)
         layout.addWidget(self.lbl_hint)
         
@@ -190,14 +193,8 @@ class QuizPage(QWidget):
         self.answer_inputs = []  # Will be populated dynamically
         layout.addWidget(self.input_container)
         
-        self.btn_submit = QPushButton("提交 ✓")
-        self.btn_submit.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50; color: white;
-                font-size: 18px; padding: 12px; border-radius: 8px;
-            }
-            QPushButton:hover { background-color: #388E3C; }
-        """)
+        self.btn_submit = QPushButton("提交")
+        self.btn_submit.setStyleSheet(AppStyles.BIG_BUTTON)
         self.btn_submit.clicked.connect(self._submit_text_answer)
         layout.addWidget(self.btn_submit)
         
@@ -218,19 +215,13 @@ class QuizPage(QWidget):
         # Feedback label
         self.lbl_feedback = QLabel("")
         self.lbl_feedback.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_feedback.setStyleSheet("font-size: 20px; font-weight: bold; padding: 10px;")
+        self.lbl_feedback.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_TITLE}px; font-weight: bold; padding: 10px;")
         self.lbl_feedback.setVisible(False)
         layout.addWidget(self.lbl_feedback)
         
         # Next button (hidden until answered)
-        self.btn_next = QPushButton("下一题 ➡")
-        self.btn_next.setStyleSheet("""
-            QPushButton {
-                background-color: #42A5F5; color: white;
-                font-size: 18px; padding: 12px; border-radius: 8px;
-            }
-            QPushButton:hover { background-color: #1E88E5; }
-        """)
+        self.btn_next = QPushButton("下一题")
+        self.btn_next.setStyleSheet(AppStyles.BIG_BUTTON)
         self.btn_next.clicked.connect(self._next_question)
         self.btn_next.setVisible(False)
         layout.addWidget(self.btn_next)
@@ -240,16 +231,18 @@ class QuizPage(QWidget):
     # ========== RESULT VIEW ==========
     def _create_result_view(self):
         page = QWidget()
+        page.setStyleSheet(f"background-color: {PAPER};")
         layout = QVBoxLayout(page)
         
         # Title
-        title = QLabel("🎉 测验完成！")
+        title = QLabel("测验完成！")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #E91E63; margin: 10px;")
+        title.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_SECTION}px; font-weight: bold; color: {MANGO_DK}; margin: 10px;")
         layout.addWidget(title)
         
         # Scroll area for results
         scroll = QScrollArea()
+        scroll.setStyleSheet(AppStyles.SCROLL_AREA)
         scroll.setWidgetResizable(True)
         self.result_scroll_content = QWidget()
         self.result_scroll_layout = QVBoxLayout(self.result_scroll_content)
@@ -259,19 +252,13 @@ class QuizPage(QWidget):
         # Buttons
         btn_layout = QHBoxLayout()
         
-        btn_home = QPushButton("🏠 返回首页")
+        btn_home = QPushButton("返回首页")
         btn_home.setStyleSheet(AppStyles.BIG_BUTTON)
         btn_home.clicked.connect(self._go_home)
         btn_layout.addWidget(btn_home)
         
-        btn_retry = QPushButton("🔄 再来一次")
-        btn_retry.setStyleSheet("""
-            QPushButton {
-                background-color: #FF7043; color: white;
-                font-size: 20px; padding: 15px; border-radius: 10px;
-            }
-            QPushButton:hover { background-color: #F4511E; }
-        """)
+        btn_retry = QPushButton("再来一次")
+        btn_retry.setStyleSheet(AppStyles.BIG_BUTTON)
         btn_retry.clicked.connect(self._retry_quiz)
         btn_layout.addWidget(btn_retry)
         
@@ -444,7 +431,7 @@ class QuizPage(QWidget):
         if q["type"] == "zh2en":
             # Chinese to English
             self.lbl_type.setText("中译英 - 拼写/填空")
-            self.lbl_type.setStyleSheet("font-size: 14px; color: white; background: #FF7043; padding: 5px; border-radius: 5px;")
+            self.lbl_type.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_BODY}px; color: {PAPER}; background: {MANGO_DK}; padding: 5px; border-radius: {RADIUS}px;")
             self.lbl_question.setText(q["question_text"])
             
             if q.get("chinese_hint"):
@@ -468,7 +455,7 @@ class QuizPage(QWidget):
         else:
             # English to Chinese - multiple choice
             self.lbl_type.setText("英译中 - 选择题")
-            self.lbl_type.setStyleSheet("font-size: 14px; color: white; background: #42A5F5; padding: 5px; border-radius: 5px;")
+            self.lbl_type.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_BODY}px; color: {PAPER}; background: {LEAF}; padding: 5px; border-radius: {RADIUS}px;")
             self.lbl_question.setText(q["question_text"])
             self.lbl_hint.setVisible(False)
             
@@ -563,12 +550,12 @@ class QuizPage(QWidget):
         
         if is_correct:
             self.lbl_feedback.setText("✅ 正确！")
-            self.lbl_feedback.setStyleSheet("font-size: 20px; font-weight: bold; padding: 10px; color: #2E7D32; background: #C8E6C9; border-radius: 8px;")
+            self.lbl_feedback.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_TITLE}px; font-weight: bold; padding: 10px; color: {LEAF}; background: {LEAF_SOFT}; border-radius: {RADIUS}px;")
             # Auto advance after 1.5s for correct answers
             QTimer.singleShot(1500, self._auto_next)
         else:
             self.lbl_feedback.setText(f"❌ 错误！正确答案: {correct_answer}")
-            self.lbl_feedback.setStyleSheet("font-size: 20px; font-weight: bold; padding: 10px; color: #C62828; background: #FFCDD2; border-radius: 8px;")
+            self.lbl_feedback.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_TITLE}px; font-weight: bold; padding: 10px; color: {CLAY}; background: {CLAY_SOFT}; border-radius: {RADIUS}px;")
             self.lbl_feedback.setWordWrap(True)
             # Auto advance after 5s for wrong answers (give time to study)
             QTimer.singleShot(5000, self._auto_next)
@@ -617,15 +604,15 @@ class QuizPage(QWidget):
         # Score card
         score_pct = summary["score_pct"]
         if score_pct >= 90:
-            emoji, color = "🏆", "#2E7D32"
+            emoji, color = "🏆", LEAF
         elif score_pct >= 70:
-            emoji, color = "👍", "#F57F17"
+            emoji, color = "👍", MANGO_DK
         else:
-            emoji, color = "💪", "#D32F2F"
-        
+            emoji, color = "💪", CLAY
+
         score_label = QLabel(f"{emoji} 得分: {summary['correct']}/{summary['total']} ({score_pct:.0f}%)")
         score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        score_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color}; padding: 15px; border: 2px dashed {color}; border-radius: 10px;")
+        score_label.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_SECTION}px; font-weight: bold; color: {color}; padding: 15px; border: 2px dashed {color}; border-radius: {RADIUS}px;")
         self.result_scroll_layout.addWidget(score_label)
         
         # Breakdown by type
@@ -634,20 +621,20 @@ class QuizPage(QWidget):
             f"英译中: {summary['en2zh_correct']}/{summary['en2zh_total']}"
         )
         breakdown.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        breakdown.setStyleSheet("font-size: 18px; color: #555; padding: 10px;")
+        breakdown.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_TITLE}px; color: {INK_SOFT}; padding: 10px;")
         self.result_scroll_layout.addWidget(breakdown)
         
         # Wrong answers
         wrong_items = summary.get("wrong_items", [])
         if wrong_items:
             wrong_header = QLabel(f"错题: {len(wrong_items)} 道")
-            wrong_header.setStyleSheet("font-size: 18px; font-weight: bold; color: #D32F2F; margin-top: 15px;")
+            wrong_header.setStyleSheet(f"font-family: {FONT_FALLBACK}; font-size: {SIZE_TITLE}px; font-weight: bold; color: {CLAY}; margin-top: 15px;")
             self.result_scroll_layout.addWidget(wrong_header)
             
             for r in wrong_items:
                 q = r["question"]
                 card = QFrame()
-                card.setStyleSheet("background: white; border-radius: 8px; border-left: 6px solid #F44336; padding: 8px; margin: 3px;")
+                card.setStyleSheet(f"background: {PAPER}; border-radius: {RADIUS}px; border-left: 6px solid {CLAY}; padding: 8px; margin: 3px;")
                 card_layout = QVBoxLayout(card)
                 
                 # Question info
@@ -661,11 +648,11 @@ class QuizPage(QWidget):
                 correct_ans = " / ".join(answers_arr) if answers_arr else q.get("answer", "")
                 
                 your_label = QLabel(f"你的答案: {your_ans}")
-                your_label.setStyleSheet("color: #C62828;")
+                your_label.setStyleSheet(f"font-family: {FONT_FALLBACK}; color: {CLAY};")
                 card_layout.addWidget(your_label)
                 
                 correct_label = QLabel(f"正确答案: {correct_ans}")
-                correct_label.setStyleSheet("color: #2E7D32; font-weight: bold;")
+                correct_label.setStyleSheet(f"font-family: {FONT_FALLBACK}; color: {LEAF}; font-weight: bold;")
                 card_layout.addWidget(correct_label)
                 
                 self.result_scroll_layout.addWidget(card)
