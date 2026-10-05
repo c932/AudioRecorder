@@ -145,9 +145,9 @@ class QuizEngine(QObject):
             config_path = get_user_data_path("config.json")
             config = {}
             if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
+                with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-            
+
             client, model = _get_llm_client_and_model(config)
             
             if qtype == "zh2en":
@@ -194,12 +194,12 @@ class QuizEngine(QObject):
         blank_count = 1
         if os.path.exists(config_path):
             try:
-                with open(config_path, 'r') as f:
+                with open(config_path, 'r', encoding='utf-8') as f:
                     cfg = json.load(f)
                     blank_count = cfg.get("quiz_blank_count", 1)
             except Exception:
                 pass
-        
+
         item_list = "\n".join([
             f'{i+1}. "{item["text"]}" (中文: {item.get("translation", "")})'
             for i, item in enumerate(items)
@@ -338,12 +338,12 @@ Return JSON:"""
         blank_count = 1
         if os.path.exists(config_path):
             try:
-                with open(config_path, 'r') as f:
+                with open(config_path, 'r', encoding='utf-8') as f:
                     cfg = json.load(f)
                     blank_count = cfg.get("quiz_blank_count", 1)
             except Exception:
                 pass
-        
+
         questions = []
         for item in items:
             words = item["text"].split()

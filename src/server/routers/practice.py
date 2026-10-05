@@ -1,0 +1,89 @@
+"""发音练习路由：跟读评分 + TTS + 练习会话。"""
+from __future__ import annotations
+
+import random
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
+from pydantic import BaseModel
+
+from src.server.deps import (
+    get_coach, get_exercise_manager, load_config,
+    save_audio_temp, cleanup_temp, synthesize_tts,
+)
+
+router = APIRouter(prefix="/api/practice", tags=["practice"])
+
+
+class ScoreRequest(BaseModel):
+    audio_b64: str
+    audio_format: str = "wav"
+    reference: str
+
+
+@router.post("/score")
+def score_pronunciation(req: ScoreRequest):
+    """录音评分：base64 音频 + 参考文本 → GOP/omni 评分结果。"""
+    if not req.reference or not req.reference.strip():
+        raise HTTPException(status_code=400, detail="reference 为空")
+    if not req.audio_b64:
+        raise HTTPException(status_code=400, detail="audio_b64 为空")
+
+    path = save_audio_temp(req.audio_b64, req.audio_format)
+    try:
+        result = get_coach().assess(path, req.reference)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"评分失败: {e}")
+    finally:
+        cleanup_temp(path)
+
+
+class TTSRequest(BaseModel):
+    text: str
+
+
+@router.post("/tts")
+def tts(req: TTSRequest):
+    """文本 → 语音（MP3 字节）。"""
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="text 为空")
+    try:
+        audio = synthesize_tts(req.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS 失败: {e}")
+    return Response(content=audio, media_type="audio/mpeg")
+
+
+@router.get("/session")
+def practice_session(count: int = 20):
+    """开始一轮练习：按配置选词、打乱，返回练习列表。"""
+    mgr = get_exercise_manager()
+    config = load_config()
+    active_groups = config.get("active_groups", [])
+    words = mgr.exercises.get("words", [])
+    sentences = mgr.exercises.get("sentences", [])
+    full = words + sentences
+
+    if active_groups:
+        full = [i for i in full if i.get("group", "Default") in active_groups]
+    if not full:
+        raise HTTPException(status_code=404, detail="没有可练习的词条")
+
+    pool = list(full)
+    if config.get("strategy_no_repeat", False):
+        pool = [i for i in pool if i.get("last_score", 0) < 90]
+        if not pool:
+            raise HTTPException(status_code=404, detail="所有词条都已掌握")
+
+    if config.get("strategy_smart", True):
+        pool.sort(key=lambda x: (x.get("times_practiced", 0), x.get("last_score", 0)))
+        if config.get("strategy_random", True):
+            # 取前 2N 再打乱，兼顾"优先低分"与"不打乱顺序"
+            pool = pool[: count * 2]
+            random.shuffle(pool)
+    elif config.get("strategy_random", True):
+        random.shuffle(pool)
+
+    items = pool[:count]
+    return {"items": items, "total": len(items)}
