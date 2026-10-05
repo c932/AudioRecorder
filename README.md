@@ -68,6 +68,17 @@ python main.py
 - **Feedback Language**: 建议选择 `Chinese (中文)`，反馈更加亲切有趣。
 - **Advanced (高级设置)**: 可调节 **Scoring Sensitivity** (评分灵敏度)，包括自信度门槛 (Threshold) 和严选模式 (90+ Lock)，满足不同水平的学习需求。
 
+## 🌐 Web 版（局域网多设备）
+
+除桌面版外，还提供浏览器版 — iPad / 手机 / 电脑自适应布局：
+
+```bash
+python run_web.py   # 开发机直接启动，浏览器访问 http://localhost:8000
+```
+
+前端源码在 `web/`（React + Vite + Tailwind），构建产物由 FastAPI 静态托管。
+局域网生产部署（Ubuntu NUC + Docker + GPU + HTTPS 录音）见 **[deploy/README.md](deploy/README.md)**。
+
 ## 📂 项目结构
 
 ```

@@ -4,11 +4,68 @@
 """
 from __future__ import annotations
 
+import json
 import os
+import re
 
 # 无 GUI 服务器：强制 qt_compat 使用轻量信号 shim（跨线程直接投递）。
 # 必须在导入任何 src.core 引擎模块之前设置。
 os.environ.setdefault("ENGLISH_COACH_HEADLESS", "1")
+
+
+# ---------------------------------------------------------------------- #
+# Docker 部署支持：config.json 回环地址改写
+# ---------------------------------------------------------------------- #
+_URL_KEYS = ("custom_base", "ollama_base", "openai_base", "cosyvoice_url")
+_HOST_KEYS = ("omni_host",)
+_LOOPBACK = ("127.0.0.1", "localhost")
+_URL_RE = re.compile(r"^(https?://)(127\.0\.0\.1|localhost)(?::(\d+))?(.*)$")
+
+
+def rewrite_loopback_hosts(cfg: dict, host: str) -> int:
+    """把 cfg 中指向 127.0.0.1/localhost 的服务地址改写为 host，返回改动数。"""
+    changed = 0
+    for key in _URL_KEYS:
+        val = cfg.get(key)
+        if isinstance(val, str):
+            m = _URL_RE.match(val)
+            if m:
+                new = f"{m.group(1)}{host}" + (f":{m.group(3)}" if m.group(3) else "") + m.group(4)
+                if new != val:
+                    cfg[key] = new
+                    changed += 1
+    for key in _HOST_KEYS:
+        val = cfg.get(key)
+        if isinstance(val, str) and val.strip() in _LOOPBACK:
+            cfg[key] = host
+            changed += 1
+    return changed
+
+
+def _rewrite_loopback_config() -> None:
+    """容器内 127.0.0.1 指向容器自身，宿主机上的 MiniCPM-o / LLM 会失联。
+
+    设置 ENGLISH_COACH_REWRITE_HOST（如 host.docker.internal）后，启动时把
+    config.json 里的回环服务地址改写到宿主机。幂等：已改写的不重复改动；
+    指向局域网 IP 的地址（如 192.168.50.200）不受影响。
+    """
+    host = os.environ.get("ENGLISH_COACH_REWRITE_HOST", "").strip()
+    if not host:
+        return
+    from src.utils import get_user_data_path
+    path = get_user_data_path("config.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return  # 无配置或损坏：跳过，各引擎用自身默认值
+    if rewrite_loopback_hosts(cfg, host):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        print(f"[web_server] config.json 回环地址已改写为 {host}")
+
+
+_rewrite_loopback_config()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -1,0 +1,16 @@
+# 构建上下文瘦身 + 密钥隔离
+.git
+.claude
+.venv
+venv
+**/__pycache__
+*.pyc
+web/node_modules
+web/dist
+
+# 运行时数据与证书（挂载卷提供，绝不进镜像）
+deploy/data
+deploy/certs
+
+# 本机私有配置（含密钥）
+src/data/config.json

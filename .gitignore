@@ -167,6 +167,7 @@ bin/
 # Test audio files
 *.wav
 !src/resources/sounds/*.wav
+!web/public/sounds/*.wav
 
 # Build outputs
 build_log.txt
@@ -178,4 +179,8 @@ tests/preview_design.html
 tests/preview_design.py
 .claude/
 .qoder/
+
+# Web 部署运行时内容（compose 挂载卷：用户数据 / HTTPS 证书）
+deploy/data/
+deploy/certs/
 
