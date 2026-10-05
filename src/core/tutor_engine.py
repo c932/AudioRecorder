@@ -11,7 +11,7 @@ import random
 import threading
 from enum import Enum, auto
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from src.core.qt_compat import QObject, pyqtSignal
 
 from src.core.content_parser import _get_llm_client_and_model, _is_omni_provider, _get_omni_client
 from src.core.speech_recognizer import WhisperRecognizer

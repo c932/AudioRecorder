@@ -13,7 +13,7 @@ import time
 import uuid
 from datetime import datetime
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from src.core.qt_compat import QObject, pyqtSignal
 
 from src.core.content_parser import _get_llm_client_and_model, _is_omni_provider, _get_omni_client
 from src.utils import get_user_data_path

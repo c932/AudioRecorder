@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 import requests
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
+from src.core.qt_compat import QObject, pyqtSignal, QThread
 
 
 class OmniError(Exception):

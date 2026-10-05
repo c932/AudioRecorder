@@ -27,7 +27,7 @@ except Exception:
     # when native DLL is missing from the bundle
     speechsdk = None
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from src.core.qt_compat import QObject, pyqtSignal
 
 
 class AssessorSignals(QObject):
