@@ -6,6 +6,10 @@ from __future__ import annotations
 
 import os
 
+# 无 GUI 服务器：强制 qt_compat 使用轻量信号 shim（跨线程直接投递）。
+# 必须在导入任何 src.core 引擎模块之前设置。
+os.environ.setdefault("ENGLISH_COACH_HEADLESS", "1")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

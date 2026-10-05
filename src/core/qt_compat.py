@@ -8,9 +8,18 @@ shim 语义：信号在「发射线程」内同步投递给所有已连接的槽
 DirectConnection）。这恰好是 Web 后端需要的——引擎在后台线程干活，然后
 emit 一个信号，由等待方（Event）或回调处理。
 """
+import os
 import threading
 
+# Web 后端（无 GUI）通过环境变量强制使用 shim，即使机器上装了 PyQt6：
+# 真 Qt 的跨线程信号默认是 queued connection，需要接收线程运行 Qt 事件
+# 循环；HTTP 工作线程没有事件循环，信号永远无法投递。shim 的「发射线程
+# 内直接调用」语义才是 Web 后端需要的。
+_HEADLESS = os.environ.get("ENGLISH_COACH_HEADLESS", "").lower() in ("1", "true", "yes")
+
 try:
+    if _HEADLESS:
+        raise ImportError("headless mode: force qt_compat shim")
     from PyQt6.QtCore import QObject, pyqtSignal, QThread  # noqa: F401
     QT_AVAILABLE = True
 except ImportError:
