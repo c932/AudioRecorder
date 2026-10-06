@@ -18,32 +18,46 @@ RUN pip3 install --no-cache-dir "setuptools<70" wheel
 # 克隆仓库（模型运行时从 ModelScope 下载，不烘焙进镜像）
 RUN git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git
 
-# 精简依赖：只装 TTS 推理需要的包，去掉 whisper/gradio/tensorrt/deepspeed 等
-RUN cd CosyVoice && pip3 install --no-cache-dir \
+# 精简依赖：分批安装，避免单次大包超时导致整层重做
+# 批次1：核心小包（快速安装，建立缓存层）
+RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     conformer==0.3.2 \
     diffusers==0.29.0 \
     fastapi==0.115.6 \
     Hydra-core==1.3.2 \
     HyperPyYAML==1.2.3 \
     inflect==7.3.1 \
-    librosa==0.10.2 \
-    lightning==2.2.4 \
-    modelscope==1.20.0 \
-    numpy==1.26.4 \
-    omegaconf==2.3.0 \
-    onnxruntime-gpu==1.18.0 \
     pydantic==2.7.0 \
     rich==13.7.1 \
-    soundfile==0.12.1 \
-    transformers==4.51.3 \
-    x-transformers==2.11.24 \
+    omegaconf==2.3.0 \
     uvicorn==0.30.0 \
     wetext==0.0.4 \
     -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com
 
+# 批次2：科学计算大包（numpy/librosa/soundfile）
+RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
+    numpy==1.26.4 \
+    librosa==0.10.2 \
+    soundfile==0.12.1 \
+    -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com
+
+# 批次3：ML 大包（transformers/lightning/modelscope — 体积大，易超时）
+RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
+    transformers==4.51.3 \
+    lightning==2.2.4 \
+    modelscope==1.20.0 \
+    -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com
+
+# 批次4：GPU 推理（onnxruntime-gpu ~200MB，单独一层便于重试）
+RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
+    onnxruntime-gpu==1.18.0 \
+    x-transformers==2.11.24 \
+    -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com
+
 # 编译 gRPC proto（client 不用，但服务端 import 需要）
 RUN cd CosyVoice/runtime/python/grpc \
-    && pip3 install --no-cache-dir grpcio==1.57.0 grpcio-tools==1.57.0 \
+    && pip3 install --no-cache-dir --timeout 120 --retries 5 \
+        grpcio==1.57.0 grpcio-tools==1.57.0 \
         -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com \
     && python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. cosyvoice.proto
 
