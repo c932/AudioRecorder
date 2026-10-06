@@ -250,7 +250,7 @@ def get_kokoro():
     return _kokoro
 
 
-def _synthesize_kokoro(text: str, voice: str = "af_heart") -> tuple[bytes, str]:
+def _synthesize_kokoro(text: str, voice: str = "af_bella") -> tuple[bytes, str]:
     """用 Kokoro ONNX 合成英文语音（GPU 加速），返回 (WAV bytes, media_type)。"""
     import io
 
