@@ -20,7 +20,8 @@ RUN printf 'setuptools<70\ntorch==2.0.1\ntorchaudio==2.0.1\n' > /opt/pip-constra
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
 
 # 从构建上下文复制 CosyVoice 仓库（避免每次 git clone 网络不稳定）
-COPY CosyVoice/ CosyVoice/
+# docker-compose.yml 里 context: /home/manfred/CosyVoice
+COPY . CosyVoice/
 
 # 精简依赖：分批安装，避免单次大包超时导致整层重做
 # 每批都带 --constraint 防止 torch/torchaudio/setuptools 被升级
