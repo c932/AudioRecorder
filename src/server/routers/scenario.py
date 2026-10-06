@@ -32,6 +32,13 @@ class GenerateBank(BaseModel):
     name: Optional[str] = None
 
 
+class GenerateBankFromItems(BaseModel):
+    """直接用词条列表生成情景对话（速记页等场景，词条不在词库分组里）。"""
+    items: list   # [{text, translation?, ...}]
+    turn_count: Optional[int] = None
+    name: Optional[str] = None
+
+
 @router.post("/generate")
 def generate_bank(req: GenerateBank):
     """生成情景对话题库（异步 LLM，阻塞等待完成）。"""
@@ -40,6 +47,26 @@ def generate_bank(req: GenerateBank):
         bank = await_signal(
             eng, "bank_generation_done", "bank_generation_error",
             lambda: eng.generate_bank(req.groups, req.turn_count, req.name, True),
+            timeout=300,
+        )[0]
+    except TimeoutError as e:
+        raise HTTPException(status_code=504, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"bank": bank}
+
+
+@router.post("/generate-from-items")
+def generate_bank_from_items(req: GenerateBankFromItems):
+    """用词条列表生成情景对话（词条无需在词库分组中）。"""
+    eng = _get_engine()
+    # 构造虚拟分组名
+    texts = [it.get("text", "") if isinstance(it, dict) else str(it) for it in req.items]
+    name = req.name or f"速记 {len(texts)} 词"
+    try:
+        bank = await_signal(
+            eng, "bank_generation_done", "bank_generation_error",
+            lambda: eng.generate_bank(texts, req.turn_count, name, True),
             timeout=300,
         )[0]
     except TimeoutError as e:

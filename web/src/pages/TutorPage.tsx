@@ -2,8 +2,9 @@
 // teach_word/ask_repeat → 跟读评分（GOP）；ask_meaning/ask_sentence/dialogue →
 // 语音/文本回答（ASR）；ask_choice → 选择题；feedback → 纯气泡；session_end → 总结。
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
-  api, type TutorAction, type TutorState,
+  api, type TutorAction, type TutorState, type WordItem,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
 import { speak, stopAudio } from "../lib/audio";
@@ -39,7 +40,11 @@ function findCorrectOption(options: string[], word: string, translation: string)
 }
 
 export default function TutorPage() {
-  const [phase, setPhase] = useState<"setup" | "chat" | "summary">("setup");
+  const location = useLocation();
+  const stateItems = (location.state as { items?: WordItem[] } | null)?.items;
+  const [phase, setPhase] = useState<"setup" | "chat" | "summary">(
+    stateItems && stateItems.length > 0 ? "chat" : "setup",
+  );
   const [group, setGroup] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -59,6 +64,14 @@ export default function TutorPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [bubbles, lastAction]);
+
+  useEffect(() => {
+    // 从速记页等外部跳入时，自动启动会话
+    if (stateItems && stateItems.length > 0 && phase === "chat" && bubbles.length === 0 && !busy) {
+      startSession(stateItems);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateItems, phase]);
 
   useEffect(() => () => stopAudio(), []);
 
@@ -108,7 +121,24 @@ export default function TutorPage() {
     if (last?.text) speak(last.text).catch(() => {});
   };
 
-  const startSession = async () => {
+  const startSession = async (itemsOverride?: WordItem[]) => {
+    const items = itemsOverride ?? stateItems;
+    if (items && items.length > 0) {
+      setBusy(true);
+      setError("");
+      try {
+        const topic = items[0]?.group || "速记词汇";
+        const r = await api.tutorStart(topic, items);
+        setBubbles([]);
+        setPhase("chat");
+        applyActions(r.actions, r.state);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (group.length === 0) {
       setError("请先选择一个分组");
       return;

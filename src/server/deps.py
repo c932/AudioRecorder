@@ -160,23 +160,91 @@ def await_signal(engine, done_name: str, error_name: str,
 
 
 # ---------------------------------------------------------------------- #
-# 无头 TTS（edge-tts，纯 Python，无 Qt）
+# 无头 TTS：纯英文 → Kokoro ONNX GPU（WAV），含中文 → edge-tts（MP3）
 # ---------------------------------------------------------------------- #
 def _has_chinese(text: str) -> bool:
     return any('一' <= ch <= '鿿' for ch in text)
 
 
-# 合成结果缓存：edge-tts 每次都走微软服务器（秒级延迟），同一文本只合成一次
-_TTS_CACHE: OrderedDict[tuple, bytes] = OrderedDict()
+# 合成结果缓存：同一文本只合成一次，零延迟重放
+_TTS_CACHE: OrderedDict[tuple, tuple[bytes, str]] = OrderedDict()
 _TTS_CACHE_LOCK = threading.Lock()
 _TTS_CACHE_MAX = 256
 
+_kokoro = None
+_kokoro_lock = threading.Lock()
 
-def synthesize_tts(text: str, voice: Optional[str] = None) -> bytes:
-    """合成 MP3 音频字节。返回 bytes（相同文本命中缓存，零延迟）。"""
-    import edge_tts
+
+def get_kokoro():
+    """Lazy Kokoro ONNX TTS 单例（GPU 加速，纯英文）。
+    模型路径：Docker 卷挂载 /app/kokoro/，本地开发可通过环境变量指定。
+    """
+    global _kokoro
+    if _kokoro is None:
+        with _kokoro_lock:
+            if _kokoro is None:
+                model_path = os.environ.get(
+                    "KOKORO_MODEL", "/app/kokoro/kokoro-v0_19.onnx"
+                )
+                voices_path = os.environ.get(
+                    "KOKORO_VOICES", "/app/kokoro/voices.json"
+                )
+                if not os.path.isfile(model_path) or not os.path.isfile(voices_path):
+                    raise FileNotFoundError(
+                        f"Kokoro 模型未找到（{model_path} / {voices_path}），"
+                        "纯英文 TTS 将回退到 edge-tts"
+                    )
+                print(f"[deps] Loading Kokoro TTS model: {model_path}")
+                from kokoro_onnx import Kokoro
+                _kokoro = Kokoro.from_model(model_path, voices_path)
+                print("[deps] Kokoro TTS ready (GPU)")
+    return _kokoro
+
+
+def _synthesize_kokoro(text: str, voice: str = "af_heart") -> tuple[bytes, str]:
+    """用 Kokoro ONNX 合成英文语音（GPU 加速），返回 (WAV bytes, media_type)。"""
+    import io
+
+    import soundfile as sf
+
+    kokoro = get_kokoro()
+    samples, sr = kokoro.create(text, voice=voice, speed=1.0, lang="en-us")
+    buf = io.BytesIO()
+    sf.write(buf, samples, sr, format="WAV", subtype="PCM_16")
+    return buf.getvalue(), "audio/wav"
+
+
+def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
+    """合成音频字节 + MIME 类型。
+
+    - 纯英文：Kokoro ONNX GPU → WAV（失败回退 edge-tts）
+    - 含中文：edge-tts zh-CN-YunxiNeural → MP3
+    返回 (audio_bytes, media_type)；相同文本命中缓存，零延迟。
+    """
+    if not voice and not _has_chinese(text):
+        # 纯英文 → 优先 Kokoro GPU
+        key = ("kokoro", text)
+        with _TTS_CACHE_LOCK:
+            cached = _TTS_CACHE.get(key)
+        if cached is not None:
+            return cached
+        try:
+            result = _synthesize_kokoro(text)
+        except Exception as e:
+            print(f"[deps] Kokoro TTS 失败，回退 edge-tts: {e}")
+            voice = "en-US-AriaNeural"
+        else:
+            with _TTS_CACHE_LOCK:
+                _TTS_CACHE[key] = result
+                while len(_TTS_CACHE) > _TTS_CACHE_MAX:
+                    _TTS_CACHE.popitem(last=False)
+            return result
+
     if not voice:
-        voice = "zh-CN-XiaoxiaoNeural" if _has_chinese(text) else "en-US-AriaNeural"
+        voice = "zh-CN-YunxiNeural" if _has_chinese(text) else "en-US-AriaNeural"
+
+    # edge-tts（纯英文回退 或 含中文）
+    import edge_tts
 
     key = (text, voice)
     with _TTS_CACHE_LOCK:
@@ -193,11 +261,12 @@ def synthesize_tts(text: str, voice: Optional[str] = None) -> bytes:
         return b"".join(chunks)
 
     audio = asyncio.run(_run())
+    result = (audio, "audio/mpeg")
     with _TTS_CACHE_LOCK:
-        _TTS_CACHE[key] = audio
+        _TTS_CACHE[key] = result
         while len(_TTS_CACHE) > _TTS_CACHE_MAX:
             _TTS_CACHE.popitem(last=False)
-    return audio
+    return result
 
 
 def transcribe_audio(path: str) -> str:

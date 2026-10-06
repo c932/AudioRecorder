@@ -181,7 +181,8 @@ tests/preview_design.py
 .claude/
 .qoder/
 
-# Web 部署运行时内容（compose 挂载卷：用户数据 / HTTPS 证书）
+# Web 部署运行时内容（compose 挂载卷：用户数据 / HTTPS 证书 / Kokoro 模型）
 deploy/data/
 deploy/certs/
+deploy/kokoro/
 

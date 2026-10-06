@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
-  api, type ScenarioBank, type ScoreResult,
+  api, type ScenarioBank, type ScoreResult, type WordItem,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
 import { playSoundForScore, speak, stopAudio } from "../lib/audio";
@@ -26,6 +27,8 @@ interface ChatEntry {
 
 /** 情景会话 — A 角由应用朗读，B 角由学生跟读，逐句打分。 */
 export default function ScenarioPage() {
+  const location = useLocation();
+  const stateItems = (location.state as { items?: WordItem[] } | null)?.items;
   const [phase, setPhase] = useState<"banks" | "chat" | "summary">("banks");
   const [banks, setBanks] = useState<ScenarioBank[] | null>(null);
   const [bank, setBank] = useState<ScenarioBank | null>(null);
@@ -43,10 +46,23 @@ export default function ScenarioPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api
-      .scenarioBanks()
-      .then((r) => setBanks(r.banks))
-      .catch((e) => setError(e.message));
+    if (stateItems && stateItems.length > 0) {
+      // 从外部（速记页）传入了词条，自动生成对话
+      setBusy(true);
+      setError("");
+      api
+        .scenarioGenerateFromItems(stateItems, turnCount)
+        .then((r) => {
+          startSession(r.bank);
+        })
+        .catch((e) => setError((e as Error).message))
+        .finally(() => setBusy(false));
+    } else {
+      api
+        .scenarioBanks()
+        .then((r) => setBanks(r.banks))
+        .catch((e) => setError(e.message));
+    }
   }, []);
 
   useEffect(() => {

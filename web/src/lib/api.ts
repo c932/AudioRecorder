@@ -227,6 +227,8 @@ export const api = {
   scenarioBanks: () => req<{ banks: ScenarioBank[] }>("GET", "/api/scenario/banks"),
   scenarioGenerate: (groups: string[], turn_count?: number) =>
     req<{ bank: ScenarioBank }>("POST", "/api/scenario/generate", { groups, turn_count }),
+  scenarioGenerateFromItems: (items: WordItem[], turn_count?: number) =>
+    req<{ bank: ScenarioBank }>("POST", "/api/scenario/generate-from-items", { items, turn_count }),
   scenarioSummary: (
     session_results: { turn_idx: number; text: string; score: number }[],
     scenario_title: string,

@@ -38,6 +38,14 @@ export default function HomePage() {
           </Link>
         ))}
       </div>
+
+      <a
+        href="/api/cert/root-ca"
+        download="rootCA.pem"
+        className="text-body text-ink-soft/60 underline decoration-dotted underline-offset-2 hover:text-ink-soft transition-colors mt-2"
+      >
+        安装录音证书（iPad / 手机）
+      </a>
     </div>
   );
 }

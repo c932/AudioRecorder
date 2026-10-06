@@ -45,14 +45,14 @@ class TTSRequest(BaseModel):
 
 @router.post("/tts")
 def tts(req: TTSRequest):
-    """文本 → 语音（MP3 字节）。"""
+    """文本 → 语音（纯英文 Kokoro WAV / 含中文 edge-tts MP3）。"""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="text 为空")
     try:
-        audio = synthesize_tts(req.text)
+        audio, media_type = synthesize_tts(req.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS 失败: {e}")
-    return Response(content=audio, media_type="audio/mpeg")
+    return Response(content=audio, media_type=media_type)
 
 
 @router.get("/session")

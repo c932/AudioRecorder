@@ -67,7 +67,7 @@ def _rewrite_loopback_config() -> None:
 
 _rewrite_loopback_config()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -101,6 +101,27 @@ for r in (vocab_router, practice_router, quiz_router, oral_router,
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/cert/root-ca")
+def download_root_ca():
+    """下载局域网 HTTPS 根 CA 证书（iPad/手机安装后可录音）。"""
+    # 容器内 mkcert 的根证书在 /certs/rootCA.pem（需手动放入 deploy/certs/）
+    # 或宿主机 ~/.local/share/mkcert/rootCA.pem
+    candidates = [
+        "/certs/rootCA.pem",
+        os.path.expanduser("~/.local/share/mkcert/rootCA.pem"),
+    ]
+    for p in candidates:
+        if os.path.isfile(p):
+            from fastapi.responses import FileResponse
+            return FileResponse(
+                p,
+                media_type="application/x-pem-file",
+                filename="rootCA.pem",
+                headers={"Content-Disposition": 'attachment; filename="rootCA.pem"'},
+            )
+    raise HTTPException(status_code=404, detail="根证书未找到，请先将 rootCA.pem 放入 deploy/certs/")
 
 
 # 静态托管 React 构建产物（若 web/dist 已构建）

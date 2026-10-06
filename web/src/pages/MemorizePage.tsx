@@ -6,12 +6,13 @@ import {
   btnPrimary, btnSecondary,
 } from "../components/ui";
 
-/** 分类速记 — 28 天计划：开始 / 复习 / 拿去跟读练习。 */
+/** 分类速记 — 28 天计划：开始 / 复习 / 拿去跟读练习 / 情景会话 / AI 家教。 */
 export default function MemorizePage() {
   const navigate = useNavigate();
   const [days, setDays] = useState<MemorizeDay[] | null>(null);
   const [due, setDue] = useState<{ day: number; stage: number; due_date: string }[]>([]);
   const [sel, setSel] = useState<MemorizeDay | null>(null);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [entries, setEntries] = useState<MemorizeEntry[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +23,12 @@ export default function MemorizePage() {
   };
 
   useEffect(refresh, []);
+
+  const toggleDay = (day: number) => {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
+  };
 
   const openDay = async (d: MemorizeDay) => {
     setSel(d);
@@ -71,6 +78,40 @@ export default function MemorizePage() {
     navigate("/practice", { state: { items } });
   };
 
+  /** 收集选中 Day 的词条，跳转到情景会话或 AI 家教。 */
+  const goModule = async (path: string) => {
+    const dayList = sel ? [sel.day] : selectedDays;
+    if (dayList.length === 0) {
+      setError("请先选择至少一天");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      // 拉取所有选中 Day 的词条
+      const allEntries: MemorizeEntry[] = [];
+      for (const d of dayList) {
+        const r = await api.memorizeDay(d);
+        allEntries.push(...r.entries);
+      }
+      if (allEntries.length === 0) {
+        setError("选中的天没有词条");
+        return;
+      }
+      const items = allEntries.map((e) => ({
+        text: e.text,
+        translation: e.translation,
+        group: `速记Day${dayList.join(",")}`,
+        pos: e.pos,
+      }));
+      navigate(path, { state: { items } });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (sel) {
     const prog = sel.progress;
     const stage = prog?.stage ?? 0;
@@ -109,9 +150,15 @@ export default function MemorizePage() {
           ))}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button className={btnSecondary} disabled={busy} onClick={practice}>
             跟读这些词
+          </button>
+          <button className={btnSecondary} disabled={busy} onClick={() => goModule("/scenario")}>
+            情景会话
+          </button>
+          <button className={btnSecondary} disabled={busy} onClick={() => goModule("/tutor")}>
+            AI 家教
           </button>
           {!sel.started ? (
             <button className={btnPrimary} disabled={busy} onClick={() => start(sel.day)}>
@@ -141,25 +188,62 @@ export default function MemorizePage() {
         </div>
       )}
 
+      {selectedDays.length > 0 && (
+        <div className="bg-desk border border-desk-line rounded-xl px-4 py-3 flex items-center justify-between">
+          <p className="text-ui font-bold">
+            已选 {selectedDays.length} 天
+          </p>
+          <div className="flex gap-2">
+            <button
+              className={btnSecondary}
+              disabled={busy}
+              onClick={() => goModule("/scenario")}
+            >
+              情景会话
+            </button>
+            <button
+              className={btnPrimary}
+              disabled={busy}
+              onClick={() => goModule("/tutor")}
+            >
+              AI 家教
+            </button>
+          </div>
+        </div>
+      )}
+
       {!days && <Spinner label="加载计划…" />}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        {days?.map((d) => (
-          <button
-            key={d.day}
-            type="button"
-            onClick={() => openDay(d)}
-            className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
-              d.started ? "border-l-4 border-mango" : "border-desk-line"
-            }`}
-          >
-            <p className="text-ui font-bold">Day {d.day}</p>
-            <p className="text-body text-ink-soft truncate">{d.title}</p>
-            <p className="text-body text-ink-soft">
-              {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
-            </p>
-          </button>
-        ))}
+        {days?.map((d) => {
+          const picked = selectedDays.includes(d.day);
+          return (
+            <button
+              key={d.day}
+              type="button"
+              onClick={() => toggleDay(d.day)}
+              onDoubleClick={() => openDay(d)}
+              className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
+                picked
+                  ? "border-l-4 border-mango bg-mango/10"
+                  : d.started
+                    ? "border-l-4 border-mango"
+                    : "border-desk-line"
+              }`}
+            >
+              <p className="text-ui font-bold">
+                {picked && "✓ "}Day {d.day}
+              </p>
+              <p className="text-body text-ink-soft truncate">{d.title}</p>
+              <p className="text-body text-ink-soft">
+                {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
+              </p>
+            </button>
+          );
+        })}
       </div>
+      <p className="text-body text-ink-soft text-center">
+        单击选择 → 情景会话 / AI 家教 · 双击查看详情 / 跟读
+      </p>
     </div>
   );
 }
