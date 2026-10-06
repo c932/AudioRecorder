@@ -1,6 +1,6 @@
 # CosyVoice2 TTS 服务 — 中英混合 GPU 加速
 # 基于官方 Dockerfile 修复版（解决 setuptools/pkg_resources 兼容问题，
-# 去掉 whisper/tensorrt/gradio 等不需要的依赖）
+# 去掉 tensorrt/gradio/deepspeed 等不需要的依赖）
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -41,11 +41,12 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     soundfile==0.12.1 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3：ML 大包（transformers/lightning/modelscope — 体积大，易超时）
+# 批次3：ML 大包（transformers/lightning/modelscope/whisper — 体积大，易超时）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     transformers==4.51.3 \
     lightning==2.2.4 \
     modelscope==1.20.0 \
+    openai-whisper==20231117 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
 # 批次4：GPU 推理（onnxruntime-gpu ~200MB，单独一层便于重试）
