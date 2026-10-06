@@ -210,58 +210,6 @@
           "translation": "是的！让我们拥有美妙的嗓音和乐趣。"
         }
       ]
-    },
-    {
-      "id": "cb989e3f",
-      "name": "情景会话_6ATreasure Box_8轮",
-      "source_groups": [
-        "6ATreasure Box"
-      ],
-      "turn_count": 8,
-      "created_at": "2026-10-05T22:30:59.369731",
-      "script": [
-        {
-          "role": "A",
-          "text": "Tom, let's do family chores together and tidy up our bedroom.",
-          "translation": "汤姆，我们一起做家务，整理一下我们的卧室吧。"
-        },
-        {
-          "role": "B",
-          "text": "Okay, Lily. I can water the plants on the windowsill first.",
-          "translation": "好的，莉莉。我可以先给窗台上的植物浇水。"
-        },
-        {
-          "role": "A",
-          "text": "Great! I will sort the books by sequence on the shelf.",
-          "translation": "太好了！我会把书架上的书按顺序整理好。"
-        },
-        {
-          "role": "B",
-          "text": "By the way, I am interested in drawing the logo by hand or on a computer.",
-          "translation": "顺便说一下，我对手绘或在电脑上画标志很感兴趣。"
-        },
-        {
-          "role": "A",
-          "text": "How interesting! You can present your drawing to me after we finish.",
-          "translation": "多么有趣啊！我们完成后，你可以把你的画展示给我看。"
-        },
-        {
-          "role": "B",
-          "text": "Sure. And then we can design a travel plan for our next family trip.",
-          "translation": "当然。然后我们可以为下一次家庭旅行制定一个旅行计划。"
-        },
-        {
-          "role": "A",
-          "text": "That sounds fun. In fact, I want to go on a trip with my family this winter.",
-          "translation": "听起来很有趣。事实上，今年冬天我想和家人一起去旅行。"
-        },
-        {
-          "role": "B",
-          "text": "It's so kind of you to think of everyone. Let's finish cleaning first!",
-          "translation": "你能想到大家真是太好了。我们先打扫完吧！"
-        }
-      ],
-      "ephemeral": false
     }
   ]
 }
