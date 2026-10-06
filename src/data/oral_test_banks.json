@@ -3263,6 +3263,41 @@
           "target_word": "on the stage"
         }
       ]
+    },
+    {
+      "id": "bf8bf323",
+      "name": "口语测试_6ATreasure Box_3句",
+      "source_groups": [
+        "6ATreasure Box"
+      ],
+      "sentence_count": 3,
+      "created_at": "2026-10-05T22:30:39.479277",
+      "sentences": [
+        {
+          "type": "generated",
+          "text": "I go to school by bus every day.",
+          "translation": "我每天乘公交车去上学。",
+          "source_word": "go to... by car/ bus",
+          "source_group": "6ATreasure Box",
+          "target_word": "go to... by car/ bus"
+        },
+        {
+          "type": "generated",
+          "text": "How interesting! Look at the little bird.",
+          "translation": "多么有趣啊！看那只小鸟。",
+          "source_word": "How interesting!",
+          "source_group": "6ATreasure Box",
+          "target_word": "How interesting!"
+        },
+        {
+          "type": "generated",
+          "text": "We play football on the sports ground.",
+          "translation": "我们在运动场上踢足球。",
+          "source_word": "on the sports ground",
+          "source_group": "6ATreasure Box",
+          "target_word": "on the sports ground"
+        }
+      ]
     }
   ]
 }
