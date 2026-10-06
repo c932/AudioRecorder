@@ -1,6 +1,8 @@
-# syntax=docker/dockerfile:1
 # 少儿英语发音教练 Web 版镜像 — FastAPI + React 静态前端 + GPU (CUDA)
 # 构建上下文为仓库根目录（docker-compose.yml 里 context: ..）
+# 注意：不用 `# syntax=docker/dockerfile:1` 指令 — 它会从 Docker Hub 拉取
+# 前端镜像，国内网络常 TLS 超时；Docker 29 内置 BuildKit 前端已支持
+# COPY --chmod 等本文件用到的全部特性。
 
 # ---------- 阶段 1：构建 React 前端（web/dist 不进 git，在镜像内构建） ----------
 FROM node:20-alpine AS frontend
