@@ -258,7 +258,7 @@ export default function TutorPage() {
             onChange={(g) => setGroup(g.slice(-1))}
           />
         </div>
-        <button className={btnPrimary} disabled={busy} onClick={startSession}>
+        <button className={btnPrimary} disabled={busy} onClick={() => startSession()}>
           {busy ? "AI 老师准备中…" : "开始上课"}
         </button>
       </div>
