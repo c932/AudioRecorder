@@ -12,6 +12,7 @@ import os
 import subprocess
 import tempfile
 import threading
+from collections import OrderedDict
 from typing import Any, Callable, Optional
 
 from src.utils import get_user_data_path
@@ -165,11 +166,23 @@ def _has_chinese(text: str) -> bool:
     return any('一' <= ch <= '鿿' for ch in text)
 
 
+# 合成结果缓存：edge-tts 每次都走微软服务器（秒级延迟），同一文本只合成一次
+_TTS_CACHE: OrderedDict[tuple, bytes] = OrderedDict()
+_TTS_CACHE_LOCK = threading.Lock()
+_TTS_CACHE_MAX = 256
+
+
 def synthesize_tts(text: str, voice: Optional[str] = None) -> bytes:
-    """合成 MP3 音频字节。返回 bytes。"""
+    """合成 MP3 音频字节。返回 bytes（相同文本命中缓存，零延迟）。"""
     import edge_tts
     if not voice:
         voice = "zh-CN-XiaoxiaoNeural" if _has_chinese(text) else "en-US-AriaNeural"
+
+    key = (text, voice)
+    with _TTS_CACHE_LOCK:
+        cached = _TTS_CACHE.get(key)
+    if cached is not None:
+        return cached
 
     async def _run():
         communicate = edge_tts.Communicate(text, voice)
@@ -179,7 +192,12 @@ def synthesize_tts(text: str, voice: Optional[str] = None) -> bytes:
                 chunks.append(chunk["data"])
         return b"".join(chunks)
 
-    return asyncio.run(_run())
+    audio = asyncio.run(_run())
+    with _TTS_CACHE_LOCK:
+        _TTS_CACHE[key] = audio
+        while len(_TTS_CACHE) > _TTS_CACHE_MAX:
+            _TTS_CACHE.popitem(last=False)
+    return audio
 
 
 def transcribe_audio(path: str) -> str:

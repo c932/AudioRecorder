@@ -30,6 +30,47 @@ except Exception:
 from src.core.qt_compat import QObject, pyqtSignal
 
 
+# ---------------------------------------------------------------------- #
+# ARPABET 机器码 → 课本常见 IPA 音标（评分明细/反馈展示给用户）
+# 与 gop/aligner.py 的 ARPABET_TO_IPA（模型对齐用，机器视角）分开维护：
+# 这里按国内课本的英式音标习惯取形（iː/uː/ɜː/r…），与词卡上的音标一致。
+# ---------------------------------------------------------------------- #
+_ARPABET_DISPLAY_IPA = {
+    # 元音
+    "AA": "ɑː", "AE": "æ", "AH": "ʌ", "AO": "ɔː",
+    "AW": "aʊ", "AY": "aɪ",
+    "EH": "e", "ER": "ɜː", "EY": "eɪ",
+    "IH": "ɪ", "IY": "iː",
+    "OW": "əʊ", "OY": "ɔɪ",
+    "UH": "ʊ", "UW": "uː",
+    # 辅音
+    "B": "b", "CH": "tʃ", "D": "d", "DH": "ð",
+    "F": "f", "G": "ɡ", "HH": "h",
+    "JH": "dʒ", "K": "k", "L": "l", "M": "m", "N": "n",
+    "NG": "ŋ", "P": "p", "R": "r", "S": "s", "SH": "ʃ",
+    "T": "t", "TH": "θ", "V": "v", "W": "w", "Y": "j",
+    "Z": "z", "ZH": "ʒ",
+}
+
+
+def _to_display_ipa(raw: dict) -> None:
+    """把 GOP 结果里的 ARPABET 码原地替换为课本 IPA 音标（仅展示层）。
+
+    errors 的 actual 偶尔混入 wav2vec2 vocab 的 IPA 原 token（反查
+    ARPABET 失败时原样保留），其中 "Ə"(U+018F) 等变体不在标准 IPA 里，
+    一并规范化。
+    """
+    fix = {"Ə": "ə", "É": "e", "À": "a", "Ò": "o", "Ì": "i", "Û": "u", "Â": "ɐ"}
+    for w in raw.get("words") or []:
+        for p in w.get("phonemes") or []:
+            code = str(p.get("phoneme", ""))
+            p["phoneme"] = _ARPABET_DISPLAY_IPA.get(code.upper(), code)
+    for e in raw.get("errors") or []:
+        for k in ("expected", "actual"):
+            code = str(e.get(k, ""))
+            e[k] = _ARPABET_DISPLAY_IPA.get(code.upper(), "".join(fix.get(c, c) for c in code))
+
+
 class AssessorSignals(QObject):
     """Signals for async LLM feedback generation."""
     feedback_ready = pyqtSignal(str, str)   # (reference_word, llm_feedback_text)
@@ -189,6 +230,7 @@ class PronunciationCoach:
     def _assess_gop(self, audio_file, reference_text):
         pipeline = self._get_gop_pipeline()
         raw = pipeline.score(audio_file, reference_text)
+        _to_display_ipa(raw)
         feedback = self._format_gop_feedback(raw)
         scoring_method = f"gop_{(self.config.get('gop_mode','local') or 'local').lower()}"
 

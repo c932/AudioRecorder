@@ -95,3 +95,11 @@ export function BackIcon({ className = "w-5 h-5" }: IconProps) {
     </Svg>
   );
 }
+
+export function ForwardIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M9 5l7 7-7 7" />
+    </Svg>
+  );
+}
