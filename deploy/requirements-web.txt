@@ -1,6 +1,6 @@
 # Web 镜像依赖 — 版本与开发机验证过的组合一致（pip freeze 摘录）
-# torch CUDA 轮子来自 PyTorch 官方 cu128 索引（RTX 4070 / CUDA 12.8）
---extra-index-url https://download.pytorch.org/whl/cu128
+# torch CUDA 轮子来自上交大 PyTorch 镜像（国内加速）
+--extra-index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu128/
 
 torch==2.11.0+cu128
 torchaudio==2.11.0+cu128

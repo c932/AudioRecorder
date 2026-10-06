@@ -25,7 +25,11 @@ WORKDIR /app
 
 # Python 依赖（版本与开发机 pip freeze 一致；torch 走 pytorch cu128 索引）
 COPY deploy/requirements-web.txt /tmp/requirements-web.txt
-RUN pip install --no-cache-dir -r /tmp/requirements-web.txt
+RUN pip install --no-cache-dir \
+    -i https://mirrors.aliyun.com/pypi/simple/ \
+    --extra-index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu128/ \
+    --trusted-host mirrors.aliyun.com \
+    -r /tmp/requirements-web.txt
 
 # 后端代码 + 前端构建产物
 COPY src/ ./src/
