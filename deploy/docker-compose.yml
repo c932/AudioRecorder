@@ -45,8 +45,8 @@ services:
   # 模型自动从 ModelScope 下载到 /opt/CosyVoice/models/
   cosyvoice:
     build:
-      context: /home/manfred/CosyVoice/runtime/python
-      dockerfile: Dockerfile
+      context: /home/manfred/CosyVoice
+      dockerfile: /home/manfred/english-coach/AudioRecorder/deploy/cosyvoice/Dockerfile
     image: cosyvoice:latest
     container_name: cosyvoice-tts
     restart: unless-stopped
