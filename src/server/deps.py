@@ -160,7 +160,7 @@ def await_signal(engine, done_name: str, error_name: str,
 
 
 # ---------------------------------------------------------------------- #
-# 无头 TTS：纯英文 → Kokoro ONNX GPU（WAV），含中文 → edge-tts（MP3）
+# 无头 TTS：CosyVoice GPU（中英混合）→ edge-tts 回退
 # ---------------------------------------------------------------------- #
 def _has_chinese(text: str) -> bool:
     return any('一' <= ch <= '鿿' for ch in text)
@@ -171,128 +171,75 @@ _TTS_CACHE: OrderedDict[tuple, tuple[bytes, str]] = OrderedDict()
 _TTS_CACHE_LOCK = threading.Lock()
 _TTS_CACHE_MAX = 256
 
-_kokoro = None
-_kokoro_lock = threading.Lock()
+
+def _cosyvoice_url() -> str:
+    """从 config.json 读取 CosyVoice 服务地址，默认 host.docker.internal:50000。"""
+    cfg = load_config()
+    url = cfg.get("cosyvoice_url", "").strip().rstrip("/")
+    if not url:
+        # Docker 容器内：CosyVoice 跑在宿主机
+        url = "http://host.docker.internal:50000"
+    return url
 
 
-def get_kokoro():
-    """Lazy Kokoro ONNX TTS 单例（GPU 加速，纯英文）。
+def _synthesize_cosyvoice(text: str, spk_id: str = "中文女") -> tuple[bytes, str]:
+    """用 CosyVoice FastAPI 服务合成语音（GPU 加速，中英混合原生），返回 (WAV bytes, media_type)。"""
+    import struct
+    import wave
+    from io import BytesIO
 
-    沿用桌面版 SafeKokoro 模式：手动构建 ONNX Session + 加载 voices.json，
-    不依赖 kokoro-onnx 的构造函数（不同版本 API 不同）。
-    模型路径：Docker 卷挂载 /app/kokoro/，本地开发可通过环境变量指定。
-    """
-    global _kokoro
-    if _kokoro is None:
-        with _kokoro_lock:
-            if _kokoro is None:
-                model_path = os.environ.get(
-                    "KOKORO_MODEL", "/app/kokoro/kokoro-v0_19.onnx"
-                )
-                voices_path = os.environ.get(
-                    "KOKORO_VOICES", "/app/kokoro/voices.json"
-                )
-                if not os.path.isfile(model_path) or not os.path.isfile(voices_path):
-                    raise FileNotFoundError(
-                        f"Kokoro 模型未找到（{model_path} / {voices_path}），"
-                        "纯英文 TTS 将回退到 edge-tts"
-                    )
-                print(f"[deps] Loading Kokoro TTS model: {model_path}")
+    import requests
 
-                from kokoro_onnx import Kokoro
-                import numpy as np
-                import onnxruntime as rt
-                from kokoro_onnx.config import KoKoroConfig
-                from kokoro_onnx.tokenizer import Tokenizer
+    url = _cosyvoice_url()
+    resp = requests.post(
+        f"{url}/inference_sft",
+        data={"tts_text": text, "spk_id": spk_id},
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
 
-                class SafeKokoro(Kokoro):
-                    """子类化 Kokoro 以安全加载 JSON 格式的 voices.json。"""
-                    def __init__(self, model_path, voices_path,
-                                 espeak_config=None, vocab_config=None):
-                        self.config = KoKoroConfig(model_path, voices_path, espeak_config)
-                        self.config.validate()
+    pcm_data = resp.content
+    if len(pcm_data) < 100:
+        raise RuntimeError("CosyVoice 返回空音频")
 
-                        # GPU 检测：CUDA → 回退 CPU
-                        available = rt.get_available_providers()
-                        print(f"[Kokoro] ONNX providers: {available}")
-                        self.sess = None
-                        if "CUDAExecutionProvider" in available:
-                            try:
-                                self.sess = rt.InferenceSession(
-                                    model_path,
-                                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-                                )
-                                print("[Kokoro] Using CUDA GPU")
-                            except Exception:
-                                self.sess = None
-                        if self.sess is None:
-                            self.sess = rt.InferenceSession(
-                                model_path, providers=["CPUExecutionProvider"]
-                            )
-                            print("[Kokoro] Using CPU")
-
-                        # 加载 voices（JSON 格式，v0_19 模型配套）
-                        import json
-                        try:
-                            with open(voices_path, "r", encoding="utf-8") as f:
-                                data = json.load(f)
-                            self.voices = {
-                                k: np.array(v, dtype=np.float32) for k, v in data.items()
-                            }
-                        except (json.JSONDecodeError, UnicodeDecodeError):
-                            self.voices = np.load(voices_path, allow_pickle=True)
-
-                        vocab = self._load_vocab(vocab_config)
-                        self.tokenizer = Tokenizer(espeak_config, vocab=vocab)
-
-                _kokoro = SafeKokoro(model_path, voices_path)
-                print("[deps] Kokoro TTS ready")
-    return _kokoro
-
-
-def _synthesize_kokoro(text: str, voice: str = "af_bella") -> tuple[bytes, str]:
-    """用 Kokoro ONNX 合成英文语音（GPU 加速），返回 (WAV bytes, media_type)。"""
-    import io
-
-    import soundfile as sf
-
-    kokoro = get_kokoro()
-    samples, sr = kokoro.create(text, voice=voice, speed=1.0, lang="en-us")
-    buf = io.BytesIO()
-    sf.write(buf, samples, sr, format="WAV", subtype="PCM_16")
+    # CosyVoice 返回 raw PCM int16 24000Hz mono → 封装 WAV
+    buf = BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)  # 16-bit
+        wf.setframerate(24000)
+        wf.writeframes(pcm_data)
     return buf.getvalue(), "audio/wav"
 
 
 def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
     """合成音频字节 + MIME 类型。
 
-    - 纯英文：Kokoro ONNX GPU → WAV（失败回退 edge-tts）
-    - 含中文：edge-tts zh-CN-YunxiNeural → MP3
+    - 优先 CosyVoice GPU（中英混合原生，WAV）
+    - 失败回退 edge-tts（MP3）
     返回 (audio_bytes, media_type)；相同文本命中缓存，零延迟。
     """
-    if not voice and not _has_chinese(text):
-        # 纯英文 → 优先 Kokoro GPU
-        key = ("kokoro", text)
+    # 1. CosyVoice 优先（所有文本，不论中英文）
+    cosyvoice_key = ("cosyvoice", text)
+    with _TTS_CACHE_LOCK:
+        cached = _TTS_CACHE.get(cosyvoice_key)
+    if cached is not None:
+        return cached
+    try:
+        result = _synthesize_cosyvoice(text)
+    except Exception as e:
+        print(f"[deps] CosyVoice TTS 失败，回退 edge-tts: {e}")
+    else:
         with _TTS_CACHE_LOCK:
-            cached = _TTS_CACHE.get(key)
-        if cached is not None:
-            return cached
-        try:
-            result = _synthesize_kokoro(text)
-        except Exception as e:
-            print(f"[deps] Kokoro TTS 失败，回退 edge-tts: {e}")
-            voice = "en-US-AriaNeural"
-        else:
-            with _TTS_CACHE_LOCK:
-                _TTS_CACHE[key] = result
-                while len(_TTS_CACHE) > _TTS_CACHE_MAX:
-                    _TTS_CACHE.popitem(last=False)
-            return result
+            _TTS_CACHE[cosyvoice_key] = result
+            while len(_TTS_CACHE) > _TTS_CACHE_MAX:
+                _TTS_CACHE.popitem(last=False)
+        return result
 
+    # 2. edge-tts 回退
     if not voice:
         voice = "zh-CN-YunxiNeural" if _has_chinese(text) else "en-US-AriaNeural"
-
-    # edge-tts（纯英文回退 或 含中文）
     import edge_tts
 
     key = (text, voice)
