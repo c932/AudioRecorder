@@ -49,7 +49,8 @@ ENV ENGLISH_COACH_HEADLESS=1 \
     HF_HOME=/hf-cache \
     XDG_CACHE_HOME=/hf-cache \
     TZ=Asia/Shanghai \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    LD_LIBRARY_PATH=/usr/local/lib/python3.12/site-packages/nvidia/cublas/lib:/usr/local/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/usr/local/lib/python3.12/site-packages/nvidia/cudnn/lib:${LD_LIBRARY_PATH}
 
 EXPOSE 8000
 
