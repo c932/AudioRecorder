@@ -15,7 +15,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Python 构建产物 lib/ 只在仓库根目录出现；锚定 /lib/ 避免误伤 web/src/lib/
+/lib/
 lib64/
 parts/
 sdist/
