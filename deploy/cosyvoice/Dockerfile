@@ -2,7 +2,7 @@
 # 基于官方 Dockerfile 修复版（解决 setuptools/pkg_resources 兼容问题，
 # 去掉 tensorrt/gradio/deepspeed 等不需要的依赖）
 # 构建上下文为 NUC 上的 ~/CosyVoice（docker-compose.yml 里 context: /home/manfred/CosyVoice）
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /opt/CosyVoice
@@ -14,7 +14,7 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list
     && git lfs install
 
 # 约束文件：防止后续 pip 安装升级 torch/torchaudio/setuptools（ABI 兼容性）
-RUN printf 'setuptools<70\ntorch==2.0.1\ntorchaudio==2.0.1\n' > /opt/pip-constraints.txt
+RUN printf 'setuptools<70\ntorch==2.4.0\ntorchaudio==2.4.0\n' > /opt/pip-constraints.txt
 
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
