@@ -52,8 +52,9 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     modelscope==1.20.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3b：openai-whisper（源码包，--no-build-isolation 用系统 setuptools<70）
-RUN pip3 install --no-cache-dir --no-build-isolation --timeout 180 --retries 5 \
+# 批次3b：openai-whisper（--no-deps 防止升级基础镜像的 torch/torchaudio，
+#   --no-build-isolation 用系统 setuptools<70 编译）
+RUN pip3 install --no-cache-dir --no-deps --no-build-isolation --timeout 180 --retries 5 \
     "setuptools<70" \
     openai-whisper==20231117 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
