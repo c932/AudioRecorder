@@ -1,6 +1,7 @@
 # CosyVoice2 TTS 服务 — 中英混合 GPU 加速
 # 基于官方 Dockerfile 修复版（解决 setuptools/pkg_resources 兼容问题，
 # 去掉 tensorrt/gradio/deepspeed 等不需要的依赖）
+# 构建上下文为 NUC 上的 ~/CosyVoice（docker-compose.yml 里 context: /home/manfred/CosyVoice）
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -18,8 +19,8 @@ RUN printf 'setuptools<70\ntorch==2.0.1\ntorchaudio==2.0.1\n' > /opt/pip-constra
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
 
-# 克隆仓库（模型运行时从 ModelScope 下载，不烘焙进镜像）
-RUN git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git
+# 从构建上下文复制 CosyVoice 仓库（避免每次 git clone 网络不稳定）
+COPY CosyVoice/ CosyVoice/
 
 # 精简依赖：分批安装，避免单次大包超时导致整层重做
 # 每批都带 --constraint 防止 torch/torchaudio/setuptools 被升级
