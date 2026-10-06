@@ -50,7 +50,7 @@ ENV ENGLISH_COACH_HEADLESS=1 \
     XDG_CACHE_HOME=/hf-cache \
     TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
-    LD_LIBRARY_PATH=/usr/local/lib/python3.12/site-packages/nvidia/cublas/lib:/usr/local/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/usr/local/lib/python3.12/site-packages/nvidia/cudnn/lib:${LD_LIBRARY_PATH}
+    LD_LIBRARY_PATH=/usr/local/lib/python3.12/site-packages/nvidia/cublas/lib:/usr/local/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/usr/local/lib/python3.12/site-packages/nvidia/cudnn/lib:/usr/local/lib/python3.12/site-packages/nvidia/cufft/lib:/usr/local/lib/python3.12/site-packages/nvidia/curand/lib:/usr/local/lib/python3.12/site-packages/nvidia/cusolver/lib:/usr/local/lib/python3.12/site-packages/nvidia/cusparse/lib:/usr/local/lib/python3.12/site-packages/nvidia/cupti/lib:/usr/local/lib/python3.12/site-packages/nvidia/nvjitlink/lib:${LD_LIBRARY_PATH}
 
 EXPOSE 8000
 
