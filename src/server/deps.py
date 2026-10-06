@@ -177,6 +177,9 @@ _kokoro_lock = threading.Lock()
 
 def get_kokoro():
     """Lazy Kokoro ONNX TTS 单例（GPU 加速，纯英文）。
+
+    沿用桌面版 SafeKokoro 模式：手动构建 ONNX Session + 加载 voices.json，
+    不依赖 kokoro-onnx 的构造函数（不同版本 API 不同）。
     模型路径：Docker 卷挂载 /app/kokoro/，本地开发可通过环境变量指定。
     """
     global _kokoro
@@ -195,9 +198,55 @@ def get_kokoro():
                         "纯英文 TTS 将回退到 edge-tts"
                     )
                 print(f"[deps] Loading Kokoro TTS model: {model_path}")
+
                 from kokoro_onnx import Kokoro
-                _kokoro = Kokoro.from_model(model_path, voices_path)
-                print("[deps] Kokoro TTS ready (GPU)")
+                import numpy as np
+                import onnxruntime as rt
+                from kokoro_onnx.config import KoKoroConfig
+                from kokoro_onnx.tokenizer import Tokenizer
+
+                class SafeKokoro(Kokoro):
+                    """子类化 Kokoro 以安全加载 JSON 格式的 voices.json。"""
+                    def __init__(self, model_path, voices_path,
+                                 espeak_config=None, vocab_config=None):
+                        self.config = KoKoroConfig(model_path, voices_path, espeak_config)
+                        self.config.validate()
+
+                        # GPU 检测：CUDA → 回退 CPU
+                        available = rt.get_available_providers()
+                        print(f"[Kokoro] ONNX providers: {available}")
+                        self.sess = None
+                        if "CUDAExecutionProvider" in available:
+                            try:
+                                self.sess = rt.InferenceSession(
+                                    model_path,
+                                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                                )
+                                print("[Kokoro] Using CUDA GPU")
+                            except Exception:
+                                self.sess = None
+                        if self.sess is None:
+                            self.sess = rt.InferenceSession(
+                                model_path, providers=["CPUExecutionProvider"]
+                            )
+                            print("[Kokoro] Using CPU")
+
+                        # 加载 voices（JSON 格式，v0_19 模型配套）
+                        import json
+                        try:
+                            with open(voices_path, "r", encoding="utf-8") as f:
+                                data = json.load(f)
+                            self.voices = {
+                                k: np.array(v, dtype=np.float32) for k, v in data.items()
+                            }
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            self.voices = np.load(voices_path, allow_pickle=True)
+
+                        vocab = self._load_vocab(vocab_config)
+                        self.tokenizer = Tokenizer(espeak_config, vocab=vocab)
+
+                _kokoro = SafeKokoro(model_path, voices_path)
+                print("[deps] Kokoro TTS ready")
     return _kokoro
 
 
