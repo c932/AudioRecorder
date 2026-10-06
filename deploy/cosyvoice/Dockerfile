@@ -3,13 +3,8 @@
 # 去掉 tensorrt/gradio/deepspeed 等不需要的依赖）
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
-# 防止后续 pip 安装把 setuptools 升到 70+（pkg_resources 会被移除）
-ENV PIP_CONSTRAINT=/opt/pip-constraints.txt
 
 WORKDIR /opt/CosyVoice
-
-# 约束文件：锁定 setuptools < 70，保证 pkg_resources 可用
-RUN echo "setuptools<70" > /opt/pip-constraints.txt
 
 RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list \
     && apt-get update -y \
@@ -24,8 +19,10 @@ RUN pip3 install --no-cache-dir "setuptools<70" wheel
 RUN git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git
 
 # 精简依赖：分批安装，避免单次大包超时导致整层重做
+# 每批都带 setuptools<70 防止被依赖升级（pkg_resources 会丢失）
 # 批次1：核心小包（快速安装，建立缓存层）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
+    "setuptools<70" \
     conformer==0.3.2 \
     diffusers==0.29.0 \
     fastapi==0.115.6 \
@@ -41,6 +38,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
 
 # 批次2：科学计算大包（numpy/librosa/soundfile）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
+    "setuptools<70" \
     numpy==1.26.4 \
     librosa==0.10.2 \
     soundfile==0.12.1 \
@@ -48,6 +46,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
 
 # 批次3：ML 大包（transformers/lightning/modelscope/whisper — 体积大，易超时）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
+    "setuptools<70" \
     transformers==4.51.3 \
     lightning==2.2.4 \
     modelscope==1.20.0 \
@@ -56,6 +55,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
 
 # 批次4：GPU 推理（onnxruntime-gpu ~200MB，单独一层便于重试）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
+    "setuptools<70" \
     onnxruntime-gpu==1.18.0 \
     x-transformers==2.11.24 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
@@ -63,6 +63,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
 # 编译 gRPC proto（client 不用，但服务端 import 需要）
 RUN cd CosyVoice/runtime/python/grpc \
     && pip3 install --no-cache-dir --timeout 120 --retries 5 \
+        "setuptools<70" \
         grpcio==1.57.0 grpcio-tools==1.57.0 \
         -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
     && python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. cosyvoice.proto
