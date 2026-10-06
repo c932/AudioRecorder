@@ -55,7 +55,10 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
 # 编译 gRPC proto（client 不用，但服务端 import 需要）
+# 先修复 setuptools：前面批次可能把 setuptools 升级到 70+，导致 pkg_resources 丢失
 RUN cd CosyVoice/runtime/python/grpc \
+    && pip3 install --no-cache-dir "setuptools<70" \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
     && pip3 install --no-cache-dir --timeout 120 --retries 5 \
         grpcio==1.57.0 grpcio-tools==1.57.0 \
         -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
