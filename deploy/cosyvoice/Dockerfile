@@ -3,8 +3,13 @@
 # 去掉 tensorrt/gradio/deepspeed 等不需要的依赖）
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
+# 防止后续 pip 安装把 setuptools 升到 70+（pkg_resources 会被移除）
+ENV PIP_CONSTRAINT=/opt/pip-constraints.txt
 
 WORKDIR /opt/CosyVoice
+
+# 约束文件：锁定 setuptools < 70，保证 pkg_resources 可用
+RUN echo "setuptools<70" > /opt/pip-constraints.txt
 
 RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list \
     && apt-get update -y \
@@ -56,10 +61,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
 # 编译 gRPC proto（client 不用，但服务端 import 需要）
-# 先修复 setuptools：前面批次可能把 setuptools 升级到 70+，导致 pkg_resources 丢失
 RUN cd CosyVoice/runtime/python/grpc \
-    && pip3 install --no-cache-dir "setuptools<70" \
-        -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
     && pip3 install --no-cache-dir --timeout 120 --retries 5 \
         grpcio==1.57.0 grpcio-tools==1.57.0 \
         -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
