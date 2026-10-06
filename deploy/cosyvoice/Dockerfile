@@ -12,6 +12,9 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install
 
+# 约束文件：防止后续 pip 安装升级 torch/torchaudio/setuptools（ABI 兼容性）
+RUN printf 'setuptools<70\ntorch==2.0.1\ntorchaudio==2.0.1\n' > /opt/pip-constraints.txt
+
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
 
@@ -19,10 +22,10 @@ RUN pip3 install --no-cache-dir "setuptools<70" wheel
 RUN git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git
 
 # 精简依赖：分批安装，避免单次大包超时导致整层重做
-# 每批都带 setuptools<70 防止被依赖升级（pkg_resources 会丢失）
+# 每批都带 --constraint 防止 torch/torchaudio/setuptools 被升级
 # 批次1：核心小包（快速安装，建立缓存层）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
-    "setuptools<70" \
+    --constraint /opt/pip-constraints.txt \
     conformer==0.3.2 \
     diffusers==0.29.0 \
     fastapi==0.115.6 \
@@ -38,7 +41,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
 
 # 批次2：科学计算大包（numpy/librosa/soundfile）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
-    "setuptools<70" \
+    --constraint /opt/pip-constraints.txt \
     numpy==1.26.4 \
     librosa==0.10.2 \
     soundfile==0.12.1 \
@@ -46,28 +49,27 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
 
 # 批次3：ML 大包（transformers/lightning/modelscope — 体积大，易超时）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
-    "setuptools<70" \
+    --constraint /opt/pip-constraints.txt \
     transformers==4.51.3 \
     lightning==2.2.4 \
     modelscope==1.20.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3b：openai-whisper 依赖（tiktoken/triton — 不含 torch，用基础镜像的）
+# 批次3b：openai-whisper 依赖（tiktoken — 不含 torch）
 RUN pip3 install --no-cache-dir --timeout 120 --retries 5 \
-    "setuptools<70" \
+    --constraint /opt/pip-constraints.txt \
     tiktoken==0.7.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3c：openai-whisper 本体（--no-deps 防止升级 torch/torchaudio，
+# 批次3c：openai-whisper 本体（--no-deps 防止升级 torch，
 #   --no-build-isolation 用系统 setuptools<70 编译）
 RUN pip3 install --no-cache-dir --no-deps --no-build-isolation --timeout 180 --retries 5 \
-    "setuptools<70" \
     openai-whisper==20231117 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
 # 批次4：GPU 推理（onnxruntime-gpu ~200MB，单独一层便于重试）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
-    "setuptools<70" \
+    --constraint /opt/pip-constraints.txt \
     onnxruntime-gpu==1.18.0 \
     x-transformers==2.11.24 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
@@ -75,7 +77,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
 # 编译 gRPC proto（client 不用，但服务端 import 需要）
 RUN cd CosyVoice/runtime/python/grpc \
     && pip3 install --no-cache-dir --timeout 120 --retries 5 \
-        "setuptools<70" \
+        --constraint /opt/pip-constraints.txt \
         grpcio==1.57.0 grpcio-tools==1.57.0 \
         -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
     && python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. cosyvoice.proto
