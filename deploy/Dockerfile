@@ -37,7 +37,10 @@ RUN mv src/data src/data-defaults && mkdir src/data
 COPY deploy/prewarm_models.py ./deploy/prewarm_models.py
 COPY --chmod=755 deploy/entrypoint.sh /entrypoint.sh
 
-# g2p_en 依赖的 NLTK 资源（CMU 词典 + POS tagger）构建期下载，烘焙进镜像
+# g2p_en 依赖的 NLTK 资源（CMU 词典 + POS tagger）随仓库分发，烘焙进镜像
+# （部署机可能连不上 raw.githubusercontent.com 的 NLTK 下载源，不联网下载）
+COPY deploy/nltk_data /app/nltk_data
+ENV NLTK_DATA=/app/nltk_data
 RUN python -c "from src.core.gop.g2p import _ensure_nltk_resources; _ensure_nltk_resources()"
 
 ENV ENGLISH_COACH_HEADLESS=1 \
@@ -49,7 +52,7 @@ ENV ENGLISH_COACH_HEADLESS=1 \
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"
+    CMD python -c "import socket; socket.create_connection(('127.0.0.1', 8000), timeout=5).close()"
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "run_web.py"]
