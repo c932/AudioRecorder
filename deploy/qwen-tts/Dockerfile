@@ -5,13 +5,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /opt/qwen-tts
 
-# 基础工具
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git git-lfs && \
-    rm -rf /var/lib/apt/lists/* && \
-    git lfs install
-
 # 安装 qwen-tts + FastAPI + modelscope（国内镜像）
+# qwen-tts 不需要 git-lfs，模型通过 Python 下载
 RUN pip install --no-cache-dir \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
     qwen-tts \
