@@ -28,4 +28,7 @@ COPY server.py .
 
 EXPOSE 50000
 
+HEALTHCHECK --interval=30s --timeout=10s --retries=5 --start-period=120s \
+    CMD python -c "import socket; socket.create_connection(('127.0.0.1', 50000), timeout=5).close()"
+
 CMD ["python3", "server.py", "--port", "50000", "--model_dir", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"]

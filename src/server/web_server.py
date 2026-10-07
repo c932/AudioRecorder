@@ -16,7 +16,7 @@ os.environ.setdefault("ENGLISH_COACH_HEADLESS", "1")
 # ---------------------------------------------------------------------- #
 # Docker 部署支持：config.json 回环地址改写
 # ---------------------------------------------------------------------- #
-_URL_KEYS = ("custom_base", "ollama_base", "openai_base", "cosyvoice_url")
+_URL_KEYS = ("custom_base", "ollama_base", "openai_base", "tts_url", "cosyvoice_url")
 _HOST_KEYS = ("omni_host",)
 _LOOPBACK = ("127.0.0.1", "localhost")
 _URL_RE = re.compile(r"^(https?://)(127\.0\.0\.1|localhost)(?::(\d+))?(.*)$")

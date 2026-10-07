@@ -49,7 +49,7 @@ class TTSRequest(BaseModel):
 
 @router.post("/tts")
 def tts(req: TTSRequest):
-    """文本 → 语音（CosyVoice GPU WAV 优先 / edge-tts MP3 回退）。"""
+    """文本 → 语音（Qwen3-TTS GPU WAV 优先 / edge-tts MP3 回退）。"""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="text 为空")
     try:

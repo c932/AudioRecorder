@@ -8,14 +8,14 @@ import { setTtsVoice } from "../lib/audio";
 
 const TTS_OPTIONS = [
   "Auto",
-  "CosyVoice (GPU 本地 — 中英混合)",
+  "Qwen3-TTS (GPU 本地 — 中英混合)",
   "Edge (在线 — 快速)",
 ];
-const COSYVOICE_VOICES = [
-  { id: "英文女", label: "英文女声" },
-  { id: "英文男", label: "英文男声" },
-  { id: "中文女", label: "中文女声" },
-  { id: "中文男", label: "中文男声" },
+const QWEN_TTS_VOICES = [
+  { id: "英文女", label: "英文女声 (Aiden)" },
+  { id: "英文男", label: "英文男声 (Aiden)" },
+  { id: "中文女", label: "中文女声 (Vivian)" },
+  { id: "中文男", label: "中文男声 (Uncle_Fu)" },
 ];
 const PROVIDER_OPTIONS = [
   "Custom (Local API)",
@@ -57,7 +57,7 @@ export default function SettingsPage() {
     api.config().then((c) => {
       setCfg(c);
       // 同步音色到 audio 模块
-      const spk = String(c["cosyvoice_spk"] ?? "英文女");
+      const spk = String(c["tts_voice"] ?? c["cosyvoice_spk"] ?? "英文女");
       setTtsVoice(spk);
     }).catch((e) => setError(e.message));
   }, []);
@@ -168,26 +168,26 @@ export default function SettingsPage() {
           ))}
         </select>
         <p className="text-body text-ink-soft">
-          Auto 优先 CosyVoice GPU，失败回退 Edge 在线
+          Auto 优先 Qwen3-TTS GPU，失败回退 Edge 在线
         </p>
       </div>
 
-      {/* CosyVoice 音色选择：Auto 和 CosyVoice 模式都显示 */}
+      {/* Qwen3-TTS 音色选择：Auto 和 Qwen3-TTS 模式都显示 */}
       {!String(cfg["tts_engine"] ?? "Auto").includes("Edge") && (
         <div className="flex flex-col gap-2">
-          <label htmlFor="set-cosyvoice-voice" className="text-ui font-bold">
-            CosyVoice 音色
+          <label htmlFor="set-tts-voice" className="text-ui font-bold">
+            Qwen3-TTS 音色
           </label>
           <select
-            id="set-cosyvoice-voice"
-            value={String(cfg["cosyvoice_spk"] ?? "英文女")}
+            id="set-tts-voice"
+            value={String(cfg["tts_voice"] ?? cfg["cosyvoice_spk"] ?? "英文女")}
             onChange={(e) => {
-              set("cosyvoice_spk", e.target.value);
+              set("tts_voice", e.target.value);
               setTtsVoice(e.target.value);
             }}
             className={inputCls}
           >
-            {COSYVOICE_VOICES.map((v) => (
+            {QWEN_TTS_VOICES.map((v) => (
               <option key={v.id} value={v.id}>{v.label}</option>
             ))}
           </select>

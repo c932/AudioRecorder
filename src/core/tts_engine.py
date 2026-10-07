@@ -98,8 +98,8 @@ class PiperWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
-class CosyVoiceWorker(QThread):
-    """Worker that calls Qwen3-TTS (or compatible) FastAPI server for TTS.
+class QwenTTSWorker(QThread):
+    """Worker that calls Qwen3-TTS FastAPI server for TTS.
 
     Qwen3-TTS 内置音色，无需参考音频。
     服务端点：POST /tts  (text, speaker, language)
@@ -168,9 +168,9 @@ class CosyVoiceWorker(QThread):
                 self.error.emit("TTS: output file is empty")
 
         except requests.exceptions.ConnectionError:
-            self.error.emit("CosyVoice server not running. Start it with: python server.py --model_dir pretrained_models/CosyVoice2-0.5B")
+            self.error.emit("Qwen3-TTS server not running. Start it with: python server.py --model_dir Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
         except Exception as e:
-            self.error.emit(f"CosyVoice error: {str(e)}")
+            self.error.emit(f"Qwen3-TTS error: {str(e)}")
 
 
 def _has_chinese(text: str) -> bool:
@@ -329,13 +329,13 @@ class TTSEngine(QObject):
         self.failure_count = 0
         self.engine_mode = "Auto" # Default
         
-        # CosyVoice server config
-        self.cosyvoice_url = "http://localhost:50000"
-        self.cosyvoice_spk = "英文女"
+        # Qwen3-TTS server config
+        self.tts_url = "http://localhost:50000"
+        self.tts_spk = "英文女"
 
     def set_mode(self, mode_str):
         # mode_str comes from UI combo box, e.g. "Kokoro (Local Neural...)"
-        if "CosyVoice" in mode_str: self.engine_mode = "CosyVoice"
+        if "CosyVoice" in mode_str or "Qwen3-TTS" in mode_str: self.engine_mode = "Qwen3TTS"
         elif "Kokoro" in mode_str: self.engine_mode = "Kokoro"
         elif "Piper" in mode_str: self.engine_mode = "Piper"
         elif "Edge" in mode_str: self.engine_mode = "Edge"
@@ -343,13 +343,13 @@ class TTSEngine(QObject):
         else: self.engine_mode = "Auto"
         print(f"[TTSEngine] Mode set to: {self.engine_mode}")
 
-    def set_cosyvoice_config(self, url: str, spk_id: str = ""):
-        """Set CosyVoice server URL and speaker ID."""
+    def set_tts_config(self, url: str, spk_id: str = ""):
+        """Set Qwen3-TTS server URL and speaker ID."""
         if url:
-            self.cosyvoice_url = url.rstrip("/")
+            self.tts_url = url.rstrip("/")
         if spk_id:
-            self.cosyvoice_spk = spk_id
-        print(f"[TTSEngine] CosyVoice config: url={self.cosyvoice_url}, spk={self.cosyvoice_spk}")
+            self.tts_spk = spk_id
+        print(f"[TTSEngine] Qwen3-TTS config: url={self.tts_url}, spk={self.tts_spk}")
 
     def speak(self, text):
         if not text:
@@ -358,7 +358,7 @@ class TTSEngine(QObject):
         self.last_text = text
         
         # Decide which engine to use
-        use_cosyvoice = (self.engine_mode == "CosyVoice")
+        use_qwen_tts = (self.engine_mode == "Qwen3TTS")
         use_kokoro = (self.engine_mode == "Kokoro") or (self.engine_mode == "Auto" and self.use_kokoro)
         use_piper = (self.engine_mode == "Piper") or (self.engine_mode == "Auto" and self.use_piper and not self.use_kokoro)
         use_edge = (self.engine_mode == "Edge") or (self.engine_mode == "Auto" and not self.use_piper and not self.use_kokoro)
@@ -368,12 +368,12 @@ class TTSEngine(QObject):
              self._fallback_offline(text)
              return
         
-        # 0. CosyVoice (Local server, Chinese+English)
-        if use_cosyvoice:
-            print(f"[TTSEngine] Requesting CosyVoice TTS for: {text[:50]}...")
-            self.worker = CosyVoiceWorker(text, self.cosyvoice_url, self.cosyvoice_spk)
+        # 0. Qwen3-TTS (Local server, Chinese+English)
+        if use_qwen_tts:
+            print(f"[TTSEngine] Requesting Qwen3-TTS for: {text[:50]}...")
+            self.worker = QwenTTSWorker(text, self.tts_url, self.tts_spk)
             self.worker.finished.connect(self._play_file)
-            self.worker.error.connect(self._on_cosyvoice_error)
+            self.worker.error.connect(self._on_qwen_tts_error)
             self.worker.start()
             return
         
@@ -422,8 +422,8 @@ class TTSEngine(QObject):
         print(f"[TTSEngine] Kokoro Failed: {error}. Falling back.")
         self._fallback_offline(self.last_text)
 
-    def _on_cosyvoice_error(self, error):
-        print(f"[TTSEngine] CosyVoice Failed: {error}. Falling back to Edge TTS.")
+    def _on_qwen_tts_error(self, error):
+        print(f"[TTSEngine] Qwen3-TTS Failed: {error}. Falling back to Edge TTS.")
         # Fallback to Edge TTS for Chinese+English
         self.worker = EdgeTTSWorker(self.last_text, voice="zh-CN-XiaoxiaoNeural")
         self.worker.finished.connect(self._play_file)

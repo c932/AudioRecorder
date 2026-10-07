@@ -1,4 +1,4 @@
-// 语音播放 — 后端 TTS（CosyVoice GPU / edge-tts 回退）+ 会话内缓存/预取 + 本地鼓励音效。
+// 语音播放 — 后端 TTS（Qwen3-TTS GPU / edge-tts 回退）+ 会话内缓存/预取 + 本地鼓励音效。
 let audioEl: HTMLAudioElement | null = null;
 let speakToken = 0;
 
@@ -28,7 +28,7 @@ export async function initTtsVoiceFromConfig() {
     const res = await fetch("/api/config");
     if (res.ok) {
       const cfg = await res.json();
-      const spk = String(cfg.cosyvoice_spk ?? "英文女");
+      const spk = String(cfg.tts_voice ?? cfg.cosyvoice_spk ?? "英文女");
       currentVoice = spk;
     }
   } catch {

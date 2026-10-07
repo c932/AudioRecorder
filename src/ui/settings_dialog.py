@@ -100,7 +100,7 @@ class SettingsDialog(QDialog):
         self.combo_tts = QComboBox()
         self.combo_tts.addItems([
             "Auto (Best available)",
-            "CosyVoice (本地中英混合 - AI家教推荐)",
+            "Qwen3-TTS (本地中英混合 - AI家教推荐)",
             "Kokoro (Local Neural - Best Quality)", 
             "Piper (Local Fast - Low Latency)", 
             "Edge TTS (Cloud - Good Quality)", 
@@ -108,14 +108,14 @@ class SettingsDialog(QDialog):
         ])
         form_audio.addRow("语音引擎:", self.combo_tts)
         
-        # CosyVoice server config
-        self.txt_cosyvoice_url = QLineEdit("http://localhost:50000")
-        self.txt_cosyvoice_url.setPlaceholderText("CosyVoice 服务器地址")
-        form_audio.addRow("CosyVoice地址:", self.txt_cosyvoice_url)
-        
-        self.txt_cosyvoice_spk = QLineEdit("英文女")
-        self.txt_cosyvoice_spk.setPlaceholderText("说话ID，如: 英文女, 英文男, 中文女, 中文男")
-        form_audio.addRow("CosyVoice音色:", self.txt_cosyvoice_spk)
+        # Qwen3-TTS server config
+        self.txt_tts_url = QLineEdit("http://localhost:50000")
+        self.txt_tts_url.setPlaceholderText("Qwen3-TTS 服务器地址")
+        form_audio.addRow("TTS地址:", self.txt_tts_url)
+
+        self.txt_tts_spk = QLineEdit("英文女")
+        self.txt_tts_spk.setPlaceholderText("说话ID，如: 英文女, 英文男, 中文女, 中文男")
+        form_audio.addRow("TTS音色:", self.txt_tts_spk)
         
         grp_audio.setLayout(form_audio)
         layout_gen.addWidget(grp_audio)
@@ -775,8 +775,8 @@ class SettingsDialog(QDialog):
                     idx_tts = self.combo_tts.findText(tts)
                     if idx_tts >= 0: self.combo_tts.setCurrentIndex(idx_tts)
                     
-                    self.txt_cosyvoice_url.setText(config.get("cosyvoice_url", "http://localhost:50000"))
-                    self.txt_cosyvoice_spk.setText(config.get("cosyvoice_spk", "英文女"))
+                    self.txt_tts_url.setText(config.get("tts_url", "") or config.get("cosyvoice_url", "") or "http://localhost:50000")
+                    self.txt_tts_spk.setText(config.get("tts_voice", "") or config.get("cosyvoice_spk", "") or "英文女")
                     
                     self.chk_random.setChecked(config.get("strategy_random", True))
                     self.chk_smart.setChecked(config.get("strategy_smart", True))
@@ -870,8 +870,8 @@ class SettingsDialog(QDialog):
             "student_name": self.txt_student_name.text().strip(),
             "feedback_language": self.combo_feedback_lang.currentData(),
             "tts_engine": self.combo_tts.currentText(),
-            "cosyvoice_url": self.txt_cosyvoice_url.text().strip(),
-            "cosyvoice_spk": self.txt_cosyvoice_spk.text().strip(),
+            "tts_url": self.txt_tts_url.text().strip(),
+            "tts_voice": self.txt_tts_spk.text().strip(),
             
             "strategy_random": self.chk_random.isChecked(),
             "strategy_smart": self.chk_smart.isChecked(),

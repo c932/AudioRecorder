@@ -21,7 +21,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       tts:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./data:/app/src/data      # 词库/进度/config.json（首次启动自动播种）
       - hf-cache:/hf-cache        # wav2vec2 / Whisper 模型缓存
@@ -62,6 +62,12 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 50000), timeout=5).close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
 volumes:
   hf-cache:

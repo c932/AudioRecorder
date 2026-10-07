@@ -154,10 +154,10 @@ class MainWindow(QMainWindow):
                     self.chk_auto.setChecked(config.get("auto_mode_default", True))
                     # Set TTS Mode
                     self.tts.set_mode(config.get("tts_engine", "Auto"))
-                    # Set CosyVoice config
-                    self.tts.set_cosyvoice_config(
-                        config.get("cosyvoice_url", "http://localhost:50000"),
-                        config.get("cosyvoice_spk", "英文女")
+                    # Set Qwen3-TTS config
+                    self.tts.set_tts_config(
+                        config.get("tts_url", "") or config.get("cosyvoice_url", "") or "http://localhost:50000",
+                        config.get("tts_voice", "") or config.get("cosyvoice_spk", "") or "英文女"
                     )
              except (json.JSONDecodeError, IOError):
                  pass
@@ -218,9 +218,9 @@ class MainWindow(QMainWindow):
                 with open(config_path, 'r', encoding='utf-8') as f:
                     cfg = json.load(f)
                 self.tts.set_mode(cfg.get("tts_engine", "Auto"))
-                self.tts.set_cosyvoice_config(
-                    cfg.get("cosyvoice_url", "http://localhost:50000"),
-                    cfg.get("cosyvoice_spk", "中文女")
+                self.tts.set_tts_config(
+                    cfg.get("tts_url", "") or cfg.get("cosyvoice_url", "") or "http://localhost:50000",
+                    cfg.get("tts_voice", "") or cfg.get("cosyvoice_spk", "") or "中文女"
                 )
             except Exception:
                 pass

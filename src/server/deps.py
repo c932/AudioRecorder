@@ -175,7 +175,8 @@ _TTS_CACHE_MAX = 256
 def _tts_url() -> str:
     """从 config.json 读取 TTS 服务地址，默认 host.docker.internal:50000。"""
     cfg = load_config()
-    url = cfg.get("cosyvoice_url", "").strip().rstrip("/")
+    url = cfg.get("tts_url", "") or cfg.get("cosyvoice_url", "")
+    url = url.strip().rstrip("/")
     if not url:
         # Docker 容器内：TTS 跑在宿主机
         url = "http://host.docker.internal:50000"

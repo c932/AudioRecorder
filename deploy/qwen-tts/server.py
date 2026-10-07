@@ -171,12 +171,27 @@ if __name__ == "__main__":
         print(f"[qwen-tts] Model downloaded from ModelScope to: {model_dir}")
 
     dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+
+    # flash-attn 可选加速
+    attn_impl = "flash_attention_2" if torch.cuda.is_available() else "sdpa"
+    try:
+        import flash_attn  # noqa: F401
+    except ImportError:
+        attn_impl = "sdpa"
+
     model = Qwen3TTSModel.from_pretrained(
         model_dir,
         device_map="cuda:0" if torch.cuda.is_available() else "cpu",
         dtype=dtype,
+        attn_implementation=attn_impl,
     )
-    print(f"[qwen-tts] Model loaded: {model_dir}, dtype={dtype}, device={'cuda' if torch.cuda.is_available() else 'cpu'}")
-    print(f"[qwen-tts] Available speakers: {list(SPEAKERS.keys())}")
+    print(f"[qwen-tts] Model loaded: {model_dir}, dtype={dtype}, device={'cuda' if torch.cuda.is_available() else 'cpu'}, attn={attn_impl}")
+
+    # 用模型 API 验证音色
+    try:
+        supported = model.get_supported_speakers()
+        print(f"[qwen-tts] Model supported speakers: {supported}")
+    except Exception:
+        print(f"[qwen-tts] Available speakers (hardcoded): {list(SPEAKERS.keys())}")
 
     uvicorn.run(app, host="0.0.0.0", port=args.port)
