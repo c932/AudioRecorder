@@ -1,9 +1,7 @@
 """发音练习路由：跟读评分 + TTS + 练习会话。"""
 from __future__ import annotations
 
-import os
 import random
-import subprocess
 
 from typing import Optional
 
@@ -35,21 +33,6 @@ def score_pronunciation(req: ScoreRequest):
         raise HTTPException(status_code=400, detail="audio_b64 为空")
 
     path = save_audio_temp(req.audio_b64, req.audio_format)
-
-    # 诊断：记录音频文件信息
-    try:
-        size = os.path.getsize(path)
-        probe = subprocess.run(
-            ["ffprobe", "-v", "quiet", "-show_entries",
-             "stream=codec_name,sample_rate,channels,duration",
-             "-of", "csv=p=0", path],
-            capture_output=True, text=True, timeout=5,
-        )
-        print(f"[score] audio format={req.audio_format}, size={size}, "
-              f"probe={probe.stdout.strip() or probe.stderr.strip()[:100] or 'N/A'}")
-    except Exception as e:
-        print(f"[score] probe failed: {e}")
-
     try:
         result = get_coach().assess(path, req.reference)
         return result
