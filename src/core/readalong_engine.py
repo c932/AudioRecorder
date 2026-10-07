@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-import json
 
 
 class ReadAlongEngine:
@@ -68,59 +67,65 @@ class ReadAlongEngine:
 
     @staticmethod
     def translate_segments(segments: list[str], config: dict) -> list[str]:
-        """批量翻译英文句子/段落为中文（LLM）。"""
-        from src.core.content_parser import _get_llm_client_and_model
+        """批量翻译英文句子/段落为中文（LLM）。
 
+        LLM 失败时返回空串列表（与输入等长），应用可降级运行。
+        """
         if not segments:
             return []
 
-        client, model = _get_llm_client_and_model(config)
+        try:
+            from src.core.content_parser import _get_llm_client_and_model
+            client, model = _get_llm_client_and_model(config)
 
-        # 分批翻译（每批最多 20 句，避免超长 prompt）
-        batch_size = 20
-        all_translations = []
+            # 分批翻译（每批最多 20 句，避免超长 prompt）
+            batch_size = 20
+            all_translations = []
 
-        for i in range(0, len(segments), batch_size):
-            batch = segments[i:i + batch_size]
-            numbered = "\n".join(f"{j+1}. {s}" for j, s in enumerate(batch))
+            for i in range(0, len(segments), batch_size):
+                batch = segments[i:i + batch_size]
+                numbered = "\n".join(f"{j+1}. {s}" for j, s in enumerate(batch))
 
-            prompt = (
-                "请将以下英文逐句翻译为中文。保持序号对应，每行一句翻译，"
-                "不要加额外解释。格式：\n"
-                "1. 翻译内容\n2. 翻译内容\n\n"
-                f"英文：\n{numbered}"
-            )
+                prompt = (
+                    "请将以下英文逐句翻译为中文。保持序号对应，每行一句翻译，"
+                    "不要加额外解释。格式：\n"
+                    "1. 翻译内容\n2. 翻译内容\n\n"
+                    f"英文：\n{numbered}"
+                )
 
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=2000,
-                temperature=0.3,
-            )
-            content = response.choices[0].message.content.strip()
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=2000,
+                    temperature=0.3,
+                )
+                content = response.choices[0].message.content.strip()
 
-            # 解析编号行
-            translations = []
-            for line in content.splitlines():
-                line = line.strip()
-                # 去掉行首编号（"1. " "1、 " "1) " 等）
-                m = re.match(r'^(?:\d+)[.、)\s]+(.+)$', line)
-                if m:
-                    translations.append(m.group(1).strip())
-                elif line:
-                    translations.append(line)
+                # 解析编号行
+                translations = []
+                for line in content.splitlines():
+                    line = line.strip()
+                    # 去掉行首编号（"1. " "1、 " "1) " 等）
+                    m = re.match(r'^(?:\d+)[.、)\s]+(.+)$', line)
+                    if m:
+                        translations.append(m.group(1).strip())
+                    elif line:
+                        translations.append(line)
 
-            # 数量对齐：如果 LLM 少翻了，用空串补齐
-            while len(translations) < len(batch):
-                translations.append("")
-            all_translations.extend(translations[:len(batch)])
+                # 数量对齐：如果 LLM 少翻了，用空串补齐
+                while len(translations) < len(batch):
+                    translations.append("")
+                all_translations.extend(translations[:len(batch)])
 
-        return all_translations
+            return all_translations
+        except Exception as e:
+            print(f"[readalong] LLM 翻译失败: {e}")
+            return [""] * len(segments)
 
     @staticmethod
     def generate_llm_correction(score: int, reference: str, recognized: str,
                                 errors: list[dict], config: dict) -> str:
-        """用 LLM 生成具体的发音纠错建议（中文，30 字以内）。
+        """用 LLM 生成具体的发音纠错建议（中文，20 字以内）。
 
         LLM 失败时返回空串——应用必须在无 LLM 时仍可工作。
         """
