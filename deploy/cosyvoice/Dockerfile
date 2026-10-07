@@ -1,8 +1,6 @@
 # CosyVoice2 TTS 服务 — 中英混合 GPU 加速
-# 基于官方 Dockerfile 修复版（解决 setuptools/pkg_resources 兼容问题，
-# 去掉 tensorrt/gradio/deepspeed 等不需要的依赖）
+# 精简自官方 requirements.txt：去掉 deepspeed/gradio/tensorrt（训练/演示用，推理不需要）
 # 构建上下文为 NUC 上的 ~/CosyVoice（docker-compose.yml 里 context: /home/manfred/CosyVoice）
-# 注意：基础镜像 pytorch:2.0.1 已在 NUC 缓存，国内无法直接拉新镜像
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -20,41 +18,43 @@ RUN printf 'setuptools<70\ntorch==2.0.1\ntorchaudio==2.0.1\n' > /opt/pip-constra
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
 
-# 从构建上下文复制 CosyVoice 仓库（避免每次 git clone 网络不稳定）
-# docker-compose.yml 里 context: /home/manfred/CosyVoice
+# 从构建上下文复制 CosyVoice 仓库
 COPY . CosyVoice/
 
-# 精简依赖：分批安装，避免单次大包超时导致整层重做
-# 每批都带 --constraint 防止 torch/torchaudio/setuptools 被升级
-# transformers 限制 <4.40：torch 2.0.1 没有 torch.compiler（4.40+ 才需要）
-# 批次1：核心小包（快速安装，建立缓存层）
+# 分批安装（从官方 requirements.txt 精简，去掉 deepspeed/gradio/tensorrt）
+# 批次1：核心小包
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     --constraint /opt/pip-constraints.txt \
     conformer==0.3.2 \
     diffusers==0.29.0 \
     fastapi==0.115.6 \
-    python-multipart==0.0.9 \
-    Hydra-core==1.3.2 \
+    fastapi-cli==0.0.4 \
+    gdown==5.1.0 \
+    hydra-core==1.3.2 \
     HyperPyYAML==1.2.3 \
     inflect==7.3.1 \
-    gdown==5.2.0 \
-    pydantic==2.7.0 \
-    rich==13.7.1 \
     omegaconf==2.3.0 \
+    pydantic==2.7.0 \
+    python-multipart==0.0.9 \
+    rich==13.7.1 \
     uvicorn==0.30.0 \
     wetext==0.0.4 \
+    wget==3.2 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次2：科学计算大包（numpy/librosa/soundfile）
+# 批次2：科学计算
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     --constraint /opt/pip-constraints.txt \
     numpy==1.26.4 \
     librosa==0.10.2 \
     soundfile==0.12.1 \
+    matplotlib==3.7.5 \
+    pyworld==0.3.4 \
+    pyarrow==18.1.0 \
+    onnx==1.16.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3：ML 大包（transformers 降级到 4.39.3 兼容 torch 2.0.1，
-#   lightning/modelscope — 体积大，易超时）
+# 批次3：ML 大包（transformers 降级 4.39.3 兼容 torch 2.0.1）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     --constraint /opt/pip-constraints.txt \
     transformers==4.39.3 \
@@ -62,26 +62,26 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     modelscope==1.20.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3b：openai-whisper 依赖（tiktoken — 不含 torch）
+# 批次3b：tiktoken（openai-whisper 依赖）
 RUN pip3 install --no-cache-dir --timeout 120 --retries 5 \
     --constraint /opt/pip-constraints.txt \
     tiktoken==0.7.0 \
+    protobuf==4.25 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3c：openai-whisper 本体（--no-deps 防止升级 torch，
-#   --no-build-isolation 用系统 setuptools<70 编译）
+# 批次3c：openai-whisper（--no-deps + --no-build-isolation）
 RUN pip3 install --no-cache-dir --no-deps --no-build-isolation --timeout 180 --retries 5 \
     openai-whisper==20231117 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次4：GPU 推理（onnxruntime-gpu ~200MB，单独一层便于重试）
+# 批次4：GPU 推理
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     --constraint /opt/pip-constraints.txt \
     onnxruntime-gpu==1.18.0 \
     x-transformers==2.11.24 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 编译 gRPC proto（client 不用，但服务端 import 需要）
+# 编译 gRPC proto
 RUN cd CosyVoice/runtime/python/grpc \
     && pip3 install --no-cache-dir --timeout 120 --retries 5 \
         --constraint /opt/pip-constraints.txt \
