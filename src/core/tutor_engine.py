@@ -684,16 +684,19 @@ class TutorEngine(QObject):
 
     def _parse_llm_response(self, raw: str) -> dict:
         """Extract JSON from LLM response, with fallback."""
+        # Strip <think>...</think> tags (reasoning models like DeepSeek/Qwen)
+        cleaned = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
+
         # Try direct JSON parse
         try:
-            data = json.loads(raw)
+            data = json.loads(cleaned)
             if isinstance(data, dict) and "action" in data:
                 return data
         except json.JSONDecodeError:
             pass
 
         # Try extracting JSON from markdown code block or mixed text
-        json_match = re.search(r'\{[^{}]*"action"[^{}]*\}', raw, re.DOTALL)
+        json_match = re.search(r'\{[^{}]*"action"[^{}]*\}', cleaned, re.DOTALL)
         if json_match:
             try:
                 data = json.loads(json_match.group())
@@ -703,7 +706,7 @@ class TutorEngine(QObject):
                 pass
 
         # Try more aggressive extraction with nested braces
-        brace_match = re.search(r'\{.*\}', raw, re.DOTALL)
+        brace_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
         if brace_match:
             try:
                 data = json.loads(brace_match.group())
@@ -713,10 +716,10 @@ class TutorEngine(QObject):
                 pass
 
         # Fallback: treat entire response as text feedback
-        print(f"[TutorEngine] Failed to parse JSON, using fallback. Raw: {raw[:100]}")
+        print(f"[TutorEngine] Failed to parse JSON, using fallback. Cleaned: {cleaned[:100]}")
         return {
             "action": "feedback",
-            "text": raw,
+            "text": cleaned,
             "tts_text": "",
         }
 
