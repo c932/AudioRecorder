@@ -1,6 +1,7 @@
 # CosyVoice2 TTS 服务 — 中英混合 GPU 加速
 # 精简自官方 requirements.txt：去掉 deepspeed/gradio/tensorrt（训练/演示用，推理不需要）
 # 构建上下文为 NUC 上的 ~/CosyVoice（docker-compose.yml 里 context: /home/manfred/CosyVoice）
+# 基础镜像 pytorch:2.0.1 已在 NUC 缓存；torch 2.3.1 通过 pip 升级（CosyVoice2 模型需要）
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -12,11 +13,20 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install
 
-# 约束文件：防止后续 pip 安装升级 torch/torchaudio/setuptools（ABI 兼容性）
-RUN printf 'setuptools<70\ntorch==2.0.1\ntorchaudio==2.0.1\n' > /opt/pip-constraints.txt
+# 约束文件：防止 pip 意外升级 setuptools（pkg_resources 兼容）
+RUN printf 'setuptools<70\n' > /opt/pip-constraints.txt
 
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
+
+# 升级 torch/torchaudio 到 2.3.1（CosyVoice2-0.5B 模型需要 2.3+ 的 parametrizations 格式）
+# 用清华镜像 + 上交大 PyTorch 镜像
+RUN pip3 install --no-cache-dir --timeout 300 --retries 5 \
+    torch==2.3.1 torchaudio==2.3.1 \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/ \
+    --extra-index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu121/ \
+    --trusted-host pypi.tuna.tsinghua.edu.cn \
+    --trusted-host mirror.sjtu.edu.cn
 
 # 从构建上下文复制 CosyVoice 仓库
 COPY . CosyVoice/
@@ -54,15 +64,15 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     onnx==1.16.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3：ML 大包（transformers 降级 4.39.3 兼容 torch 2.0.1）
+# 批次3：ML 大包（transformers 4.51.3 兼容 torch 2.3.1）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     --constraint /opt/pip-constraints.txt \
-    transformers==4.39.3 \
+    transformers==4.51.3 \
     lightning==2.2.4 \
     modelscope==1.20.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3b：tiktoken（openai-whisper 依赖）
+# 批次3b：tiktoken + protobuf（openai-whisper 依赖）
 RUN pip3 install --no-cache-dir --timeout 120 --retries 5 \
     --constraint /opt/pip-constraints.txt \
     tiktoken==0.7.0 \
