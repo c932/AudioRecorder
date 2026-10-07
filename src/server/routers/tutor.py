@@ -7,11 +7,15 @@ tutor_action_ready（先 feedback、再自动推进到下一阶段的 prompt）�
 链式判定：引擎自动推进（_advance_after_feedback / _next_word）总是先
 emit session_state_updated 再发起下一个 LLM 请求，因此收到 feedback 后
 观察 state 序号是否变化，即可判断是否还有后续 action，无竞态。
+
+优化：收集 action 时并行合成 TTS 音频，通过 /api/tutor/tts/{token} 端点
+提供缓存播放，前端无需再发第二次请求。
 """
 from __future__ import annotations
 
 import threading
 import time
+import uuid
 from typing import Callable, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -19,7 +23,7 @@ from pydantic import BaseModel
 
 from src.server.deps import (
     get_exercise_manager, get_coach, get_recognizer,
-    save_audio_temp, cleanup_temp,
+    save_audio_temp, cleanup_temp, synthesize_tts,
 )
 from src.core.tutor_engine import TutorEngine
 
@@ -33,6 +37,10 @@ _action_queue: list = []
 _pending_error: list = []
 _state_seq = 0
 _action_cond = threading.Condition()
+
+# TTS audio cache: token → (audio_bytes, media_type)
+_tts_cache: dict[str, tuple[bytes, str]] = {}
+_tts_cache_lock = threading.Lock()
 
 
 def _get_engine() -> TutorEngine:
@@ -64,6 +72,24 @@ def _on_error(msg: str):
     with _action_cond:
         _pending_error.append(msg)
         _action_cond.notify_all()
+
+
+def _synthesize_tts_async(tts_text: str) -> Optional[str]:
+    """在当前线程合成 TTS 并返回缓存 token，失败返回 None。"""
+    if not tts_text or not tts_text.strip():
+        return None
+    try:
+        audio, media_type = synthesize_tts(tts_text)
+        token = uuid.uuid4().hex[:12]
+        with _tts_cache_lock:
+            _tts_cache[token] = (audio, media_type)
+            # 保留最近 32 条
+            while len(_tts_cache) > 32:
+                _tts_cache.pop(next(iter(_tts_cache)))
+        return token
+    except Exception as e:
+        print(f"[tutor] TTS 预合成失败: {e}")
+        return None
 
 
 def _get_state() -> dict:
@@ -137,6 +163,21 @@ def _await_actions(trigger: Callable[[], None],
     error = _pop_error()
     if error:
         resp["error"] = error
+
+    # 并行合成每个 action 的 TTS 音频，把 token 附在 action 上
+    tts_threads: list[tuple[threading.Thread, dict, int]] = []
+    for i, a in enumerate(actions):
+        tts_text = a.get("tts_text") or a.get("text", "")
+        if not tts_text.strip():
+            continue
+        t = threading.Thread(
+            target=_tts_fill_token, args=(a, tts_text), daemon=True
+        )
+        tts_threads.append((t, a, i))
+        t.start()
+    for t, _, _ in tts_threads:
+        t.join(timeout=15)
+
     return resp
 
 
@@ -147,6 +188,13 @@ def _run(trigger: Callable[[], None]) -> dict:
         raise HTTPException(status_code=504, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _tts_fill_token(action: dict, tts_text: str):
+    """在后台线程中合成 TTS，把 token 写入 action dict。"""
+    token = _synthesize_tts_async(tts_text)
+    if token:
+        action["tts_token"] = token
 
 
 # ---------------------------------------------------------------------- #
@@ -254,3 +302,15 @@ def summary():
 def stop():
     _get_engine().stop_session()
     return {"ok": True}
+
+
+@router.get("/tts/{token}")
+def tts_cache(token: str):
+    """播放预合成的 TTS 音频（由 action 中的 tts_token 字段引用）。"""
+    with _tts_cache_lock:
+        entry = _tts_cache.get(token)
+    if not entry:
+        raise HTTPException(status_code=404, detail="音频已过期")
+    audio, media_type = entry
+    from fastapi.responses import Response
+    return Response(content=audio, media_type=media_type)

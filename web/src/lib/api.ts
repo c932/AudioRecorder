@@ -106,6 +106,7 @@ export interface TutorAction {
   action: string;
   text: string;
   tts_text?: string;
+  tts_token?: string;  // 预合成音频 token，播放用 /api/tutor/tts/{token}
   options?: string[];
   grammar_correct?: boolean;
   correction?: string | null;

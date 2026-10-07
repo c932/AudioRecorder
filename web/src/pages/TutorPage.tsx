@@ -7,7 +7,7 @@ import {
   api, type TutorAction, type TutorState, type WordItem,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
-import { speak, stopAudio } from "../lib/audio";
+import { speak, speakViaToken, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import GroupPicker from "../components/GroupPicker";
 import {
@@ -58,8 +58,10 @@ export default function TutorPage() {
   const [summary, setSummary] = useState<{
     topic: string; total_words: number; mastered: number; weak_words: string[];
   } | null>(null);
-  const { recording, error: recError, start, stop } = useRecorder();
+  const { recording, start, stop } = useRecorder();
   const bottomRef = useRef<HTMLDivElement>(null);
+  // 自动录音计时器引用
+  const autoRecordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 启动时从配置加载已保存的分组
   useEffect(() => {
@@ -81,9 +83,34 @@ export default function TutorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateItems, phase]);
 
-  useEffect(() => () => stopAudio(), []);
+  useEffect(() => () => {
+    stopAudio();
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
+  }, []);
 
-  const applyActions = (actions: TutorAction[], st: TutorState, extra?: Bubble) => {
+  /** 播放 TTS：优先用后端预合成 token，否则回退到前端请求合成 */
+  const playTts = async (action: TutorAction): Promise<void> => {
+    if (action.tts_token) {
+      return speakViaToken(action.tts_token);
+    }
+    const ttsText = action.tts_text || action.text;
+    if (ttsText) {
+      return speak(ttsText);
+    }
+    return Promise.resolve();
+  };
+
+  /** TTS 播放完后自动开始录音（参照情景会话模式） */
+  const scheduleAutoRecord = (m: Mode) => {
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
+    if (m === "gop" || m === "asr") {
+      autoRecordTimer.current = setTimeout(() => {
+        start().catch(() => {});
+      }, 600);
+    }
+  };
+
+  const applyActions = async (actions: TutorAction[], st: TutorState, extra?: Bubble) => {
     const newBubbles: Bubble[] = extra ? [extra] : [];
     let last: TutorAction | null = null;
     for (const a of actions) {
@@ -125,8 +152,17 @@ export default function TutorPage() {
       setOptions(opts);
       setCorrectOption(findCorrectOption(opts, st.word, st.translation));
     }
-    // 尝试自动朗读（浏览器可能拦截，失败静默）
-    if (last?.text) speak(last.text).catch(() => {});
+    // 播放 TTS，播完后自动开始录音
+    if (last) {
+      try {
+        await playTts(last);
+        // TTS 播完，自动开始录音
+        scheduleAutoRecord(m);
+      } catch {
+        // TTS 失败也尝试自动录音
+        scheduleAutoRecord(m);
+      }
+    }
   };
 
   const startSession = async (itemsOverride?: WordItem[]) => {
@@ -139,7 +175,7 @@ export default function TutorPage() {
         const r = await api.tutorStart(topic, items);
         setBubbles([]);
         setPhase("chat");
-        applyActions(r.actions, r.state);
+        await applyActions(r.actions, r.state);
       } catch (e) {
         setError((e as Error).message);
       } finally {
@@ -162,7 +198,7 @@ export default function TutorPage() {
       const r = await api.tutorStart(group[0], items);
       setBubbles([]);
       setPhase("chat");
-      applyActions(r.actions, r.state);
+      await applyActions(r.actions, r.state);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -171,13 +207,14 @@ export default function TutorPage() {
   };
 
   const handlePronunciation = async () => {
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
     const rec = await stop();
     if (!rec.b64) return;
     setBusy(true);
     setError("");
     try {
       const r = await api.tutorPronunciation(rec.b64, rec.format);
-      applyActions(
+      await applyActions(
         r.actions, r.state,
         { role: "ai", text: r.feedback ?? "", score: r.score },
       );
@@ -189,13 +226,14 @@ export default function TutorPage() {
   };
 
   const handleAnswerAudio = async () => {
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
     const rec = await stop();
     if (!rec.b64) return;
     setBusy(true);
     setError("");
     try {
       const r = await api.tutorAnswer(rec.b64, rec.format);
-      applyActions(r.actions, r.state, { role: "user", text: r.recognized ?? "" });
+      await applyActions(r.actions, r.state, { role: "user", text: r.recognized ?? "" });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -204,6 +242,7 @@ export default function TutorPage() {
   };
 
   const sendText = async () => {
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
     const t = text.trim();
     if (!t) return;
     setText("");
@@ -211,7 +250,7 @@ export default function TutorPage() {
     setError("");
     try {
       const r = await api.tutorText(t);
-      applyActions(r.actions, r.state, { role: "user", text: t });
+      await applyActions(r.actions, r.state, { role: "user", text: t });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -220,11 +259,12 @@ export default function TutorPage() {
   };
 
   const chooseOption = async (chosen: string) => {
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
     setBusy(true);
     setError("");
     try {
       const r = await api.tutorChoice(chosen, correctOption);
-      applyActions(r.actions, r.state, { role: "user", text: `选择：${chosen}` });
+      await applyActions(r.actions, r.state, { role: "user", text: `选择：${chosen}` });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -233,6 +273,7 @@ export default function TutorPage() {
   };
 
   const endSession = async () => {
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
     stopAudio();
     setBusy(true);
     try {
@@ -403,7 +444,7 @@ export default function TutorPage() {
           disabled={busy}
           onStart={start}
           onStop={handlePronunciation}
-          hint={busy ? "评分中…" : recError || "跟读上面的单词"}
+          hint={busy ? "评分中…" : recording ? "录音中…点击停止" : "自动录音中…"}
         />
       )}
 
@@ -414,7 +455,7 @@ export default function TutorPage() {
             disabled={busy}
             onStart={start}
             onStop={handleAnswerAudio}
-            hint={busy ? "思考中…" : recError || "用英语回答（也可以打字）"}
+            hint={busy ? "思考中…" : recording ? "录音中…点击停止" : "自动录音中…"}
           />
           <form
             className="flex gap-2"

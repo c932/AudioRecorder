@@ -92,6 +92,25 @@ export function prefetchTts(texts: string[]) {
   void worker();
 }
 
+/** 通过后端预合成 token 播放 TTS（无需再次请求合成）。 */
+export async function speakViaToken(token: string): Promise<void> {
+  stopAudio();
+  const url = `/api/tutor/tts/${token}`;
+  const el = new Audio(url);
+  audioEl = el;
+  return new Promise((resolve) => {
+    el.onended = () => {
+      if (audioEl === el) audioEl = null;
+      resolve();
+    };
+    el.onerror = () => {
+      if (audioEl === el) audioEl = null;
+      resolve();
+    };
+    el.play().catch(() => resolve());
+  });
+}
+
 export function stopAudio() {
   speakToken++; // 让进行中的 speak 在拿到音频后不再播放
   if (audioEl) {

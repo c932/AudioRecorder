@@ -456,15 +456,27 @@ class TutorPage(QWidget):
     # ================================================================== #
 
     def _start_recording(self):
-        """Start audio recording."""
+        """Start audio recording (with VAD auto-stop for hands-free mode)."""
         if self._tts_playing or self._is_recording:
             return
         self._is_recording = True
-        self.btn_record.setText("录音中...")
+        self.btn_record.setText("录音中...(自动停止)")
         self.btn_record.setStyleSheet(AppStyles.RECORD_BUTTON_ACTIVE)
-        # Use main_window's audio recorder
+        # Use main_window's audio recorder with VAD enabled
         try:
-            self.main_window.audio_recorder.start_recording()
+            dev_idx = None
+            config_path = get_user_data_path("config.json")
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        dev_idx = json.load(f).get("device_index")
+                except Exception:
+                    pass
+            self.main_window.audio_recorder.start_recording(
+                device_index=dev_idx,
+                vad_enabled=True,
+                stop_callback=self._vad_stop_recording,
+            )
         except Exception as e:
             print(f"[TutorPage] Recording start error: {e}")
             self._is_recording = False
@@ -678,9 +690,34 @@ class TutorPage(QWidget):
             self.tts.speak(tts_text)
 
     def _on_tts_state_changed(self, state):
-        """When TTS finishes playing, unlock recording."""
+        """When TTS finishes playing, unlock recording and auto-start."""
         if state == QMediaPlayer.PlaybackState.StoppedState:
-            QTimer.singleShot(300, self._unlock_recording)
+            QTimer.singleShot(300, self._unlock_and_auto_record)
+
+    def _unlock_and_auto_record(self):
+        """Enable recording button and auto-start recording."""
+        self._tts_playing = False
+        self.btn_record.setEnabled(True)
+        # 自动开始录音（参照情景会话模式）
+        if self._current_mode in ("gop", "asr"):
+            QTimer.singleShot(500, self._auto_start_recording)
+
+    def _auto_start_recording(self):
+        """Auto-start recording with VAD (like scenario conversation)."""
+        if self._tts_playing or self._is_recording:
+            return
+        if not self.btn_record.isEnabled():
+            return
+        self._start_recording()
+
+    def _vad_stop_recording(self):
+        """VAD detected silence — stop recording on UI thread."""
+        QTimer.singleShot(0, self._do_stop_recording)
+
+    def _do_stop_recording(self):
+        """Stop recording from VAD callback."""
+        if self._is_recording:
+            self._stop_recording()
 
     def _unlock_recording(self):
         """Enable recording button."""

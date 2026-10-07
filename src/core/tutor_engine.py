@@ -47,7 +47,8 @@ PHASE_EXPECTED_ACTIONS = {
 }
 
 
-TUTOR_SYSTEM_PROMPT = """你是一个面向中国儿童的英语情景对话教练。你的任务是通过模拟真实场景的对话，让学生在交流中自然练习目标词汇。
+TUTOR_SYSTEM_PROMPT = """你是一个面向中国初中生的英语情景对话教练（学生年龄12-15岁，已有小学英语基础）。
+你的任务是通过模拟真实场景的对话，让学生在交流中自然练习目标词汇。
 
 学生: {student_name}
 
@@ -61,8 +62,15 @@ TUTOR_SYSTEM_PROMPT = """你是一个面向中国儿童的英语情景对话教�
 每次轮到你说话时，你要设计一个自然的生活场景（如购物、问路、打电话、在学校等），
 让对话中的英语句子包含当前目标词汇或其他词汇表中的词，然后引导学生用英语回应。
 
+难度要求（极其重要）：
+- 初中生已掌握基础日常词汇，不要再问太简单的问题（如 "What is your name?"、"How are you?"）
+- 选择题的干扰项必须是合理的易混淆项（如同义词、形近词、相关但错误的搭配），不要设置明显错误的选项
+- 造句要求应引导学生使用较复杂的句式（如条件句、定语从句、比较级等），不要只要求简单主谓宾
+- 对话情景要体现真实交际需求（如委婉请求、表达观点、比较选择），而非机械问答
+- 英语句子长度应在 8-15 词之间，避免过短（3-4词）或过长
+
 例如，教 "profile" 时：
-- 你说："好，我们来玩一个情景！假设你在学校认识新朋友，对方问你：What's your profile? 意思是'你的个人简介是什么？' 你会怎么回答呢？"
+- 你说："假设你在学校认识新朋友，对方想了解你：Can you tell me something about your profile? 你会怎么介绍自己呢？"
 - 学生尝试回答
 - 你鼓励并纠正
 
@@ -76,12 +84,13 @@ RULES:
 5. 鼓励学生，温和纠正错误.
 6. You MUST respond in JSON format ONLY:
    {{"action": "...", "text": "...", "tts_text": "..."}}
-7. For ask_choice action, also include: "options": ["A. xxx", "B. xxx", "C. xxx"] (3 choices, one correct).
+7. For ask_choice action, also include: "options": ["A. xxx", "B. xxx", "C. xxx"] (3 choices, one correct). 干扰项必须有迷惑性！
 8. NEVER decide phase transitions. Only generate content for the CURRENT phase.
 9. tts_text 必须和 text 完全一样，直接复制 text 的内容即可.
 10. 情景要多样化：购物、餐厅点餐、问路、看病、打电话、运动、旅行、天气、生日派对等，不要重复同一场景.
 11. 尽量让对话中的英文句子同时包含多个词汇表中的词，帮学生在语境中串联记忆.
 12. 不要做翻译练习或机械跟读，而是让学生在对话中自然使用英语.
+13. 不要输出 <think> 或 <action> 等思考标签，直接输出JSON.
 """
 
 
@@ -554,13 +563,14 @@ class TutorEngine(QObject):
             user_content = f"[Phase: {self.phase.name}]"
             if extra_context:
                 user_content += f"\n{extra_context}"
+            user_content += "\n\n请直接输出JSON，不要输出任何其他内容。格式：{\"action\": \"...\", \"text\": \"...\", \"tts_text\": \"...\"}"
             messages.append({"role": "user", "content": user_content})
 
             # Call LLM
             response = self._llm_client.chat.completions.create(
                 model=self._llm_model,
                 messages=messages,
-                temperature=0.7,
+                temperature=0.4,
                 max_tokens=300,
             )
 
@@ -630,6 +640,7 @@ class TutorEngine(QObject):
             user_content = f"[Phase: {self.phase.name}]"
             if extra_context:
                 user_content += f"\n{extra_context}"
+            user_content += "\n\n请直接输出JSON，不要输出任何其他内容。格式：{\"action\": \"...\", \"text\": \"...\", \"tts_text\": \"...\"}"
 
             # Include recent dialogue as context text
             history_text = ""
@@ -691,8 +702,11 @@ class TutorEngine(QObject):
 
     def _parse_llm_response(self, raw: str) -> dict:
         """Extract JSON from LLM response, with fallback."""
-        # Strip <think>...</think> tags (reasoning models like DeepSeek/Qwen)
-        cleaned = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
+        # Strip thinking/reasoning tags (various models: DeepSeek, Qwen3, etc.)
+        cleaned = re.sub(r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>', '', raw, flags=re.DOTALL).strip()
+        # Also strip markdown code fences that some models wrap JSON in
+        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+        cleaned = re.sub(r'\s*```\s*$', '', cleaned)
 
         # Try direct JSON parse
         try:
