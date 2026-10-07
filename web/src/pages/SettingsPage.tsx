@@ -7,10 +7,8 @@ import {
 
 const TTS_OPTIONS = [
   "Auto",
-  "Edge (Online - Fast)",
-  "Kokoro (Local Neural - Best Quality)",
-  "Piper (Local - Fast)",
-  "System (Offline)",
+  "CosyVoice (GPU 本地 — 中英混合)",
+  "Edge (在线 — 快速)",
 ];
 const PROVIDER_OPTIONS = [
   "Custom (Local API)",
@@ -158,7 +156,7 @@ export default function SettingsPage() {
           ))}
         </select>
         <p className="text-body text-ink-soft">
-          Web 版朗读当前使用在线 Edge 语音，与桌面版设置无关
+          Auto 优先 CosyVoice GPU，失败回退 Edge 在线
         </p>
       </div>
 
