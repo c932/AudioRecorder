@@ -11,9 +11,10 @@ from . import (
     memorize,
     mistakes,
     config,
+    readalong,
 )
 
 __all__ = [
     "vocab", "practice", "quiz", "oral", "scenario",
-    "tutor", "memorize", "mistakes", "config",
+    "tutor", "memorize", "mistakes", "config", "readalong",
 ]

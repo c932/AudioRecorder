@@ -105,6 +105,7 @@ from src.server.routers.tutor import router as tutor_router
 from src.server.routers.memorize import router as memorize_router
 from src.server.routers.mistakes import router as mistakes_router
 from src.server.routers.config import router as config_router
+from src.server.routers.readalong import router as readalong_router
 
 app = FastAPI(title="少儿英语发音教练 Web", version="1.0", lifespan=lifespan)
 
@@ -118,7 +119,8 @@ app.add_middleware(
 
 # API routers
 for r in (vocab_router, practice_router, quiz_router, oral_router,
-          scenario_router, tutor_router, memorize_router, mistakes_router, config_router):
+          scenario_router, tutor_router, memorize_router, mistakes_router,
+          config_router, readalong_router):
     app.include_router(r)
 
 
