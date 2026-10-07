@@ -183,7 +183,11 @@ def _cosyvoice_url() -> str:
 
 
 def _synthesize_cosyvoice(text: str, spk_id: str = "中文女") -> tuple[bytes, str]:
-    """用 CosyVoice FastAPI 服务合成语音（GPU 加速，中英混合原生），返回 (WAV bytes, media_type)。"""
+    """用 CosyVoice FastAPI 服务合成语音（GPU 加速，中英混合原生），返回 (WAV bytes, media_type)。
+
+    CosyVoice2-0.5B 使用 inference_cross_lingual 接口（需要参考音频），
+    返回 raw PCM int16 24000Hz mono 流。
+    """
     import struct
     import wave
     from io import BytesIO
@@ -191,11 +195,17 @@ def _synthesize_cosyvoice(text: str, spk_id: str = "中文女") -> tuple[bytes, 
     import requests
 
     url = _cosyvoice_url()
-    resp = requests.post(
-        f"{url}/inference_sft",
-        data={"tts_text": text, "spk_id": spk_id},
-        timeout=30,
-    )
+    prompt_wav = get_user_data_path("cosyvoice_prompt.wav")
+    if not os.path.exists(prompt_wav):
+        raise RuntimeError(f"CosyVoice 参考音频不存在: {prompt_wav}")
+
+    with open(prompt_wav, "rb") as f:
+        resp = requests.post(
+            f"{url}/inference_cross_lingual",
+            data={"tts_text": text},
+            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+            timeout=60,
+        )
     if resp.status_code != 200:
         raise RuntimeError(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
 
