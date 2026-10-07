@@ -14,7 +14,7 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list
     && git lfs install
 
 # 约束文件：防止 pip 意外升级 setuptools（pkg_resources 兼容）
-RUN printf 'setuptools<70\nhuggingface_hub<0.24\n' > /opt/pip-constraints.txt
+RUN printf 'setuptools<70\nhuggingface_hub==0.28.1\n' > /opt/pip-constraints.txt
 
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
@@ -40,7 +40,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     fastapi==0.115.6 \
     fastapi-cli==0.0.4 \
     gdown==5.1.0 \
-    huggingface_hub==0.23.5 \
+    huggingface_hub==0.28.1 \
     hydra-core==1.3.2 \
     HyperPyYAML==1.2.3 \
     inflect==7.3.1 \
@@ -76,7 +76,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
     lightning==2.2.4 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
     && pip3 install --no-cache-dir --no-deps --timeout 180 --retries 5 \
-    transformers==4.51.3 \
+    transformers==4.40.4 \
     modelscope==1.20.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
