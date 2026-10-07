@@ -67,7 +67,7 @@ services:
     command: >
       bash -c "python3 /opt/patch_server.py
       && cd /opt/CosyVoice/CosyVoice/runtime/python/fastapi
-      && python3 server.py --port 50000 --model_dir iic/CosyVoice2-0.5B"
+      && python3 server.py --port 50000 --model_dir FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
 
 volumes:
   hf-cache:
