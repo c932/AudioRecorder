@@ -236,9 +236,17 @@ export default function PracticePage() {
       {result ? (
         <>
           <ScoreResultView result={result} />
-          <button className={btnPrimary} onClick={next}>
-            {idx + 1 >= items.length ? "完成" : "下一个"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              className={btnSecondary}
+              onClick={() => { setResult(null); stopAudio(); }}
+            >
+              再试一次
+            </button>
+            <button className={btnPrimary} onClick={next}>
+              {idx + 1 >= items.length ? "完成" : "下一个"}
+            </button>
+          </div>
         </>
       ) : (
         <RecordButton

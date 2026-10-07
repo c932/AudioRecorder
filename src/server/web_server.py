@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 
 # 无 GUI 服务器：强制 qt_compat 使用轻量信号 shim（跨线程直接投递）。
 # 必须在导入任何 src.core 引擎模块之前设置。
@@ -70,6 +71,29 @@ _rewrite_loopback_config()
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
+
+
+# ---------------------------------------------------------------------- #
+# Lifespan：启动时后台预热 GOP + Whisper 模型，首次请求不再冷启动
+# ---------------------------------------------------------------------- #
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    def _warmup():
+        try:
+            from src.server.deps import get_coach, get_recognizer
+            print("[lifespan] 预热 GOP 评分引擎...")
+            get_coach().warmup()
+            print("[lifespan] 预热 Whisper 语音识别...")
+            get_recognizer().warmup()
+            print("[lifespan] 引擎预热完成")
+        except Exception as e:
+            print(f"[lifespan] 引擎预热出错（不影响服务，首次请求时仍会懒加载）: {e}")
+
+    t = threading.Thread(target=_warmup, daemon=True)
+    t.start()
+    yield
+
 
 # 直接从子模块导入 router，绕过 __init__.py 避免包初始化时序问题
 from src.server.routers.vocab import router as vocab_router
@@ -82,7 +106,7 @@ from src.server.routers.memorize import router as memorize_router
 from src.server.routers.mistakes import router as mistakes_router
 from src.server.routers.config import router as config_router
 
-app = FastAPI(title="少儿英语发音教练 Web", version="1.0")
+app = FastAPI(title="少儿英语发音教练 Web", version="1.0", lifespan=lifespan)
 
 # CORS：开发时前端跑在 Vite dev server（不同端口）；局域网同源部署时无影响
 app.add_middleware(
