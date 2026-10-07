@@ -52,6 +52,12 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     wget==3.2 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
+# 安装 Matcha-TTS 子模块（CosyVoice flow_matching 依赖）
+RUN cd CosyVoice/third_party/Matcha-TTS && pip3 install --no-cache-dir \
+    --constraint /opt/pip-constraints.txt \
+    -e . \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
+
 # 批次2：科学计算
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     --constraint /opt/pip-constraints.txt \
