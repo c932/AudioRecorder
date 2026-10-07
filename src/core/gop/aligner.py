@@ -167,6 +167,15 @@ class Wav2Vec2Aligner:
         if device == "cuda":
             device = self._validate_cuda(torch)
 
+        # Check free VRAM: wav2vec2 needs ~1.2 GB for model + inference buffers.
+        # If GPU is nearly full (e.g. another container's TTS model), fall back to CPU.
+        if device == "cuda":
+            free_mb = torch.cuda.mem_get_info()[0] / (1024 * 1024)
+            if free_mb < 1500:
+                print(f"[gop.aligner] GPU free VRAM only {free_mb:.0f} MB, "
+                      f"need ~1500 MB; falling back to CPU.")
+                device = "cpu"
+
         print(f"[gop.aligner] loading {self.model_name} on {device}...")
 
         # NOTE: We deliberately avoid AutoProcessor / AutoTokenizer for
