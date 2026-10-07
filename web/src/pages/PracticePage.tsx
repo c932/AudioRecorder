@@ -6,16 +6,22 @@ import { useRecorder } from "../lib/recorder";
 import { playSoundForScore, prefetchTts, speak, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import ScoreResultView from "../components/ScoreResultView";
+import GroupPicker from "../components/GroupPicker";
 import {
   PageHeader, ProgressBar, Spinner, ErrorText,
-  btnPrimary, btnSecondary,
+  btnPrimary, btnSecondary, inputCls,
 } from "../components/ui";
 import { BackIcon, ForwardIcon, SpeakerIcon } from "../components/icons";
 
-/** 跟读练习 — 单词/句子大字卡 + 录音评分（GOP 音素级明细）。 */
+/** 跟读练习 — 选词库 → 单词/句子大字卡 + 录音评分（GOP 音素级明细）。 */
 export default function PracticePage() {
   const location = useLocation();
   const custom = (location.state as { items?: WordItem[] } | null)?.items;
+  const [phase, setPhase] = useState<"setup" | "practice">(
+    custom ? "practice" : "setup",
+  );
+  const [groups, setGroups] = useState<string[]>([]);
+  const [count, setCount] = useState(20);
   const [items, setItems] = useState<WordItem[] | null>(custom ?? null);
   const [idx, setIdx] = useState(0);
   const [result, setResult] = useState<ScoreResult | null>(null);
@@ -26,12 +32,32 @@ export default function PracticePage() {
   const { recording, error: recError, start, stop } = useRecorder();
   const touchX = useRef<number | null>(null);
 
+  const startPractice = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      // 保存选中的分组到配置
+      await api.saveConfig({ active_groups: groups } as Record<string, unknown>);
+      const r = await api.practiceSession(count);
+      if (r.items.length === 0) {
+        setError("没有可练习的词条，请选择词库分组");
+        return;
+      }
+      setItems(r.items);
+      setIdx(0);
+      setResult(null);
+      setScores([]);
+      setFinished(false);
+      setPhase("practice");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (custom) return;
-    api
-      .practiceSession(20)
-      .then((r) => setItems(r.items))
-      .catch((e) => setError(e.message));
   }, [custom]);
 
   useEffect(() => () => stopAudio(), []);
@@ -96,6 +122,41 @@ export default function PracticePage() {
     go(delta);
   };
 
+  // ── 选词库阶段 ──
+  if (phase === "setup") {
+    return (
+      <div className="flex flex-col gap-5">
+        <PageHeader title="跟读练习" />
+        <ErrorText text={error} />
+        <div className="flex flex-col gap-2">
+          <p className="text-ui font-bold">选择词库分组</p>
+          <GroupPicker selected={groups} onChange={setGroups} />
+          {groups.length === 0 && (
+            <p className="text-body text-ink-soft">未选择时练习全部词条</p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <label htmlFor="set-count" className="text-ui font-bold">
+            每轮词数
+          </label>
+          <input
+            id="set-count"
+            type="number"
+            min={1}
+            max={50}
+            value={count}
+            onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 20))}
+            className={inputCls + " w-24"}
+          />
+        </div>
+        <button className={btnPrimary} disabled={busy} onClick={startPractice}>
+          {busy ? "准备中…" : "开始练习"}
+        </button>
+      </div>
+    );
+  }
+
+  // ── 练习阶段 ──
   if (error && !items) return <ErrorText text={error} />;
   if (!items) return <Spinner label="准备练习…" />;
   if (items.length === 0) return <ErrorText text="没有可练习的词条，先去导入词库吧" />;
@@ -112,7 +173,7 @@ export default function PracticePage() {
         </p>
         <p className="text-ui text-ink-soft">平均分 · 共 {scores.length} 题</p>
         <div className="flex gap-2 mt-2">
-          <button className={btnSecondary} onClick={() => history.back()}>
+          <button className={btnSecondary} onClick={() => setPhase("setup")}>
             返回
           </button>
           <button className={btnPrimary} onClick={() => window.location.reload()}>

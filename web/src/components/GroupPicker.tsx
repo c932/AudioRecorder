@@ -1,4 +1,4 @@
-// 分组多选器 — 词库分组芯片（测验/口语/情景/家教设置共用）。
+// 分组多选器 — 词库分组芯片 + 速记28天模块（测验/口语/情景/家教/练习共用）。
 import { useEffect, useState } from "react";
 import { api, type GroupInfo } from "../lib/api";
 
@@ -12,9 +12,13 @@ export default function GroupPicker({ selected, onChange }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .groups()
-      .then((r) => setGroups(r.groups))
+    Promise.all([
+      api.groups().then((r) => r.groups),
+      api.memorizeDays().then((r) =>
+        r.days.map((d) => ({ name: `速记Day${d.day}`, count: d.count })),
+      ),
+    ])
+      .then(([vocabGroups, memDays]) => setGroups([...vocabGroups, ...memDays]))
       .catch((e) => setError(e.message));
   }, []);
 

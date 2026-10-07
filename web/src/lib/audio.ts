@@ -123,7 +123,7 @@ export async function speak(text: string): Promise<void> {
 
 export function playSoundForScore(score: number) {
   const name =
-    score >= 90 ? "perfect" : score >= 75 ? "excellent" : score >= 60 ? "good" : "encourage";
+    score >= 90 ? "perfect_en" : score >= 75 ? "excellent_en" : score >= 60 ? "good_en" : "encourage_en";
   const el = new Audio(`/sounds/${name}.wav`);
   el.play().catch(() => {});
 }
