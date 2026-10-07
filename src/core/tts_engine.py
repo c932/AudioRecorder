@@ -101,12 +101,18 @@ class PiperWorker(QThread):
 class CosyVoiceWorker(QThread):
     """Worker that calls CosyVoice FastAPI server for TTS.
 
-    CosyVoice2-0.5B 使用 inference_cross_lingual（仅需 prompt_wav）。
-    注意：inference_instruct2 的 instruct_text 会被模型当作朗读内容输出，不可用。
-    音色由 cosyvoice_prompt.wav 参考音频决定。
+    CosyVoice2-0.5B 使用 inference_cross_lingual。
+    优先使用预注册 zero_shot_spk_id（无需上传 prompt_wav）；
+    若 spk_id 未注册则回退到上传 prompt_wav。
     """
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
+
+    # 音色名 → 预注册说话人 ID
+    _SPK_ID_MAP = {
+        "英文女": "en_female", "英文男": "en_male",
+        "中文女": "zh_female", "中文男": "zh_male",
+    }
 
     def __init__(self, text, server_url="http://localhost:50000", spk_id="英文女"):
         super().__init__()
@@ -120,29 +126,37 @@ class CosyVoiceWorker(QThread):
             import requests
             import wave
 
-            # Cache by text hash
+            # Cache by text hash + spk_id
             text_hash = hashlib.md5(self.text.encode()).hexdigest()
-            filename = f"cosyvoice_{text_hash}.wav"
+            spk_key = self._SPK_ID_MAP.get(self.spk_id, self.spk_id)
+            filename = f"cosyvoice_{spk_key}_{text_hash}.wav"
             output_file = os.path.join(tempfile.gettempdir(), filename)
 
             if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
                 self.finished.emit(output_file)
                 return
 
-            prompt_wav = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                       "data", "cosyvoice_prompt.wav")
-            if not os.path.exists(prompt_wav):
-                self.error.emit(f"CosyVoice 参考音频不存在: {prompt_wav}")
-                return
+            # 优先使用 zero_shot_spk_id（无需上传 prompt_wav）
+            data = {"tts_text": self.text, "zero_shot_spk_id": spk_key}
+            resp = requests.post(
+                f"{self.server_url}/inference_cross_lingual",
+                data=data,
+                timeout=60,
+            )
 
-            # inference_cross_lingual：tts_text + prompt_wav，无 instruct_text
-            with open(prompt_wav, "rb") as f:
-                resp = requests.post(
-                    f"{self.server_url}/inference_cross_lingual",
-                    data={"tts_text": self.text},
-                    files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
-                    timeout=60,
-                )
+            # 如果 zero_shot_spk_id 未注册，回退到上传 prompt_wav
+            if resp.status_code != 200:
+                prompt_wav = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                           "data", "cosyvoice_prompt.wav")
+                if os.path.exists(prompt_wav):
+                    with open(prompt_wav, "rb") as f:
+                        resp = requests.post(
+                            f"{self.server_url}/inference_cross_lingual",
+                            data={"tts_text": self.text},
+                            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                            timeout=60,
+                        )
+
             if resp.status_code != 200:
                 self.error.emit(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
                 return

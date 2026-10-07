@@ -160,7 +160,7 @@ def await_signal(engine, done_name: str, error_name: str,
 
 
 # ---------------------------------------------------------------------- #
-# 无头 TTS：CosyVoice GPU（中英混合）→ edge-tts 回退
+# 无头 TTS：CosyVoice GPU（中英文，预注册说话人）→ edge-tts 回退
 # ---------------------------------------------------------------------- #
 def _has_chinese(text: str) -> bool:
     return any('一' <= ch <= '鿿' for ch in text)
@@ -187,24 +187,27 @@ def _detect_lang(text: str) -> str:
     return "zh" if _has_chinese(text) else "en"
 
 
-def _default_spk_id(lang: str) -> str:
-    """根据语言和配置返回音色 ID。
+# 音色名 → CosyVoice 预注册说话人 ID 映射
+_SPK_ID_MAP = {
+    "英文女": "en_female",
+    "英文男": "en_male",
+    "中文女": "zh_female",
+    "中文男": "zh_male",
+    "en_female": "en_female",
+    "en_male": "en_male",
+    "zh_female": "zh_female",
+    "zh_male": "zh_male",
+}
 
-    如果配置的音色与文本语言不匹配（如英文文本但音色是"中文女"），
-    自动切换到对应语言的默认音色。
-    """
-    cfg = load_config()
-    custom = cfg.get("cosyvoice_spk", "").strip()
-    if custom:
-        # 已有的音色若与语言匹配则使用，否则自动切换
-        is_en_voice = "英文" in custom or "English" in custom.lower()
-        is_zh_voice = "中文" in custom or "Chinese" in custom.lower()
-        if lang == "en" and not is_en_voice:
-            return "英文女"  # 英文文本但音色不是英文 → 切换
-        if lang == "zh" and not is_zh_voice:
-            return "中文女"  # 中文文本但音色不是中文 → 切换
-        return custom
-    return "英文女" if lang == "en" else "中文女"
+
+def _resolve_spk_id(voice: str | None, lang: str) -> str:
+    """根据 voice 名称和语言返回 CosyVoice 预注册说话人 ID。"""
+    if voice:
+        mapped = _SPK_ID_MAP.get(voice)
+        if mapped:
+            return mapped
+    # 默认：英文→en_female，中文→zh_female
+    return "en_female" if lang == "en" else "zh_female"
 
 
 def _pcm_to_wav(pcm_data: bytes) -> tuple[bytes, str]:
@@ -224,29 +227,35 @@ def _pcm_to_wav(pcm_data: bytes) -> tuple[bytes, str]:
 def _synthesize_cosyvoice(text: str, spk_id: str = "") -> tuple[bytes, str]:
     """用 CosyVoice FastAPI 服务合成语音（GPU 加速，中英混合原生），返回 (WAV bytes, media_type)。
 
-    CosyVoice2-0.5B 可用端点：
-      - inference_cross_lingual（首选）：仅需 prompt_wav，音色由参考音频决定
-      - inference_instruct2（有 bug）：instruct_text 会被模型当作朗读内容输出，
-        即使中文 instruct_text 也会先读出"用自然的女声说英语"再读正文，不可用
-
-    因此只使用 inference_cross_lingual，音色由 cosyvoice_prompt.wav 决定。
-    如需切换音色，替换该参考音频文件即可。
+    使用预注册的 zero_shot_spk_id，无需每次上传 prompt_wav。
+    说话人在容器启动时通过 /register_speaker 注册（参考音频由 edge-tts 生成）。
     """
     import requests
 
     url = _cosyvoice_url()
-    prompt_wav = get_user_data_path("cosyvoice_prompt.wav")
-    if not os.path.exists(prompt_wav):
-        raise RuntimeError(f"CosyVoice 参考音频不存在: {prompt_wav}")
+    data = {"tts_text": text}
+    if spk_id:
+        data["zero_shot_spk_id"] = spk_id
 
-    # inference_cross_lingual：tts_text + prompt_wav，无 instruct_text
-    with open(prompt_wav, "rb") as f:
+    # 使用 zero_shot_spk_id 时不需要上传 prompt_wav
+    if spk_id:
         resp = requests.post(
             f"{url}/inference_cross_lingual",
-            data={"tts_text": text},
-            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+            data=data,
             timeout=60,
         )
+    else:
+        # 兼容：无 spk_id 时回退到上传 prompt_wav
+        prompt_wav = get_user_data_path("cosyvoice_prompt.wav")
+        if not os.path.exists(prompt_wav):
+            raise RuntimeError(f"CosyVoice 参考音频不存在: {prompt_wav}")
+        with open(prompt_wav, "rb") as f:
+            resp = requests.post(
+                f"{url}/inference_cross_lingual",
+                data=data,
+                files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                timeout=60,
+            )
     if resp.status_code != 200:
         raise RuntimeError(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
     pcm_data = resp.content
@@ -258,21 +267,20 @@ def _synthesize_cosyvoice(text: str, spk_id: str = "") -> tuple[bytes, str]:
 def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
     """合成音频字节 + MIME 类型。
 
-    - 优先 CosyVoice GPU（inference_cross_lingual，WAV）
-    - 失败回退 edge-tts（MP3）
-    voice 参数：CosyVoice 时忽略（音色由 prompt_wav 决定）；
-    edge-tts 时作为语音名称（如 "en-US-AriaNeural"）。
-    相同 text 命中缓存，零延迟。
+    主引擎：CosyVoice（中英文都用，通过预注册 zero_shot_spk_id）。
+    回退：edge-tts（中英文均可）。
     """
-    # 1. CosyVoice 优先（所有文本，不论中英文）
-    # cross_lingual 不使用 spk_id，音色由参考音频决定
-    cosyvoice_key = ("cosyvoice", text)
+    lang = _detect_lang(text)
+    spk_id = _resolve_spk_id(voice, lang)
+
+    # --- CosyVoice 优先（中英文） ---
+    cosyvoice_key = ("cosyvoice", spk_id, text)
     with _TTS_CACHE_LOCK:
         cached = _TTS_CACHE.get(cosyvoice_key)
     if cached is not None:
         return cached
     try:
-        result = _synthesize_cosyvoice(text)
+        result = _synthesize_cosyvoice(text, spk_id)
     except Exception as e:
         print(f"[deps] CosyVoice TTS 失败，回退 edge-tts: {e}")
     else:
@@ -282,20 +290,32 @@ def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
                 _TTS_CACHE.popitem(last=False)
         return result
 
-    # 2. edge-tts 回退
-    edge_voice = voice if voice and voice not in ("英文女", "英文男", "中文女", "中文男") else None
-    if not edge_voice:
-        edge_voice = "zh-CN-YunxiNeural" if _has_chinese(text) else "en-US-AriaNeural"
+    # --- edge-tts 回退（中英文） ---
+    if lang == "en":
+        en_voice_map = {"英文女": "en-US-AriaNeural", "英文男": "en-US-GuyNeural"}
+        edge_voice = en_voice_map.get(voice, "") if voice else ""
+        if not edge_voice:
+            edge_voice = voice if voice and voice not in ("中文女", "中文男") else "en-US-AriaNeural"
+    else:
+        zh_voice_map = {"中文女": "zh-CN-XiaoxiaoNeural", "中文男": "zh-CN-YunxiNeural"}
+        edge_voice = zh_voice_map.get(voice, "") if voice else ""
+        if not edge_voice:
+            edge_voice = "zh-CN-XiaoxiaoNeural"
+    return _synthesize_edge(text, edge_voice)
+
+
+def _synthesize_edge(text: str, voice: str) -> tuple[bytes, str]:
+    """edge-tts 合成，返回 (audio_bytes, media_type)。"""
     import edge_tts
 
-    key = (text, edge_voice)
+    key = (text, voice)
     with _TTS_CACHE_LOCK:
         cached = _TTS_CACHE.get(key)
     if cached is not None:
         return cached
 
     async def _run():
-        communicate = edge_tts.Communicate(text, edge_voice)
+        communicate = edge_tts.Communicate(text, voice)
         chunks = []
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
