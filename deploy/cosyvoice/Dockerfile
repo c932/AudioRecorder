@@ -33,6 +33,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     conformer==0.3.2 \
     diffusers==0.29.0 \
     fastapi==0.115.6 \
+    python-multipart==0.0.9 \
     Hydra-core==1.3.2 \
     HyperPyYAML==1.2.3 \
     inflect==7.3.1 \
