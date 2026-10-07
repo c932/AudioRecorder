@@ -14,7 +14,7 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list
     && git lfs install
 
 # 约束文件：防止 pip 意外升级 setuptools（pkg_resources 兼容）
-RUN printf 'setuptools<70\n' > /opt/pip-constraints.txt
+RUN printf 'setuptools<70\nhuggingface_hub<0.24\n' > /opt/pip-constraints.txt
 
 # 修复：旧版 pip + 新版 setuptools 不含 pkg_resources
 RUN pip3 install --no-cache-dir "setuptools<70" wheel
