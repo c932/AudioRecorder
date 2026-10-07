@@ -8,7 +8,7 @@ import tempfile
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from src.server.deps import cleanup_temp, get_exercise_manager, load_config
+from src.server.deps import cleanup_temp, get_exercise_manager, get_all_practice_items, load_config
 
 router = APIRouter(prefix="/api/vocab", tags=["vocab"])
 
@@ -19,25 +19,39 @@ _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
 
 @router.get("/groups")
 def list_groups():
-    """返回分组列表及词数。"""
+    """返回分组列表及词数（包含词库 + 速记模块）。"""
+    from src.server.deps import get_memorize
     mgr = get_exercise_manager()
     counts = mgr.get_group_word_counts()
     groups = [
         {"name": g, "count": counts.get(g, 0)}
         for g in mgr.get_groups()
     ]
+    # 合并速记模块的分组
+    try:
+        eng = get_memorize()
+        existing = {g["name"] for g in groups}
+        for d in eng.get_days():
+            day_no = d.get("day")
+            name = f"速记Day{day_no}"
+            if name not in existing:
+                entries = eng.get_day_entries(day_no)
+                groups.append({"name": name, "count": len(entries)})
+                existing.add(name)
+    except Exception as e:
+        print(f"[vocab] 加载速记分组失败: {e}")
     return {"groups": groups}
 
 
 @router.get("/words")
 def list_words(group: str = ""):
-    """返回某分组的全部词条（不传 group 返回全部）。"""
-    mgr = get_exercise_manager()
-    words = mgr.exercises.get("words", [])
-    sentences = mgr.exercises.get("sentences", [])
-    full = words + sentences
-    if group:
-        full = [i for i in full if i.get("group", "Default") == group]
+    """返回某分组的全部词条（不传 group 返回全部）。
+
+    速记DayN 分组由 memorize 引擎提供，不在 words.json 里，
+    所以用 get_all_practice_items 合并两个来源。
+    """
+    groups = [group] if group else None
+    full = get_all_practice_items(groups)
     return {"items": full}
 
 
