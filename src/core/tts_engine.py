@@ -101,19 +101,12 @@ class PiperWorker(QThread):
 class CosyVoiceWorker(QThread):
     """Worker that calls CosyVoice FastAPI server for TTS.
 
-    CosyVoice2-0.5B supports Chinese+English mixed text natively.
-    优先 inference_instruct2（instruct_text 控制音色），回退 inference_sft（内置音色）。
+    CosyVoice2-0.5B 使用 inference_cross_lingual（仅需 prompt_wav）。
+    注意：inference_instruct2 的 instruct_text 会被模型当作朗读内容输出，不可用。
+    音色由 cosyvoice_prompt.wav 参考音频决定。
     """
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
-
-    # spk_id → 中文 instruct_text 映射（CosyVoice2-0.5B 是中文优先模型，英文指令会被读出来）
-    INSTRUCT_MAP = {
-        "中文女": "用自然的女声说话",
-        "中文男": "用低沉的男声说话",
-        "英文女": "用自然的女声说英语",
-        "英文男": "用低沉的男声说英语",
-    }
 
     def __init__(self, text, server_url="http://localhost:50000", spk_id="英文女"):
         super().__init__()
@@ -127,8 +120,8 @@ class CosyVoiceWorker(QThread):
             import requests
             import wave
 
-            # Cache by text + spk_id hash
-            text_hash = hashlib.md5(f"{self.text}\0{self.spk_id}".encode()).hexdigest()
+            # Cache by text hash
+            text_hash = hashlib.md5(self.text.encode()).hexdigest()
             filename = f"cosyvoice_{text_hash}.wav"
             output_file = os.path.join(tempfile.gettempdir(), filename)
 
@@ -136,44 +129,26 @@ class CosyVoiceWorker(QThread):
                 self.finished.emit(output_file)
                 return
 
-            pcm_data = None
             prompt_wav = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                        "data", "cosyvoice_prompt.wav")
+            if not os.path.exists(prompt_wav):
+                self.error.emit(f"CosyVoice 参考音频不存在: {prompt_wav}")
+                return
 
-            # 策略 1：inference_instruct2（中文 instruct_text 控制音色）
-            # CosyVoice2-0.5B 是中文优先模型，instruct_text 必须用中文
-            if os.path.exists(prompt_wav):
-                instruct_text = self.INSTRUCT_MAP.get(self.spk_id, "用自然的声音说话")
-                try:
-                    with open(prompt_wav, "rb") as f:
-                        resp = requests.post(
-                            f"{self.server_url}/inference_instruct2",
-                            data={"tts_text": self.text, "instruct_text": instruct_text},
-                            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
-                            timeout=60,
-                        )
-                    if resp.status_code == 200 and len(resp.content) > 100:
-                        pcm_data = resp.content
-                except Exception:
-                    pass
-
-            # 策略 2：inference_cross_lingual（仅 prompt_wav，无 instruct_text）
-            if pcm_data is None and os.path.exists(prompt_wav):
-                try:
-                    with open(prompt_wav, "rb") as f:
-                        resp = requests.post(
-                            f"{self.server_url}/inference_cross_lingual",
-                            data={"tts_text": self.text},
-                            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
-                            timeout=60,
-                        )
-                    if resp.status_code == 200 and len(resp.content) > 100:
-                        pcm_data = resp.content
-                except Exception:
-                    pass
-
-            if pcm_data is None:
-                self.error.emit("CosyVoice 合成失败（instruct2 和 cross_lingual 均失败）")
+            # inference_cross_lingual：tts_text + prompt_wav，无 instruct_text
+            with open(prompt_wav, "rb") as f:
+                resp = requests.post(
+                    f"{self.server_url}/inference_cross_lingual",
+                    data={"tts_text": self.text},
+                    files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                    timeout=60,
+                )
+            if resp.status_code != 200:
+                self.error.emit(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
+                return
+            pcm_data = resp.content
+            if len(pcm_data) < 100:
+                self.error.emit("CosyVoice 返回空音频")
                 return
 
             # 写 WAV 文件
