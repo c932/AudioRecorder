@@ -188,10 +188,21 @@ def _detect_lang(text: str) -> str:
 
 
 def _default_spk_id(lang: str) -> str:
-    """根据语言返回默认音色 ID。"""
+    """根据语言和配置返回音色 ID。
+
+    如果配置的音色与文本语言不匹配（如英文文本但音色是"中文女"），
+    自动切换到对应语言的默认音色。
+    """
     cfg = load_config()
     custom = cfg.get("cosyvoice_spk", "").strip()
     if custom:
+        # 已有的音色若与语言匹配则使用，否则自动切换
+        is_en_voice = "英文" in custom or "English" in custom.lower()
+        is_zh_voice = "中文" in custom or "Chinese" in custom.lower()
+        if lang == "en" and not is_en_voice:
+            return "英文女"  # 英文文本但音色不是英文 → 切换
+        if lang == "zh" and not is_zh_voice:
+            return "中文女"  # 中文文本但音色不是中文 → 切换
         return custom
     return "英文女" if lang == "en" else "中文女"
 
