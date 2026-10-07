@@ -87,15 +87,20 @@ class ReadAlongEngine:
                 numbered = "\n".join(f"{j+1}. {s}" for j, s in enumerate(batch))
 
                 prompt = (
-                    "请将以下英文逐句翻译为中文。保持序号对应，每行一句翻译，"
-                    "不要加额外解释。格式：\n"
-                    "1. 翻译内容\n2. 翻译内容\n\n"
-                    f"英文：\n{numbered}"
+                    "请将以下英文逐句翻译为中文。\n"
+                    "规则：\n"
+                    "1. 只输出翻译结果，每行一句，行首加序号\n"
+                    "2. 不要输出任何解释、提示或原文\n"
+                    "3. 保持序号与原文一一对应\n\n"
+                    f"英文：\n{numbered}\n\n翻译："
                 )
 
                 response = client.chat.completions.create(
                     model=model,
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=[
+                        {"role": "system", "content": "你是一个英译中翻译器。只输出中文翻译，不加任何解释。"},
+                        {"role": "user", "content": prompt},
+                    ],
                     max_tokens=2000,
                     temperature=0.3,
                 )
