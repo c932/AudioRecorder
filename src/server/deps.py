@@ -160,7 +160,7 @@ def await_signal(engine, done_name: str, error_name: str,
 
 
 # ---------------------------------------------------------------------- #
-# 无头 TTS：CosyVoice GPU（中英文，预注册说话人）→ edge-tts 回退
+# 无头 TTS：Qwen3-TTS GPU（中英文，内置音色）→ edge-tts 回退
 # ---------------------------------------------------------------------- #
 def _has_chinese(text: str) -> bool:
     return any('一' <= ch <= '鿿' for ch in text)
@@ -172,12 +172,12 @@ _TTS_CACHE_LOCK = threading.Lock()
 _TTS_CACHE_MAX = 256
 
 
-def _cosyvoice_url() -> str:
-    """从 config.json 读取 CosyVoice 服务地址，默认 host.docker.internal:50000。"""
+def _tts_url() -> str:
+    """从 config.json 读取 TTS 服务地址，默认 host.docker.internal:50000。"""
     cfg = load_config()
     url = cfg.get("cosyvoice_url", "").strip().rstrip("/")
     if not url:
-        # Docker 容器内：CosyVoice 跑在宿主机
+        # Docker 容器内：TTS 跑在宿主机
         url = "http://host.docker.internal:50000"
     return url
 
@@ -187,31 +187,33 @@ def _detect_lang(text: str) -> str:
     return "zh" if _has_chinese(text) else "en"
 
 
-# 音色名 → CosyVoice 预注册说话人 ID 映射
-_SPK_ID_MAP = {
-    "英文女": "en_female",
-    "英文男": "en_male",
-    "中文女": "zh_female",
-    "中文男": "zh_male",
-    "en_female": "en_female",
-    "en_male": "en_male",
-    "zh_female": "zh_female",
-    "zh_male": "zh_male",
+# 音色名 → Qwen3-TTS 内置音色映射
+_VOICE_MAP = {
+    "英文女": "Aiden",
+    "英文男": "Aiden",
+    "中文女": "Vivian",
+    "中文男": "Uncle_Fu",
+    "en_female": "Aiden",
+    "en_male": "Aiden",
+    "zh_female": "Vivian",
+    "zh_male": "Uncle_Fu",
 }
 
+# Qwen3-TTS 语言名
+_LANG_MAP = {"en": "English", "zh": "Chinese"}
 
-def _resolve_spk_id(voice: str | None, lang: str) -> str:
-    """根据 voice 名称和语言返回 CosyVoice 预注册说话人 ID。"""
+
+def _resolve_speaker(voice: str | None, lang: str) -> str:
+    """根据 voice 名称和语言返回 Qwen3-TTS 内置音色 ID。"""
     if voice:
-        mapped = _SPK_ID_MAP.get(voice)
+        mapped = _VOICE_MAP.get(voice)
         if mapped:
             return mapped
-    # 默认：英文→en_female，中文→zh_female
-    return "en_female" if lang == "en" else "zh_female"
+    return "Aiden" if lang == "en" else "Vivian"
 
 
-def _pcm_to_wav(pcm_data: bytes) -> tuple[bytes, str]:
-    """将 CosyVoice 返回的 raw PCM int16 24000Hz mono 封装为 WAV。"""
+def _pcm_to_wav(pcm_data: bytes, sample_rate: int = 24000) -> tuple[bytes, str]:
+    """将 raw PCM int16 mono 封装为 WAV。"""
     import wave
     from io import BytesIO
 
@@ -219,73 +221,56 @@ def _pcm_to_wav(pcm_data: bytes) -> tuple[bytes, str]:
     with wave.open(buf, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)  # 16-bit
-        wf.setframerate(24000)
+        wf.setframerate(sample_rate)
         wf.writeframes(pcm_data)
     return buf.getvalue(), "audio/wav"
 
 
-def _synthesize_cosyvoice(text: str, spk_id: str = "") -> tuple[bytes, str]:
-    """用 CosyVoice FastAPI 服务合成语音（GPU 加速，中英混合原生），返回 (WAV bytes, media_type)。
+def _synthesize_qwen_tts(text: str, speaker: str = "", lang: str = "en") -> tuple[bytes, str]:
+    """用 Qwen3-TTS FastAPI 服务合成语音（GPU 加速，中英文原生），返回 (WAV bytes, media_type)。
 
-    使用预注册的 zero_shot_spk_id，无需每次上传 prompt_wav。
-    说话人在容器启动时通过 /register_speaker 注册（参考音频由 edge-tts 生成）。
+    Qwen3-TTS 内置 9 种音色，无需参考音频。
     """
     import requests
 
-    url = _cosyvoice_url()
-    data = {"tts_text": text}
-    if spk_id:
-        data["zero_shot_spk_id"] = spk_id
+    url = _tts_url()
+    data = {
+        "text": text,
+        "speaker": speaker,
+        "language": _LANG_MAP.get(lang, "English"),
+    }
 
-    # 使用 zero_shot_spk_id 时不需要上传 prompt_wav
-    if spk_id:
-        resp = requests.post(
-            f"{url}/inference_cross_lingual",
-            data=data,
-            timeout=60,
-        )
-    else:
-        # 兼容：无 spk_id 时回退到上传 prompt_wav
-        prompt_wav = get_user_data_path("cosyvoice_prompt.wav")
-        if not os.path.exists(prompt_wav):
-            raise RuntimeError(f"CosyVoice 参考音频不存在: {prompt_wav}")
-        with open(prompt_wav, "rb") as f:
-            resp = requests.post(
-                f"{url}/inference_cross_lingual",
-                data=data,
-                files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
-                timeout=60,
-            )
+    resp = requests.post(f"{url}/tts", data=data, timeout=60)
     if resp.status_code != 200:
-        raise RuntimeError(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
+        raise RuntimeError(f"Qwen3-TTS 返回 {resp.status_code}: {resp.text[:200]}")
     pcm_data = resp.content
     if len(pcm_data) < 100:
-        raise RuntimeError("CosyVoice 返回空音频")
+        raise RuntimeError("Qwen3-TTS 返回空音频")
     return _pcm_to_wav(pcm_data)
 
 
 def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
     """合成音频字节 + MIME 类型。
 
-    主引擎：CosyVoice（中英文都用，通过预注册 zero_shot_spk_id）。
+    主引擎：Qwen3-TTS（中英文，内置音色，无需参考音频）。
     回退：edge-tts（中英文均可）。
     """
     lang = _detect_lang(text)
-    spk_id = _resolve_spk_id(voice, lang)
+    speaker = _resolve_speaker(voice, lang)
 
-    # --- CosyVoice 优先（中英文） ---
-    cosyvoice_key = ("cosyvoice", spk_id, text)
+    # --- Qwen3-TTS 优先（中英文） ---
+    tts_key = ("qwen-tts", speaker, text)
     with _TTS_CACHE_LOCK:
-        cached = _TTS_CACHE.get(cosyvoice_key)
+        cached = _TTS_CACHE.get(tts_key)
     if cached is not None:
         return cached
     try:
-        result = _synthesize_cosyvoice(text, spk_id)
+        result = _synthesize_qwen_tts(text, speaker, lang)
     except Exception as e:
-        print(f"[deps] CosyVoice TTS 失败，回退 edge-tts: {e}")
+        print(f"[deps] Qwen3-TTS 失败，回退 edge-tts: {e}")
     else:
         with _TTS_CACHE_LOCK:
-            _TTS_CACHE[cosyvoice_key] = result
+            _TTS_CACHE[tts_key] = result
             while len(_TTS_CACHE) > _TTS_CACHE_MAX:
                 _TTS_CACHE.popitem(last=False)
         return result

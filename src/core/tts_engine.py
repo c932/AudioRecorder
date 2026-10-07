@@ -99,19 +99,18 @@ class PiperWorker(QThread):
             self.error.emit(str(e))
 
 class CosyVoiceWorker(QThread):
-    """Worker that calls CosyVoice FastAPI server for TTS.
+    """Worker that calls Qwen3-TTS (or compatible) FastAPI server for TTS.
 
-    CosyVoice2-0.5B 使用 inference_cross_lingual。
-    优先使用预注册 zero_shot_spk_id（无需上传 prompt_wav）；
-    若 spk_id 未注册则回退到上传 prompt_wav。
+    Qwen3-TTS 内置音色，无需参考音频。
+    服务端点：POST /tts  (text, speaker, language)
     """
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    # 音色名 → 预注册说话人 ID
-    _SPK_ID_MAP = {
-        "英文女": "en_female", "英文男": "en_male",
-        "中文女": "zh_female", "中文男": "zh_male",
+    # 音色名 → Qwen3-TTS 内置音色
+    _VOICE_MAP = {
+        "英文女": "Aiden", "英文男": "Aiden",
+        "中文女": "Vivian", "中文男": "Uncle_Fu",
     }
 
     def __init__(self, text, server_url="http://localhost:50000", spk_id="英文女"):
@@ -126,43 +125,33 @@ class CosyVoiceWorker(QThread):
             import requests
             import wave
 
-            # Cache by text hash + spk_id
             text_hash = hashlib.md5(self.text.encode()).hexdigest()
-            spk_key = self._SPK_ID_MAP.get(self.spk_id, self.spk_id)
-            filename = f"cosyvoice_{spk_key}_{text_hash}.wav"
+            speaker = self._VOICE_MAP.get(self.spk_id, self.spk_id)
+            filename = f"tts_{speaker}_{text_hash}.wav"
             output_file = os.path.join(tempfile.gettempdir(), filename)
 
             if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
                 self.finished.emit(output_file)
                 return
 
-            # 优先使用 zero_shot_spk_id（无需上传 prompt_wav）
-            data = {"tts_text": self.text, "zero_shot_spk_id": spk_key}
+            # 语言检测
+            has_chinese = any('一' <= c <= '鿿' for c in self.text)
+            language = "Chinese" if has_chinese else "English"
+
+            # Qwen3-TTS /tts 端点
+            data = {"text": self.text, "speaker": speaker, "language": language}
             resp = requests.post(
-                f"{self.server_url}/inference_cross_lingual",
+                f"{self.server_url}/tts",
                 data=data,
                 timeout=60,
             )
 
-            # 如果 zero_shot_spk_id 未注册，回退到上传 prompt_wav
             if resp.status_code != 200:
-                prompt_wav = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                           "data", "cosyvoice_prompt.wav")
-                if os.path.exists(prompt_wav):
-                    with open(prompt_wav, "rb") as f:
-                        resp = requests.post(
-                            f"{self.server_url}/inference_cross_lingual",
-                            data={"tts_text": self.text},
-                            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
-                            timeout=60,
-                        )
-
-            if resp.status_code != 200:
-                self.error.emit(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
+                self.error.emit(f"TTS 返回 {resp.status_code}: {resp.text[:200]}")
                 return
             pcm_data = resp.content
             if len(pcm_data) < 100:
-                self.error.emit("CosyVoice 返回空音频")
+                self.error.emit("TTS 返回空音频")
                 return
 
             # 写 WAV 文件
@@ -176,7 +165,7 @@ class CosyVoiceWorker(QThread):
             if os.path.exists(output_file) and os.path.getsize(output_file) > 100:
                 self.finished.emit(output_file)
             else:
-                self.error.emit("CosyVoice: output file is empty")
+                self.error.emit("TTS: output file is empty")
 
         except requests.exceptions.ConnectionError:
             self.error.emit("CosyVoice server not running. Start it with: python server.py --model_dir pretrained_models/CosyVoice2-0.5B")

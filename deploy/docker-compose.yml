@@ -20,7 +20,7 @@ services:
       # Linux：把 host.docker.internal 解析到宿主机
       - "host.docker.internal:host-gateway"
     depends_on:
-      cosyvoice:
+      tts:
         condition: service_started
     volumes:
       - ./data:/app/src/data      # 词库/进度/config.json（首次启动自动播种）
@@ -40,23 +40,21 @@ services:
       retries: 3
       start_period: 60s
 
-  # CosyVoice2 TTS 服务（GPU 加速，中英混合原生）
-  # 首次构建：docker compose build cosyvoice
-  # 模型自动从 ModelScope 下载到 /opt/CosyVoice/models/
-  cosyvoice:
+  # Qwen3-TTS 服务（GPU 加速，中英文 10 语言，内置 9 种音色，无需参考音频）
+  # 模型自动从 ModelScope 下载到 /opt/qwen-tts/models/
+  tts:
     build:
-      context: /home/manfred/CosyVoice
-      dockerfile: /home/manfred/english-coach/AudioRecorder/deploy/cosyvoice/Dockerfile
-    image: cosyvoice:latest
-    container_name: cosyvoice-tts
+      context: ../deploy/qwen-tts
+      dockerfile: Dockerfile
+    image: qwen-tts:latest
+    container_name: qwen-tts
     restart: unless-stopped
     ports:
       - "50000:50000"
     environment:
-      MODELSCOPE_CACHE: /opt/CosyVoice/models
+      MODELSCOPE_CACHE: /opt/qwen-tts/models
     volumes:
-      - cosyvoice-models:/opt/CosyVoice/models
-      - ./cosyvoice/patch_server.py:/opt/patch_server.py:ro
+      - qwen-tts-models:/opt/qwen-tts/models
     deploy:
       resources:
         reservations:
@@ -64,11 +62,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    command: >
-      bash -c "python3 /opt/patch_server.py
-      && cd /opt/CosyVoice/CosyVoice/runtime/python/fastapi
-      && python3 server.py --port 50000 --model_dir FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
 
 volumes:
   hf-cache:
-  cosyvoice-models:
+  qwen-tts-models:
