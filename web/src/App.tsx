@@ -7,6 +7,7 @@ import OralHubPage from "./pages/OralHubPage";
 import OralTestPage from "./pages/OralTestPage";
 import ScenarioPage from "./pages/ScenarioPage";
 import TutorPage from "./pages/TutorPage";
+import ReadAlongPage from "./pages/ReadAlongPage";
 import MemorizePage from "./pages/MemorizePage";
 import MistakesPage from "./pages/MistakesPage";
 import ImportPage from "./pages/ImportPage";
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="oral-test" element={<OralTestPage />} />
           <Route path="scenario" element={<ScenarioPage />} />
           <Route path="tutor" element={<TutorPage />} />
+          <Route path="readalong" element={<ReadAlongPage />} />
           <Route path="memorize" element={<MemorizePage />} />
           <Route path="mistakes" element={<MistakesPage />} />
           <Route path="import" element={<ImportPage />} />

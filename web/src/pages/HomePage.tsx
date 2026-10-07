@@ -28,6 +28,7 @@ const SECTIONS = [
       { to: "/oral-test", zh: "口语测试" },
       { to: "/scenario", zh: "情景会话" },
       { to: "/tutor", zh: "AI 家教" },
+      { to: "/readalong", zh: "跟读教练" },
     ],
   },
   {
