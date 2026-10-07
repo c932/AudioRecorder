@@ -56,6 +56,7 @@ services:
       MODELSCOPE_CACHE: /opt/CosyVoice/models
     volumes:
       - cosyvoice-models:/opt/CosyVoice/models
+      - ./cosyvoice/patch_server.py:/opt/patch_server.py:ro
     deploy:
       resources:
         reservations:
@@ -64,7 +65,8 @@ services:
               count: all
               capabilities: [gpu]
     command: >
-      bash -c "cd /opt/CosyVoice/CosyVoice/runtime/python/fastapi
+      bash -c "python3 /opt/patch_server.py
+      && cd /opt/CosyVoice/CosyVoice/runtime/python/fastapi
       && python3 server.py --port 50000 --model_dir iic/CosyVoice2-0.5B"
 
 volumes:
