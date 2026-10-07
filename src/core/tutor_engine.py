@@ -500,8 +500,9 @@ class TutorEngine(QObject):
         word = self.current_word
         extra = (
             f"请向 {self.student_name} 问好。告诉他/她今天的主题是 '{self.topic}'。"
-            f"介绍第一个词 '{word['text']}'（{word.get('translation', '')}）。"
-            f"然后让他/她跟你读。使用 action 'teach_word'。"
+            f"用一句自然的话介绍第一个词 '{word['text']}'（{word.get('translation', '')}），"
+            f"比如'我们今天来学习一个新词'之类的开场白，然后让学生跟着读。"
+            f"使用 action 'teach_word'。注意：text 字段要包含完整的开场白+词语介绍，不要只输出词本身。"
         )
         self._request_llm_for_phase(extra_context=extra)
 
@@ -568,13 +569,18 @@ class TutorEngine(QObject):
 
             # Call LLM
             response = self._llm_client.chat.completions.create(
-                model=self._llm_model,
+                 model=self._llm_model,
                 messages=messages,
                 temperature=0.4,
                 max_tokens=300,
             )
 
             raw_text = response.choices[0].message.content.strip()
+            # Some models (Qwen3 via Ollama) put thinking in reasoning_content — ignore it
+            # If reasoning_content exists and content is empty, that's a problem; log it.
+            rc = getattr(response.choices[0].message, 'reasoning_content', None)
+            if rc:
+                print(f"[TutorEngine] LLM reasoning_content ignored ({len(rc)} chars)")
             print(f"[TutorEngine] LLM raw: {raw_text[:200]}")
 
             # Parse JSON action
@@ -702,17 +708,27 @@ class TutorEngine(QObject):
 
     def _parse_llm_response(self, raw: str) -> dict:
         """Extract JSON from LLM response, with fallback."""
-        # Strip thinking/reasoning tags (various models: DeepSeek, Qwen3, etc.)
-        cleaned = re.sub(r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>', '', raw, flags=re.DOTALL).strip()
+        # Strip thinking/reasoning tags — cover all known formats:
+        # <think>...</think>, <thinking>...</thinking>, <action>...</action>, <reason>...</reason>
+        cleaned = re.sub(r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>', '', raw, flags=re.DOTALL)
+        # Some models (Qwen3 via Ollama) use ạcented brackets or no-angle formats
+        # Strip any remaining XML-like tags before JSON
+        cleaned = re.sub(r'<[^/][^>]*>.*?</[^>]*>', '', cleaned, flags=re.DOTALL)
+        cleaned = cleaned.strip()
         # Also strip markdown code fences that some models wrap JSON in
         cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
         cleaned = re.sub(r'\s*```\s*$', '', cleaned)
+        # Strip any leading non-JSON text (model preamble before the JSON object)
+        # Find the first '{' and truncate everything before it
+        brace_idx = cleaned.find('{')
+        if brace_idx > 0:
+            cleaned = cleaned[brace_idx:]
 
         # Try direct JSON parse
         try:
             data = json.loads(cleaned)
             if isinstance(data, dict) and "action" in data:
-                return data
+                return self._sanitize_action(data)
         except json.JSONDecodeError:
             pass
 
@@ -722,7 +738,7 @@ class TutorEngine(QObject):
             try:
                 data = json.loads(json_match.group())
                 if isinstance(data, dict):
-                    return data
+                    return self._sanitize_action(data)
             except json.JSONDecodeError:
                 pass
 
@@ -732,7 +748,7 @@ class TutorEngine(QObject):
             try:
                 data = json.loads(brace_match.group())
                 if isinstance(data, dict):
-                    return data
+                    return self._sanitize_action(data)
             except json.JSONDecodeError:
                 pass
 
@@ -743,6 +759,15 @@ class TutorEngine(QObject):
             "text": cleaned,
             "tts_text": "",
         }
+
+    def _sanitize_action(self, data: dict) -> dict:
+        """Strip any remaining thinking/reasoning tags from action text fields."""
+        tag_pattern = r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>'
+        for key in ("text", "tts_text"):
+            val = data.get(key, "")
+            if isinstance(val, str):
+                data[key] = re.sub(tag_pattern, '', val, flags=re.DOTALL).strip()
+        return data
 
     # ------------------------------------------------------------------ #
     #  ASR (Speech Recognition)                                            #
