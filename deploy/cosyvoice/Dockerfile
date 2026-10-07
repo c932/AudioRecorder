@@ -71,11 +71,12 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     onnx==1.16.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
-# 批次3：ML 大包（transformers 4.51.3 兼容 torch 2.3.1）
+# 批次3：ML 大包（transformers/modelscope 用 --no-deps 避免冲突）
 RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 180 --retries 5 \
-    --constraint /opt/pip-constraints.txt \
-    transformers==4.51.3 \
     lightning==2.2.4 \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn \
+    && pip3 install --no-cache-dir --no-deps --timeout 180 --retries 5 \
+    transformers==4.51.3 \
     modelscope==1.20.0 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host=pypi.tuna.tsinghua.edu.cn
 
