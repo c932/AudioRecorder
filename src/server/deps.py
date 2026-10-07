@@ -224,8 +224,12 @@ def _pcm_to_wav(pcm_data: bytes) -> tuple[bytes, str]:
 def _synthesize_cosyvoice(text: str, spk_id: str = "") -> tuple[bytes, str]:
     """用 CosyVoice FastAPI 服务合成语音（GPU 加速，中英混合原生），返回 (WAV bytes, media_type)。
 
-    优先使用 inference_instruct2（instruct_text 控制音色 + prompt_wav 参考音频）；
-    若 prompt_wav 不存在则回退到 inference_sft（spk_id 直接选内置音色，无需参考音频）。
+    CosyVoice2-0.5B 无 sft 内置音色（spk2info 为空），仅支持：
+      - inference_instruct2（instruct_text + prompt_wav）
+      - inference_cross_lingual（仅 prompt_wav）
+
+    注意：instruct_text 必须用中文，因为 CosyVoice2-0.5B 是中文优先模型，
+    英文 instruct_text 会被模型当作朗读内容而非指令。
     """
     import requests
 
@@ -234,43 +238,48 @@ def _synthesize_cosyvoice(text: str, spk_id: str = "") -> tuple[bytes, str]:
         spk_id = _default_spk_id(_detect_lang(text))
 
     url = _cosyvoice_url()
-
-    # --- 策略 1：inference_instruct2（需要 prompt_wav 参考音频）---
     prompt_wav = get_user_data_path("cosyvoice_prompt.wav")
-    if os.path.exists(prompt_wav):
-        INSTRUCT_MAP = {
-            "中文女": "用自然的女声说话",
-            "中文男": "用低沉的男声说话",
-            "英文女": "Speak in a natural female voice",
-            "英文男": "Speak in a deep male voice",
-        }
-        instruct_text = INSTRUCT_MAP.get(spk_id, "用自然的声音说话")
-        try:
-            with open(prompt_wav, "rb") as f:
-                resp = requests.post(
-                    f"{url}/inference_instruct2",
-                    data={"tts_text": text, "instruct_text": instruct_text},
-                    files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
-                    timeout=60,
-                )
-            if resp.status_code == 200 and len(resp.content) > 100:
-                return _pcm_to_wav(resp.content)
-            print(f"[deps] inference_instruct2 失败 ({resp.status_code})，尝试 sft")
-        except Exception as e:
-            print(f"[deps] inference_instruct2 异常: {e}，尝试 sft")
+    if not os.path.exists(prompt_wav):
+        raise RuntimeError(f"CosyVoice 参考音频不存在: {prompt_wav}（inference_instruct2/cross_lingual 均需要）")
 
-    # --- 策略 2：inference_sft（内置音色，无需参考音频）---
+    # --- 策略 1：inference_instruct2（instruct_text 用中文控制音色）---
+    # CosyVoice2-0.5B 是中文优先模型，instruct_text 必须用中文，
+    # 否则英文指令会被当成朗读内容（用户会听到 "Speak in a natural..." 被读出来）
+    INSTRUCT_MAP = {
+        "中文女": "用自然的女声说话",
+        "中文男": "用低沉的男声说话",
+        "英文女": "用自然的女声说英语",
+        "英文男": "用低沉的男声说英语",
+    }
+    instruct_text = INSTRUCT_MAP.get(spk_id, "用自然的声音说话")
     try:
-        resp = requests.post(
-            f"{url}/inference_sft",
-            data={"tts_text": text, "spk_id": spk_id},
-            timeout=60,
-        )
+        with open(prompt_wav, "rb") as f:
+            resp = requests.post(
+                f"{url}/inference_instruct2",
+                data={"tts_text": text, "instruct_text": instruct_text},
+                files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                timeout=60,
+            )
+        if resp.status_code == 200 and len(resp.content) > 100:
+            return _pcm_to_wav(resp.content)
+        print(f"[deps] inference_instruct2 失败 ({resp.status_code})，尝试 cross_lingual")
+    except Exception as e:
+        print(f"[deps] inference_instruct2 异常: {e}，尝试 cross_lingual")
+
+    # --- 策略 2：inference_cross_lingual（仅 prompt_wav，无 instruct_text）---
+    try:
+        with open(prompt_wav, "rb") as f:
+            resp = requests.post(
+                f"{url}/inference_cross_lingual",
+                data={"tts_text": text},
+                files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                timeout=60,
+            )
         if resp.status_code != 200:
-            raise RuntimeError(f"CosyVoice sft 返回 {resp.status_code}: {resp.text[:200]}")
+            raise RuntimeError(f"CosyVoice cross_lingual 返回 {resp.status_code}: {resp.text[:200]}")
         pcm_data = resp.content
         if len(pcm_data) < 100:
-            raise RuntimeError("CosyVoice sft 返回空音频")
+            raise RuntimeError("CosyVoice cross_lingual 返回空音频")
         return _pcm_to_wav(pcm_data)
     except Exception as e:
         raise RuntimeError(f"CosyVoice 合成失败: {e}")

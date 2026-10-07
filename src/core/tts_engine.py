@@ -107,15 +107,15 @@ class CosyVoiceWorker(QThread):
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    # spk_id → instruct_text 映射（inference_instruct2 用）
+    # spk_id → 中文 instruct_text 映射（CosyVoice2-0.5B 是中文优先模型，英文指令会被读出来）
     INSTRUCT_MAP = {
         "中文女": "用自然的女声说话",
         "中文男": "用低沉的男声说话",
-        "英文女": "Speak in a natural female voice",
-        "英文男": "Speak in a deep male voice",
+        "英文女": "用自然的女声说英语",
+        "英文男": "用低沉的男声说英语",
     }
 
-    def __init__(self, text, server_url="http://localhost:50000", spk_id="中文女"):
+    def __init__(self, text, server_url="http://localhost:50000", spk_id="英文女"):
         super().__init__()
         self.text = text
         self.server_url = server_url.rstrip("/")
@@ -137,10 +137,11 @@ class CosyVoiceWorker(QThread):
                 return
 
             pcm_data = None
-
-            # 策略 1：inference_instruct2（需要 prompt_wav）
             prompt_wav = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                        "data", "cosyvoice_prompt.wav")
+
+            # 策略 1：inference_instruct2（中文 instruct_text 控制音色）
+            # CosyVoice2-0.5B 是中文优先模型，instruct_text 必须用中文
             if os.path.exists(prompt_wav):
                 instruct_text = self.INSTRUCT_MAP.get(self.spk_id, "用自然的声音说话")
                 try:
@@ -154,22 +155,26 @@ class CosyVoiceWorker(QThread):
                     if resp.status_code == 200 and len(resp.content) > 100:
                         pcm_data = resp.content
                 except Exception:
-                    pass  # 回退到 sft
+                    pass
 
-            # 策略 2：inference_sft（内置音色，无需参考音频）
+            # 策略 2：inference_cross_lingual（仅 prompt_wav，无 instruct_text）
+            if pcm_data is None and os.path.exists(prompt_wav):
+                try:
+                    with open(prompt_wav, "rb") as f:
+                        resp = requests.post(
+                            f"{self.server_url}/inference_cross_lingual",
+                            data={"tts_text": self.text},
+                            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                            timeout=60,
+                        )
+                    if resp.status_code == 200 and len(resp.content) > 100:
+                        pcm_data = resp.content
+                except Exception:
+                    pass
+
             if pcm_data is None:
-                resp = requests.post(
-                    f"{self.server_url}/inference_sft",
-                    data={"tts_text": self.text, "spk_id": self.spk_id},
-                    timeout=60,
-                )
-                if resp.status_code != 200:
-                    self.error.emit(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
-                    return
-                pcm_data = resp.content
-                if len(pcm_data) < 100:
-                    self.error.emit("CosyVoice 返回空音频")
-                    return
+                self.error.emit("CosyVoice 合成失败（instruct2 和 cross_lingual 均失败）")
+                return
 
             # 写 WAV 文件
             sample_rate = 24000
