@@ -37,6 +37,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     Hydra-core==1.3.2 \
     HyperPyYAML==1.2.3 \
     inflect==7.3.1 \
+    gdown==5.2.0 \
     pydantic==2.7.0 \
     rich==13.7.1 \
     omegaconf==2.3.0 \
