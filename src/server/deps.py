@@ -318,3 +318,51 @@ def transcribe_audio(path: str) -> str:
     except Exception as e:
         print(f"[deps] transcription error: {e}")
         return ""
+
+
+# ---------------------------------------------------------------------- #
+# 词库合并：exercise_manager 词库 + memorize 速记模块
+# ---------------------------------------------------------------------- _
+import re as _re
+
+_MEMORIZE_DAY_RE = _re.compile(r"^速记Day(\d+)$")
+
+
+def get_all_practice_items(groups: list[str] | None = None) -> list[dict]:
+    """返回合并后的全部词条（exercise_manager + memorize），按 groups 过滤。
+
+    groups 为空或 None 时返回全部词条。
+    当 groups 包含速记DayN 格式时，自动加载对应速记模块的词条。
+    """
+    mgr = get_exercise_manager()
+    words = mgr.exercises.get("words", [])
+    sentences = mgr.exercises.get("sentences", [])
+    full = words + sentences
+
+    # 如果需要速记模块，加载并合并
+    if groups and any(_MEMORIZE_DAY_RE.match(g) for g in groups):
+        try:
+            eng = get_memorize()
+            existing_keys = {(i.get("text", ""), i.get("group", "")) for i in full}
+            for d in eng.get_days():
+                day_no = d.get("day")
+                group = f"速记Day{day_no}"
+                for entry in eng.get_day_entries(day_no):
+                    text = entry.get("text", "").strip()
+                    if text:
+                        key = (text, group)
+                        if key not in existing_keys:
+                            full.append({
+                                "text": text,
+                                "phonetic": entry.get("pos", ""),
+                                "translation": entry.get("translation", ""),
+                                "group": group,
+                            })
+                            existing_keys.add(key)
+        except Exception as e:
+            print(f"[deps] 加载速记词条失败: {e}")
+
+    if groups:
+        full = [i for i in full if i.get("group", "Default") in groups]
+
+    return full

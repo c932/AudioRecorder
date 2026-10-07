@@ -54,10 +54,10 @@ class QuizEngine(QObject):
         # Normalize groups to list
         if isinstance(groups, str):
             groups = [groups]
-        
-        # 1. Get words from the selected group(s)
-        all_words = self.exercise_manager.exercises.get("words", [])
-        group_words = [w for w in all_words if w.get('group', 'Default') in groups]
+
+        # 1. Get words from the selected group(s), including memorize days
+        from src.server.deps import get_all_practice_items
+        group_words = get_all_practice_items(groups)
         
         if not group_words:
             self.generation_error.emit(f"No words found in selected groups.")

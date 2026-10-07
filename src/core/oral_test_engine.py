@@ -57,11 +57,11 @@ class OralTestEngine(QObject):
         if isinstance(groups, str):
             groups = [groups]
 
-        # Collect words and existing sentences from selected groups
-        all_words = self.exercise_manager.exercises.get("words", [])
+        # Collect words and existing sentences from selected groups (incl. memorize days)
+        from src.server.deps import get_all_practice_items
+        all_items = get_all_practice_items(groups)
+        group_words = [w for w in all_items if w.get("group", "Default") in groups]
         all_sentences = self.exercise_manager.exercises.get("sentences", [])
-
-        group_words = [w for w in all_words if w.get('group', 'Default') in groups]
         group_sentences = [s for s in all_sentences if s.get('group', 'Default') in groups]
 
         if not group_words and not group_sentences:

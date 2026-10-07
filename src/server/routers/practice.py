@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from src.server.deps import (
     get_coach, get_exercise_manager, load_config,
     save_audio_temp, cleanup_temp, synthesize_tts,
+    get_all_practice_items,
 )
 
 router = APIRouter(prefix="/api/practice", tags=["practice"])
@@ -61,15 +62,10 @@ def tts(req: TTSRequest):
 @router.get("/session")
 def practice_session(count: int = 20):
     """开始一轮练习：按配置选词、打乱，返回练习列表。"""
-    mgr = get_exercise_manager()
     config = load_config()
-    active_groups = config.get("active_groups", [])
-    words = mgr.exercises.get("words", [])
-    sentences = mgr.exercises.get("sentences", [])
-    full = words + sentences
+    active_groups = config.get("active_groups", []) or None
 
-    if active_groups:
-        full = [i for i in full if i.get("group", "Default") in active_groups]
+    full = get_all_practice_items(active_groups)
     if not full:
         raise HTTPException(status_code=404, detail="没有可练习的词条")
 
