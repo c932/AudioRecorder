@@ -41,6 +41,7 @@ RUN cd CosyVoice && pip3 install --no-cache-dir --timeout 120 --retries 5 \
     fastapi-cli==0.0.4 \
     gdown==5.1.0 \
     huggingface_hub==0.25.2 \
+    tokenizers==0.19.1 \
     hydra-core==1.3.2 \
     HyperPyYAML==1.2.3 \
     inflect==7.3.1 \
