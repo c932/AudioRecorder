@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  api, type ScenarioBank, type ScoreResult, type WordItem,
+  api, type ScenarioBank, type WordItem,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
 import { playSoundForScore, speak, stopAudio } from "../lib/audio";
-import RecordButton from "../components/RecordButton";
-import ScoreResultView from "../components/ScoreResultView";
 import GroupPicker from "../components/GroupPicker";
 import {
   PageHeader, ProgressBar, ErrorText,
@@ -20,9 +18,17 @@ interface Turn {
   translation: string;
 }
 
+/** 词级评分片段，用于在气泡中颜色标注 */
+interface WordScore {
+  word: string;
+  score: number;
+}
+
 interface ChatEntry {
   turn: Turn;
   score?: number;
+  wordScores?: WordScore[];
+  recognized?: string;
 }
 
 /** 情景会话 — A 角由应用朗读，B 角由学生跟读，逐句打分。 */
@@ -39,22 +45,20 @@ export default function ScenarioPage() {
   const [script, setScript] = useState<Turn[]>([]);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [idx, setIdx] = useState(0);
-  const [result, setResult] = useState<ScoreResult | null>(null);
   const [results, setResults] = useState<{ turn_idx: number; text: string; score: number }[]>([]);
   const [summary, setSummary] = useState("");
-  const { recording, error: recError, start, stop } = useRecorder();
+  const [weakEntries, setWeakEntries] = useState<{ text: string; score: number }[]>([]);
+  const { recording, start, stop } = useRecorder();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const autoRecordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (stateItems && stateItems.length > 0) {
-      // 从外部（速记页）传入了词条，自动生成对话
       setBusy(true);
       setError("");
       api
         .scenarioGenerateFromItems(stateItems, turnCount)
-        .then((r) => {
-          startSession(r.bank);
-        })
+        .then((r) => startSession(r.bank))
         .catch((e) => setError((e as Error).message))
         .finally(() => setBusy(false));
     } else {
@@ -67,11 +71,14 @@ export default function ScenarioPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [entries, result]);
+  }, [entries]);
 
-  useEffect(() => () => stopAudio(), []);
+  useEffect(() => () => {
+    stopAudio();
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
+  }, []);
 
-  // 驱动会话：A 角自动朗读并推进；B 角等学生录音
+  // 驱动会话：A 角自动朗读并推进；B 角自动开始录音
   useEffect(() => {
     if (phase !== "chat" || script.length === 0) return;
     if (idx >= script.length) {
@@ -88,6 +95,11 @@ export default function ScenarioPage() {
         .finally(() => {
           window.setTimeout(() => setIdx((i) => i + 1), 250);
         });
+    } else if (turn.role === "B") {
+      // B 角：短暂延迟后自动开始录音，让学生先看一眼句子
+      autoRecordTimer.current = setTimeout(() => {
+        start().catch(() => {});
+      }, 600);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, phase, script]);
@@ -95,11 +107,11 @@ export default function ScenarioPage() {
   const finish = async () => {
     setBusy(true);
     try {
-      const r = await api.scenarioSummary(
-        results,
-        bank?.name ?? "",
-      );
+      const r = await api.scenarioSummary(results, bank?.name ?? "");
       setSummary(r.summary);
+      // 找出弱项（低于 80 分的句子）
+      const weak = results.filter((r) => r.score < 80);
+      setWeakEntries(weak);
       setPhase("summary");
     } catch (e) {
       setError((e as Error).message);
@@ -143,7 +155,6 @@ export default function ScenarioPage() {
     setEntries([]);
     setResults([]);
     setIdx(0);
-    setResult(null);
     setPhase("chat");
   };
 
@@ -157,12 +168,26 @@ export default function ScenarioPage() {
     setError("");
     try {
       const r = await api.score(rec.b64, rec.format, curTurn.text);
-      setResult(r);
+      // 把分数和词级评分写入当前 B 气泡
+      const wordScores: WordScore[] = (r.details?.words ?? []).map((w) => ({
+        word: w.word,
+        score: w.score,
+      }));
+      const recognized = r.details?.recognized ?? "";
+      setEntries((es) =>
+        es.map((e, i) =>
+          i === es.length - 1
+            ? { ...e, score: r.accuracy_score, wordScores, recognized }
+            : e,
+        ),
+      );
       setResults((res) => [
         ...res,
         { turn_idx: idx, text: curTurn.text, score: r.accuracy_score },
       ]);
       playSoundForScore(r.accuracy_score);
+      // 评分后自动进入下一句（1.5s 延迟让学生看到分数）
+      setTimeout(() => setIdx((i) => i + 1), 1500);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -170,19 +195,11 @@ export default function ScenarioPage() {
     }
   };
 
-  const confirmTurn = () => {
-    // 把分数写到当前 B 气泡上，进入下一轮
-    const score = result?.accuracy_score ?? 0;
-    setEntries((es) =>
-      es.map((e, i) => (i === es.length - 1 ? { ...e, score } : e)),
-    );
-    setResult(null);
-    setIdx((i) => i + 1);
-  };
-
-  const skipTurn = () => {
-    setIdx((i) => i + 1);
-    setResult(null);
+  /** 词级颜色：绿(>=80) / 琥珀(>=60) / 红(<60) */
+  const wordCls = (score: number) => {
+    if (score >= 80) return "text-leaf";
+    if (score >= 60) return "text-mango-dk";
+    return "text-clay";
   };
 
   if (phase === "summary") {
@@ -204,6 +221,37 @@ export default function ScenarioPage() {
             {summary || "这次会话的总结生成失败了，不过分数都在上面啦。"}
           </p>
         </div>
+        {weakEntries.length > 0 && (
+          <div className="bg-clay-soft border border-clay rounded-xl p-4">
+            <p className="text-ui font-bold text-clay mb-2">需要再练的句子</p>
+            <div className="flex flex-col gap-2">
+              {weakEntries.map((w, i) => (
+                <div key={i} className="flex items-baseline gap-2">
+                  <span className="text-body font-bold text-clay tabular-nums">{w.score}</span>
+                  <span className="text-ui text-ink">{w.text}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              className={`${btnPrimary} mt-3`}
+              onClick={() => {
+                // 用弱项句子重新开始一轮会话
+                const weakScript: Turn[] = weakEntries.map((w) => ({
+                  role: "B" as const,
+                  text: w.text,
+                  translation: "",
+                }));
+                setScript(weakScript);
+                setEntries([]);
+                setResults([]);
+                setIdx(0);
+                setPhase("chat");
+              }}
+            >
+              重新练习这些句子
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 justify-center">
           <button className={btnSecondary} onClick={() => setPhase("banks")}>
             返回题库
@@ -214,7 +262,7 @@ export default function ScenarioPage() {
   }
 
   if (phase === "chat") {
-    const waitingB = curTurn?.role === "B" && !result;
+    const waitingB = curTurn?.role === "B" && !busy;
     return (
       <div className="flex flex-col gap-3">
         <PageHeader title={bank?.name ?? "情景会话"} onBack={() => setPhase("banks")} />
@@ -242,7 +290,16 @@ export default function ScenarioPage() {
                   </span>
                 )}
               </p>
-              <p className="text-ui font-semibold break-words">{e.turn.text}</p>
+              {/* 词级颜色标注 */}
+              {e.wordScores && e.wordScores.length > 0 ? (
+                <p className="text-ui font-semibold break-words">
+                  {e.wordScores.map((w, j) => (
+                    <span key={j} className={wordCls(w.score)}>{w.word} </span>
+                  ))}
+                </p>
+              ) : (
+                <p className="text-ui font-semibold break-words">{e.turn.text}</p>
+              )}
               {e.turn.translation && (
                 <p className="text-body text-ink-soft/80">{e.turn.translation}</p>
               )}
@@ -251,44 +308,36 @@ export default function ScenarioPage() {
           <div ref={bottomRef} />
         </div>
 
-        {result ? (
-          <>
-            <ScoreResultView result={result} />
-            <div className="flex gap-2">
-              <button className={btnSecondary} onClick={skipTurn}>
-                跳过
-              </button>
-              <button className={btnPrimary} onClick={confirmTurn}>
-                继续
-              </button>
+        {waitingB ? (
+          <div className="bg-card border border-desk-line rounded-xl p-3 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-body text-ink-soft">轮到你了，读这句：</p>
+              <p className="text-ui font-bold truncate">{curTurn.text}</p>
             </div>
-          </>
-        ) : waitingB ? (
-          <>
-            <div className="bg-card border border-desk-line rounded-xl p-3 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-body text-ink-soft">轮到你了，读这句：</p>
-                <p className="text-ui font-bold truncate">{curTurn.text}</p>
-              </div>
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => speak(curTurn.text).catch(() => {})}
                 aria-label="听这句"
-                className="p-2 rounded-lg text-ink-soft hover:bg-desk hover:text-ink shrink-0"
+                className="p-2 rounded-lg text-ink-soft hover:bg-desk hover:text-ink"
               >
                 <SpeakerIcon />
               </button>
+              {recording && (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  className="px-3 py-1.5 rounded-lg bg-clay text-ink font-bold text-body"
+                >
+                  停止录音
+                </button>
+              )}
             </div>
-            <RecordButton
-              recording={recording}
-              disabled={busy}
-              onStart={start}
-              onStop={handleStop}
-              hint={busy ? "评分中…" : recError || "点击开始朗读"}
-            />
-          </>
+          </div>
         ) : (
-          <p className="text-body text-ink-soft text-center py-2">对方正在说…</p>
+          <p className="text-body text-ink-soft text-center py-2">
+            {busy ? "评分中…" : "对方正在说…"}
+          </p>
         )}
         <ErrorText text={error} />
       </div>
