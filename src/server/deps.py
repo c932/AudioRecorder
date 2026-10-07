@@ -75,9 +75,12 @@ def load_config() -> dict:
 
 
 def save_config(cfg: dict):
+    """合并保存配置：只更新传入的字段，保留其他已有字段。"""
     path = get_user_data_path("config.json")
+    existing = load_config()
+    existing.update(cfg)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, ensure_ascii=False, indent=2)
+        json.dump(existing, f, ensure_ascii=False, indent=2)
 
 
 # ---------------------------------------------------------------------- #
