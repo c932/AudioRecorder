@@ -151,6 +151,36 @@ export interface ParsedItem {
   translation: string;
 }
 
+export interface ReadAlongSegment {
+  text: string;
+  translation: string;
+}
+
+export interface ReadAlongSession {
+  session_id: string;
+  segments: ReadAlongSegment[];
+  total: number;
+  mode: "sentence" | "paragraph";
+}
+
+export interface ReadAlongScoreResult {
+  score: number;
+  feedback: string;
+  llm_feedback: string;
+  details: ScoreResult;
+  should_retry: boolean;
+  retry_count: number;
+}
+
+export interface ReadAlongSummary {
+  summary: string;
+  avg_score: number;
+  weak_segments: ReadAlongSegment[];
+  weak_words: string[];
+  total_segments: number;
+  total_retries: number;
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
@@ -275,4 +305,43 @@ export const api = {
   testConfig: (config: Record<string, unknown>) =>
     req<{ ok: boolean; message: string; models?: string[] }>(
       "POST", "/api/config/test", { config }),
+
+  // ── 跟读教练 ──────────────────────────────────────────────────
+  readalongParseFile: (file: File, useAi: boolean) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("use_ai", String(useAi));
+    return postForm<{ text: string }>("/api/readalong/parse-text", form);
+  },
+  readalongStart: (text: string, mode: "sentence" | "paragraph") =>
+    req<ReadAlongSession>("POST", "/api/readalong/start", { text, mode }),
+  readalongStartText: (text: string) =>
+    req<ReadAlongSession>("POST", "/api/readalong/start-text", { text }),
+  readalongTts: (text: string, voice?: string) => {
+    const body: Record<string, string> = { text };
+    if (voice) body.voice = voice;
+    return fetch("/api/readalong/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then(async (res) => {
+      if (!res.ok) throw new Error("TTS 合成失败");
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    });
+  },
+  readalongScore: (
+    session_id: string,
+    seg_idx: number,
+    audio_b64: string,
+    audio_format: string,
+  ) =>
+    req<ReadAlongScoreResult>("POST", "/api/readalong/score", {
+      session_id,
+      seg_idx,
+      audio_b64,
+      audio_format,
+    }),
+  readalongSummary: (session_id: string) =>
+    req<ReadAlongSummary>("POST", "/api/readalong/summary", { session_id }),
 };
