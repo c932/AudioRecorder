@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import random
 
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -41,15 +43,16 @@ def score_pronunciation(req: ScoreRequest):
 
 class TTSRequest(BaseModel):
     text: str
+    voice: Optional[str] = None
 
 
 @router.post("/tts")
 def tts(req: TTSRequest):
-    """文本 → 语音（纯英文 Kokoro WAV / 含中文 edge-tts MP3）。"""
+    """文本 → 语音（CosyVoice GPU WAV / edge-tts MP3 回退）。"""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="text 为空")
     try:
-        audio, media_type = synthesize_tts(req.text)
+        audio, media_type = synthesize_tts(req.text, voice=req.voice)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS 失败: {e}")
     return Response(content=audio, media_type=media_type)

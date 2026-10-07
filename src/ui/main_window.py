@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
                     # Set CosyVoice config
                     self.tts.set_cosyvoice_config(
                         config.get("cosyvoice_url", "http://localhost:50000"),
-                        config.get("cosyvoice_spk", "中文女")
+                        config.get("cosyvoice_spk", "英文女")
                     )
              except (json.JSONDecodeError, IOError):
                  pass

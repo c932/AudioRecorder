@@ -100,13 +100,20 @@ class PiperWorker(QThread):
 
 class CosyVoiceWorker(QThread):
     """Worker that calls CosyVoice FastAPI server for TTS.
-    
+
     CosyVoice2-0.5B supports Chinese+English mixed text natively.
-    Server setup: python webui.py --port 50000 --model_dir pretrained_models/CosyVoice2-0.5B
-    Or: python runtime/python/fastapi/server.py --model_dir pretrained_models/CosyVoice2-0.5B
+    优先 inference_instruct2（instruct_text 控制音色），回退 inference_sft（内置音色）。
     """
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
+
+    # spk_id → instruct_text 映射（inference_instruct2 用）
+    INSTRUCT_MAP = {
+        "中文女": "用自然的女声说话",
+        "中文男": "用低沉的男声说话",
+        "英文女": "Speak in a natural female voice",
+        "英文男": "Speak in a deep male voice",
+    }
 
     def __init__(self, text, server_url="http://localhost:50000", spk_id="中文女"):
         super().__init__()
@@ -118,11 +125,10 @@ class CosyVoiceWorker(QThread):
         try:
             import hashlib
             import requests
-            import struct
             import wave
 
-            # Cache by text hash
-            text_hash = hashlib.md5(self.text.encode()).hexdigest()
+            # Cache by text + spk_id hash
+            text_hash = hashlib.md5(f"{self.text}\0{self.spk_id}".encode()).hexdigest()
             filename = f"cosyvoice_{text_hash}.wav"
             output_file = os.path.join(tempfile.gettempdir(), filename)
 
@@ -130,24 +136,42 @@ class CosyVoiceWorker(QThread):
                 self.finished.emit(output_file)
                 return
 
-            # Call CosyVoice FastAPI /inference_sft endpoint
-            url = f"{self.server_url}/inference_sft"
-            data = {"tts_text": self.text, "spk_id": self.spk_id}
-            
-            response = requests.post(url, data=data, timeout=30, stream=True)
-            
-            if response.status_code != 200:
-                self.error.emit(f"CosyVoice server returned {response.status_code}: {response.text[:200]}")
-                return
+            pcm_data = None
 
-            # Response is raw PCM int16 data at 24000Hz
-            pcm_data = response.content
-            
-            if len(pcm_data) < 100:
-                self.error.emit("CosyVoice returned empty audio")
-                return
+            # 策略 1：inference_instruct2（需要 prompt_wav）
+            prompt_wav = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                       "data", "cosyvoice_prompt.wav")
+            if os.path.exists(prompt_wav):
+                instruct_text = self.INSTRUCT_MAP.get(self.spk_id, "用自然的声音说话")
+                try:
+                    with open(prompt_wav, "rb") as f:
+                        resp = requests.post(
+                            f"{self.server_url}/inference_instruct2",
+                            data={"tts_text": self.text, "instruct_text": instruct_text},
+                            files={"prompt_wav": ("prompt.wav", f, "audio/wav")},
+                            timeout=60,
+                        )
+                    if resp.status_code == 200 and len(resp.content) > 100:
+                        pcm_data = resp.content
+                except Exception:
+                    pass  # 回退到 sft
 
-            # Write as WAV file (16-bit PCM, mono, 24000Hz)
+            # 策略 2：inference_sft（内置音色，无需参考音频）
+            if pcm_data is None:
+                resp = requests.post(
+                    f"{self.server_url}/inference_sft",
+                    data={"tts_text": self.text, "spk_id": self.spk_id},
+                    timeout=60,
+                )
+                if resp.status_code != 200:
+                    self.error.emit(f"CosyVoice 返回 {resp.status_code}: {resp.text[:200]}")
+                    return
+                pcm_data = resp.content
+                if len(pcm_data) < 100:
+                    self.error.emit("CosyVoice 返回空音频")
+                    return
+
+            # 写 WAV 文件
             sample_rate = 24000
             with wave.open(output_file, 'wb') as wf:
                 wf.setnchannels(1)
@@ -324,7 +348,7 @@ class TTSEngine(QObject):
         
         # CosyVoice server config
         self.cosyvoice_url = "http://localhost:50000"
-        self.cosyvoice_spk = "中文女"
+        self.cosyvoice_spk = "英文女"
 
     def set_mode(self, mode_str):
         # mode_str comes from UI combo box, e.g. "Kokoro (Local Neural...)"

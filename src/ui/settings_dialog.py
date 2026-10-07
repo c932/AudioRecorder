@@ -113,8 +113,8 @@ class SettingsDialog(QDialog):
         self.txt_cosyvoice_url.setPlaceholderText("CosyVoice 服务器地址")
         form_audio.addRow("CosyVoice地址:", self.txt_cosyvoice_url)
         
-        self.txt_cosyvoice_spk = QLineEdit("中文女")
-        self.txt_cosyvoice_spk.setPlaceholderText("说话ID，如: 中文女, 中文男, 英文女")
+        self.txt_cosyvoice_spk = QLineEdit("英文女")
+        self.txt_cosyvoice_spk.setPlaceholderText("说话ID，如: 英文女, 英文男, 中文女, 中文男")
         form_audio.addRow("CosyVoice音色:", self.txt_cosyvoice_spk)
         
         grp_audio.setLayout(form_audio)
@@ -776,7 +776,7 @@ class SettingsDialog(QDialog):
                     if idx_tts >= 0: self.combo_tts.setCurrentIndex(idx_tts)
                     
                     self.txt_cosyvoice_url.setText(config.get("cosyvoice_url", "http://localhost:50000"))
-                    self.txt_cosyvoice_spk.setText(config.get("cosyvoice_spk", "中文女"))
+                    self.txt_cosyvoice_spk.setText(config.get("cosyvoice_spk", "英文女"))
                     
                     self.chk_random.setChecked(config.get("strategy_random", True))
                     self.chk_smart.setChecked(config.get("strategy_smart", True))

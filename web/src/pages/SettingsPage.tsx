@@ -4,11 +4,18 @@ import GroupPicker from "../components/GroupPicker";
 import {
   PageHeader, Spinner, ErrorText, btnPrimary, btnSecondary, inputCls,
 } from "../components/ui";
+import { setTtsVoice } from "../lib/audio";
 
 const TTS_OPTIONS = [
   "Auto",
   "CosyVoice (GPU 本地 — 中英混合)",
   "Edge (在线 — 快速)",
+];
+const COSYVOICE_VOICES = [
+  { id: "英文女", label: "英文女声" },
+  { id: "英文男", label: "英文男声" },
+  { id: "中文女", label: "中文女声" },
+  { id: "中文男", label: "中文男声" },
 ];
 const PROVIDER_OPTIONS = [
   "Custom (Local API)",
@@ -47,7 +54,12 @@ export default function SettingsPage() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
-    api.config().then((c) => setCfg(c)).catch((e) => setError(e.message));
+    api.config().then((c) => {
+      setCfg(c);
+      // 同步音色到 audio 模块
+      const spk = String(c["cosyvoice_spk"] ?? "英文女");
+      setTtsVoice(spk);
+    }).catch((e) => setError(e.message));
   }, []);
 
   const set = (key: string, value: unknown) => {
@@ -159,6 +171,31 @@ export default function SettingsPage() {
           Auto 优先 CosyVoice GPU，失败回退 Edge 在线
         </p>
       </div>
+
+      {/* CosyVoice 音色选择：Auto 和 CosyVoice 模式都显示 */}
+      {!String(cfg["tts_engine"] ?? "Auto").includes("Edge") && (
+        <div className="flex flex-col gap-2">
+          <label htmlFor="set-cosyvoice-voice" className="text-ui font-bold">
+            CosyVoice 音色
+          </label>
+          <select
+            id="set-cosyvoice-voice"
+            value={String(cfg["cosyvoice_spk"] ?? "英文女")}
+            onChange={(e) => {
+              set("cosyvoice_spk", e.target.value);
+              setTtsVoice(e.target.value);
+            }}
+            className={inputCls}
+          >
+            {COSYVOICE_VOICES.map((v) => (
+              <option key={v.id} value={v.id}>{v.label}</option>
+            ))}
+          </select>
+          <p className="text-body text-ink-soft">
+            英文练习选英文女声/男声，中文内容选中文女声/男声
+          </p>
+        </div>
+      )}
 
       {/* AI 提供商 — 按所选提供商显示配套字段，可先测连通再保存 */}
       <div className="flex flex-col gap-3 bg-card border border-desk-line rounded-xl p-4">

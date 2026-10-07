@@ -12,8 +12,12 @@ import MistakesPage from "./pages/MistakesPage";
 import ImportPage from "./pages/ImportPage";
 import SettingsPage from "./pages/SettingsPage";
 import MorePage from "./pages/MorePage";
+import { initTtsVoiceFromConfig } from "./lib/audio";
 
 export default function App() {
+  // 应用启动时从配置加载 TTS 音色
+  initTtsVoiceFromConfig();
+
   return (
     <HashRouter>
       <Routes>
