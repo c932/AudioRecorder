@@ -61,6 +61,14 @@ export default function TutorPage() {
   const { recording, error: recError, start, stop } = useRecorder();
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // 启动时从配置加载已保存的分组
+  useEffect(() => {
+    api.config().then((c) => {
+      const saved = (c["active_groups"] as string[]) ?? [];
+      if (saved.length > 0) setGroup(saved.slice(-1)); // 家教单选，取最后一个
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [bubbles, lastAction]);

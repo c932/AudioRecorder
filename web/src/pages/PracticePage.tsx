@@ -27,6 +27,15 @@ export default function PracticePage() {
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // 启动时从配置加载已保存的分组
+  useEffect(() => {
+    if (custom) return;
+    api.config().then((c) => {
+      const saved = (c["active_groups"] as string[]) ?? [];
+      if (saved.length > 0) setGroups(saved);
+    }).catch(() => {});
+  }, [custom]);
   const [scores, setScores] = useState<number[]>([]);
   const [finished, setFinished] = useState(false);
   const { recording, error: recError, start, stop } = useRecorder();
