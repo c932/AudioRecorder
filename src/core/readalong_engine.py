@@ -70,6 +70,7 @@ class ReadAlongEngine:
         """批量翻译英文句子/段落为中文（LLM）。
 
         LLM 失败时返回空串列表（与输入等长），应用可降级运行。
+        对每句单独翻译以保证对齐可靠，即使模型较弱也不会串行。
         """
         if not segments:
             return []
@@ -77,55 +78,32 @@ class ReadAlongEngine:
         try:
             from src.core.content_parser import _get_llm_client_and_model
             client, model = _get_llm_client_and_model(config)
+        except Exception as e:
+            print(f"[readalong] LLM 翻译：无法获取客户端: {e}")
+            return [""] * len(segments)
 
-            # 分批翻译（每批最多 20 句，避免超长 prompt）
-            batch_size = 20
-            all_translations = []
-
-            for i in range(0, len(segments), batch_size):
-                batch = segments[i:i + batch_size]
-                numbered = "\n".join(f"{j+1}. {s}" for j, s in enumerate(batch))
-
-                prompt = (
-                    "请将以下英文逐句翻译为中文。\n"
-                    "规则：\n"
-                    "1. 只输出翻译结果，每行一句，行首加序号\n"
-                    "2. 不要输出任何解释、提示或原文\n"
-                    "3. 保持序号与原文一一对应\n\n"
-                    f"英文：\n{numbered}\n\n翻译："
-                )
-
+        all_translations = []
+        for seg in segments:
+            try:
+                prompt = f'Translate the following English sentence to Chinese. Output ONLY the Chinese translation, nothing else.\n\nEnglish: {seg}'
                 response = client.chat.completions.create(
                     model=model,
                     messages=[
-                        {"role": "system", "content": "你是一个英译中翻译器。只输出中文翻译，不加任何解释。"},
+                        {"role": "system", "content": "You are a translator. Translate English to Chinese. Output ONLY the translation."},
                         {"role": "user", "content": prompt},
                     ],
-                    max_tokens=2000,
+                    max_tokens=300,
                     temperature=0.3,
                 )
                 content = response.choices[0].message.content.strip()
+                # 清理：去掉可能的引号包裹
+                content = content.strip('"\'""''')
+                all_translations.append(content)
+            except Exception as e:
+                print(f"[readalong] 单句翻译失败: {e}")
+                all_translations.append("")
 
-                # 解析编号行
-                translations = []
-                for line in content.splitlines():
-                    line = line.strip()
-                    # 去掉行首编号（"1. " "1、 " "1) " 等）
-                    m = re.match(r'^(?:\d+)[.、)\s]+(.+)$', line)
-                    if m:
-                        translations.append(m.group(1).strip())
-                    elif line:
-                        translations.append(line)
-
-                # 数量对齐：如果 LLM 少翻了，用空串补齐
-                while len(translations) < len(batch):
-                    translations.append("")
-                all_translations.extend(translations[:len(batch)])
-
-            return all_translations
-        except Exception as e:
-            print(f"[readalong] LLM 翻译失败: {e}")
-            return [""] * len(segments)
+        return all_translations
 
     @staticmethod
     def generate_llm_correction(score: int, reference: str, recognized: str,
