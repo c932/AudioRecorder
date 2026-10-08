@@ -85,11 +85,14 @@ class ReadAlongEngine:
         all_translations = []
         for seg in segments:
             try:
-                prompt = f'Translate the following English sentence to Chinese. Output ONLY the Chinese translation, nothing else.\n\nEnglish: {seg}'
+                prompt = (
+                    f'Translate to Chinese. ONLY output the Chinese translation.\n'
+                    f'English: {seg}'
+                )
                 response = client.chat.completions.create(
                     model=model,
                     messages=[
-                        {"role": "system", "content": "You are a translator. Translate English to Chinese. Output ONLY the translation."},
+                        {"role": "system", "content": "You translate English to Chinese. Respond with ONLY Chinese characters. No English, no explanation, no punctuation marks like colons before the translation."},
                         {"role": "user", "content": prompt},
                     ],
                     max_tokens=300,
@@ -233,25 +236,66 @@ class ReadAlongEngine:
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Helpers — 剥离弱模型输出中的推理过程
 # ---------------------------------------------------------------------------
 
-# 思考/推理标签模式 — 覆盖已知格式
+# XML 思考标签 — 覆盖已知格式
 _THINKING_RE = re.compile(
     r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>',
     re.DOTALL,
 )
 # 分隔线：---, ===, *** 等
 _SEPARATOR_RE = re.compile(r'^[\s\-=*~]{3,}$', re.MULTILINE)
+# 英文推理前缀 — 弱模型常在翻译前加 "I'll go with:" / "Translation:" 等
+_ENGLISH_PREFIX_RE = re.compile(
+    r'^(?:'
+    r"I(?:'ll| will| should)? (?:go with|output|translate|provide|give|say|choose|write|put|think it(?:'s| is))"
+    r"(?:\s+(?:it|that|this|the|only|just|the Chinese|the translation))?\s*[:：]\s*"
+    r"|Translation\s*[:：]\s*"
+    r"|The (?:translation|answer|result|Chinese|meaning) (?:is|would be)\s*[:：]?\s*"
+    r"|Here(?:'s| is) (?:the )?(?:translation|Chinese)\s*[:：]?\s*"
+    r"|In Chinese\s*[:：]\s*"
+    r"|中文(?:翻译|意思|是)\s*[:：]?\s*"
+    r"|翻译(?:如下|为|是)\s*[:：]?\s*"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _has_chinese(text: str) -> bool:
+    """检查文本是否包含中文字符。"""
+    return any('一' <= ch <= '鿿' for ch in text)
+
+
+def _is_mostly_chinese(text: str) -> bool:
+    """判断文本是否以中文为主（中文字符数 > 英文字母数）。"""
+    cn = sum(1 for ch in text if '一' <= ch <= '鿿')
+    en = sum(1 for ch in text if 'a' <= ch <= 'z' or 'A' <= ch <= 'Z')
+    return cn > en
+
+
+def _extract_chinese_part(text: str) -> str:
+    """从英文+中文混合行中提取纯中文部分。
+
+    例如 "The answer is 猫坐在垫子上。" → "猫坐在垫子上。"
+    """
+    for i, ch in enumerate(text):
+        if '一' <= ch <= '鿿':
+            candidate = text[i:].strip()
+            if _has_chinese(candidate) and len(candidate) >= 2:
+                return candidate
+    return text
 
 
 def _strip_model_thinking(text: str) -> str:
     """剥离模型输出的思考/推理过程，只保留最终翻译。
 
-    处理：
-    1. XML 格式思考标签 <think>...</think>
-    2. 以分隔线（---/===等）分隔的推理+结论
-    3. 最后一行中文内容作为最终翻译
+    处理策略（按顺序）：
+    1. XML 格式思考标签
+    2. 以分隔线分隔的推理+结论
+    3. 多行输出：取最后一行纯中文内容（递归处理该行）
+    4. 单行含英文推理前缀（如 "I'll go with: 翻译"）：剥离前缀
+    5. 单行含英文+中文混合：提取中文部分
     """
     # 1. 去掉 XML 思考标签
     cleaned = _THINKING_RE.sub('', text).strip()
@@ -261,14 +305,25 @@ def _strip_model_thinking(text: str) -> str:
     if len(parts) > 1:
         cleaned = parts[-1].strip()
 
-    # 3. 如果还有多行，取最后一行非空且含中文的行
+    # 3. 如果有多行，取最后一行含中文的行（递归处理）
     lines = [l.strip() for l in cleaned.splitlines() if l.strip()]
     if len(lines) > 1:
-        # 找最后一行含中文的
         for line in reversed(lines):
-            if any('一' <= ch <= '鿿' for ch in line):
-                return line
+            if _has_chinese(line):
+                return _strip_model_thinking(line)
         # 没有中文行则取最后一行
         return lines[-1]
 
-    return cleaned
+    # 单行处理
+    if not lines:
+        return cleaned
+    single = lines[0]
+
+    # 4. 去掉英文推理前缀（"I'll go with:", "Translation:", 等）
+    single = _ENGLISH_PREFIX_RE.sub('', single).strip()
+
+    # 5. 如果单行以英文开头但含中文，提取中文部分
+    if _has_chinese(single) and not _is_mostly_chinese(single):
+        return _extract_chinese_part(single)
+
+    return single
