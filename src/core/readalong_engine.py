@@ -96,8 +96,8 @@ class ReadAlongEngine:
                     temperature=0.3,
                 )
                 content = response.choices[0].message.content.strip()
-                # 清理：去掉可能的引号包裹
-                content = content.strip('"\'""''')
+                # 清理模型思考/推理过程，只保留最终翻译
+                content = _strip_model_thinking(content)
                 all_translations.append(content)
             except Exception as e:
                 print(f"[readalong] 单句翻译失败: {e}")
@@ -230,3 +230,45 @@ class ReadAlongEngine:
             "total_segments": total,
             "total_retries": total_retries,
         }
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+# 思考/推理标签模式 — 覆盖已知格式
+_THINKING_RE = re.compile(
+    r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>',
+    re.DOTALL,
+)
+# 分隔线：---, ===, *** 等
+_SEPARATOR_RE = re.compile(r'^[\s\-=*~]{3,}$', re.MULTILINE)
+
+
+def _strip_model_thinking(text: str) -> str:
+    """剥离模型输出的思考/推理过程，只保留最终翻译。
+
+    处理：
+    1. XML 格式思考标签 <think>...</think>
+    2. 以分隔线（---/===等）分隔的推理+结论
+    3. 最后一行中文内容作为最终翻译
+    """
+    # 1. 去掉 XML 思考标签
+    cleaned = _THINKING_RE.sub('', text).strip()
+
+    # 2. 如果有分隔线，取分隔线之后的部分
+    parts = _SEPARATOR_RE.split(cleaned)
+    if len(parts) > 1:
+        cleaned = parts[-1].strip()
+
+    # 3. 如果还有多行，取最后一行非空且含中文的行
+    lines = [l.strip() for l in cleaned.splitlines() if l.strip()]
+    if len(lines) > 1:
+        # 找最后一行含中文的
+        for line in reversed(lines):
+            if any('一' <= ch <= '鿿' for ch in line):
+                return line
+        # 没有中文行则取最后一行
+        return lines[-1]
+
+    return cleaned
