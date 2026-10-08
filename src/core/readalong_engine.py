@@ -239,15 +239,16 @@ class ReadAlongEngine:
 # Helpers — 剥离弱模型输出中的推理过程
 # ---------------------------------------------------------------------------
 
-# XML 思考标签 — 覆盖已知格式 (think, thinking) + 处理指令 <?...?>
+# XML 思考标签 — 覆盖已知格式 (think, thinking) + 处理指令 <?...?> + 孤立闭合标签
 _THINKING_RE = re.compile(
     r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>'
-    r'|<\?.*?\?>',
+    r'|<\?.*?\?>'
+    r'|</(?:think|thinking|action|reason)>',
     re.DOTALL,
 )
 # 分隔线：---, ===, *** 等
 _SEPARATOR_RE = re.compile(r'^[\s\-=*~]{3,}$', re.MULTILINE)
-# 英文推理前缀 — 弱模型常在翻译前加 "I'll go with:" / "Translation:" 等
+# 英文推理前缀 — 弱模型常在翻译前加 "I'll go with:" / "Translation:" / "So:" / "Okay:" 等
 _ENGLISH_PREFIX_RE = re.compile(
     r'^(?:'
     r"I(?:'ll| will| should)? (?:go with|output|translate|provide|give|say|choose|write|put|think it(?:'s| is))"
@@ -256,6 +257,8 @@ _ENGLISH_PREFIX_RE = re.compile(
     r"|The (?:translation|answer|result|Chinese|meaning) (?:is|would be)\s*[:：]?\s*"
     r"|Here(?:'s| is) (?:the )?(?:translation|Chinese)\s*[:：]?\s*"
     r"|In Chinese\s*[:：]\s*"
+    r"|So\s*[:：]\s*"
+    r"|Okay\s*[:：]?\s*"
     r"|中文(?:翻译|意思|是)\s*[:：]?\s*"
     r"|翻译(?:如下|为|是)\s*[:：]?\s*"
     r")",
@@ -326,17 +329,46 @@ def _extract_last_chinese_sentence(text: str) -> str:
     return text
 
 
+def _deduplicate_chinese(text: str) -> str:
+    """去除重复的中文翻译（弱模型常在标签前后各输出一次翻译）。
+
+    例如 "猫坐在垫子上。猫坐在垫子上。" → "猫坐在垫子上。"
+         "你好世界你好世界" → "你好世界"
+    """
+    if not _has_chinese(text) or len(text) < 4:
+        return text
+
+    # 尝试将文本对半分割，检查是否重复
+    half = len(text) // 2
+    # 精确对半
+    if len(text) % 2 == 0 and text[:half] == text[half:]:
+        return text[:half]
+
+    # 尝试不同分割点（±1~3 字符，处理标点/空格差异）
+    for offset in range(-3, 4):
+        split_at = half + offset
+        if split_at <= 0 or split_at >= len(text):
+            continue
+        left = text[:split_at].rstrip('，。、！？：； ')
+        right = text[split_at:].lstrip('，。、！？：； ')
+        if left and right and left == right:
+            return text[:split_at].rstrip()
+
+    return text
+
+
 def _strip_model_thinking(text: str) -> str:
     """剥离模型输出的思考/推理过程，只保留最终翻译。
 
     处理策略（按顺序）：
-    1. XML 格式思考标签 + 处理指令 <?...?>
+    1. XML 格式思考标签 + 孤立闭合标签 + 处理指令 <?...?>
     2. 以分隔线分隔的推理+结论
     3. 多行输出：取最后一行含中文内容（递归处理）
     4. 单行含英文推理前缀：剥离前缀
     5. 单行含英文+中文混合：提取最后一个完整中文句子
+    6. 重复翻译去重
     """
-    # 1. 去掉 XML 思考标签 + <?...?> 处理指令
+    # 1. 去掉 XML 思考标签 + 孤立闭合标签 + <?...?> 处理指令
     cleaned = _THINKING_RE.sub('', text).strip()
 
     # 2. 如果有分隔线，取分隔线之后的部分
@@ -363,6 +395,9 @@ def _strip_model_thinking(text: str) -> str:
 
     # 5. 如果单行以英文为主但含中文，提取最后一个完整中文句子
     if _has_chinese(single) and not _is_mostly_chinese(single):
-        return _extract_last_chinese_sentence(single)
+        single = _extract_last_chinese_sentence(single)
+
+    # 6. 重复翻译去重
+    single = _deduplicate_chinese(single)
 
     return single
