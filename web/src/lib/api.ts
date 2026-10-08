@@ -318,19 +318,6 @@ export const api = {
     req<ReadAlongSession>("POST", "/api/readalong/start", { text, mode }),
   readalongStartText: (text: string) =>
     req<ReadAlongSession>("POST", "/api/readalong/start-text", { text }),
-  readalongTts: (text: string, voice?: string) => {
-    const body: Record<string, string> = { text };
-    if (voice) body.voice = voice;
-    return fetch("/api/readalong/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).then(async (res) => {
-      if (!res.ok) throw new Error("TTS 合成失败");
-      const blob = await res.blob();
-      return URL.createObjectURL(blob);
-    });
-  },
   readalongScore: (
     session_id: string,
     seg_idx: number,

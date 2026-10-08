@@ -1,11 +1,11 @@
 // 跟读教练 — 上传课文 → TTS 领读 → 跟读评分 → 低分重读 → 总结
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api, type ReadAlongSegment, type ReadAlongSession,
   type ReadAlongScoreResult, type ReadAlongSummary,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
-import { playSoundForScore, speak, stopAudio } from "../lib/audio";
+import { playSoundForScore, prefetchTts, speak, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import ScoreResultView from "../components/ScoreResultView";
 import {
@@ -65,6 +65,20 @@ export default function ReadAlongPage() {
     }
   };
 
+  // --- Play TTS for current segment ---
+  const playCurrentSegment = useCallback(async (segments: ReadAlongSegment[], idx: number) => {
+    if (idx >= segments.length) return;
+    setReadState("playing");
+    setScoreResult(null);
+    setLlmFeedback("");
+    try {
+      await speak(segments[idx].text);
+    } catch {
+      // TTS 播放失败也继续
+    }
+    setReadState("waiting");
+  }, []);
+
   // --- Start session ---
   const startSession = async () => {
     const text = rawText.trim();
@@ -82,6 +96,9 @@ export default function ReadAlongPage() {
       setLlmFeedback("");
       setReadState("idle");
       setPhase("readalong");
+      // 预取前几句 TTS 音频
+      const texts = r.segments.slice(0, 4).map((s) => s.text);
+      prefetchTts(texts);
       // Auto-play first segment TTS
       setTimeout(() => playCurrentSegment(r.segments, 0), 300);
     } catch (err) {
@@ -89,20 +106,6 @@ export default function ReadAlongPage() {
     } finally {
       setBusy(false);
     }
-  };
-
-  // --- Play TTS for current segment ---
-  const playCurrentSegment = async (segments: ReadAlongSegment[], idx: number) => {
-    if (idx >= segments.length) return;
-    setReadState("playing");
-    setScoreResult(null);
-    setLlmFeedback("");
-    try {
-      await speak(segments[idx].text);
-    } catch {
-      // TTS 播放失败也继续
-    }
-    setReadState("waiting");
   };
 
   // --- Start recording ---
@@ -140,7 +143,7 @@ export default function ReadAlongPage() {
   };
 
   // --- Advance to next segment ---
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (!session) return;
     const nextIdx = segIdx + 1;
     if (nextIdx >= session.total) {
@@ -148,35 +151,47 @@ export default function ReadAlongPage() {
       finishSession();
     } else {
       setSegIdx(nextIdx);
+      // 预取后面几句 TTS
+      const prefetchStart = nextIdx + 1;
+      if (prefetchStart < session.segments.length) {
+        const texts = session.segments
+          .slice(prefetchStart, prefetchStart + 3)
+          .map((s) => s.text);
+        prefetchTts(texts);
+      }
       playCurrentSegment(session.segments, nextIdx);
     }
-  };
+  }, [session, segIdx, playCurrentSegment]);
 
-  // --- Retry current segment ---
-  const retrySegment = () => {
+  // --- Retry current segment: 先重播 TTS，再进入录音等待 ---
+  const retrySegment = useCallback(() => {
+    if (!session) return;
     setScoreResult(null);
     setLlmFeedback("");
-    setReadState("waiting");
-  };
+    // 重播标准音后再进入录音等待
+    playCurrentSegment(session.segments, segIdx);
+  }, [session, segIdx, playCurrentSegment]);
 
   // --- Re-listen TTS ---
-  const reListen = () => {
+  const reListen = useCallback(() => {
     if (!session) return;
     playCurrentSegment(session.segments, segIdx);
-  };
+  }, [session, segIdx, playCurrentSegment]);
 
   // --- Finish session ---
   const finishSession = async () => {
     if (!session) return;
     setBusy(true);
+    setError("");
     try {
       const s = await api.readalongSummary(session.session_id);
       setSummary(s);
+      setPhase("summary");
     } catch (err) {
       setError((err as Error).message);
+      // 失败时留在当前阶段，用户可重试
     } finally {
       setBusy(false);
-      setPhase("summary");
     }
   };
 
@@ -310,7 +325,7 @@ export default function ReadAlongPage() {
           <Spinner label="生成总结…" />
         )}
         <div className="flex gap-2 justify-center">
-          <button className={btnSecondary} onClick={() => setPhase("setup")}>
+          <button className={btnSecondary} onClick={() => { setPhase("setup"); setSummary(null); setSession(null); }}>
             再练一篇
           </button>
         </div>
@@ -318,8 +333,10 @@ export default function ReadAlongPage() {
     );
   }
 
-  // readalong phase
-  const canRetry = scoreResult && scoreResult.should_retry;
+  // ==================== readalong phase ====================
+  const canRetry = scoreResult?.should_retry === true;
+  // 重读次数已达上限或分数达标才允许进入下一句
+  const canAdvance = scoreResult && !canRetry;
 
   return (
     <div className="flex flex-col gap-3">
@@ -359,8 +376,8 @@ export default function ReadAlongPage() {
         ))}
       </div>
 
-      {/* 领读/听标准音 按钮 */}
-      {(readState === "idle" || readState === "waiting" || readState === "scored") && (
+      {/* 领读/听标准音 按钮（非播放、非录音、非评分中时显示） */}
+      {readState !== "playing" && readState !== "recording" && readState !== "scoring" && (
         <button
           type="button"
           onClick={reListen}
@@ -374,11 +391,27 @@ export default function ReadAlongPage() {
       {/* 播放中指示 */}
       {readState === "playing" && (
         <p className="text-ui text-ink-soft text-center animate-pulse">
-          跟着老师读…
+          🔊 跟着老师读…
         </p>
       )}
 
-      {/* 评分结果 */}
+      {/* ── 录音按钮 ── */}
+      {/* 等待录音 或 正在录音（且非评分已出状态） */}
+      {(readState === "waiting" || readState === "recording") && (
+        <RecordButton
+          recording={recording}
+          onStart={handleStartRecord}
+          onStop={handleStopRecord}
+          hint={recError || (readState === "waiting" ? "听完后点击开始跟读" : "朗读中，点击停止")}
+        />
+      )}
+
+      {/* 评分中 */}
+      {readState === "scoring" && (
+        <p className="text-ui text-ink-soft text-center">评分中…</p>
+      )}
+
+      {/* ── 评分结果 ── */}
       {scoreResult && readState === "scored" && (
         <>
           <ScoreResultView result={scoreResult.details} />
@@ -388,48 +421,32 @@ export default function ReadAlongPage() {
               <p className="text-ui">{llmFeedback}</p>
             </div>
           )}
+
+          {/* 低分重读提示 */}
           {canRetry && (
             <div className="bg-clay-soft border border-clay rounded-xl px-4 py-3">
               <p className="text-ui font-bold text-clay">
-                还差一点点，再读一次吧！
+                还差一点点，再读一次吧！（第 {scoreResult.retry_count} 次）
               </p>
             </div>
           )}
+
+          {/* 操作按钮 */}
           <div className="flex gap-2">
+            {/* 低分必须重读：只显示"重新跟读" */}
             {canRetry && (
-              <button className={btnSecondary} onClick={retrySegment}>
+              <button className={btnPrimary} onClick={retrySegment}>
                 重新跟读
               </button>
             )}
-            <button className={btnPrimary} onClick={goNext}>
-              {segIdx + 1 >= (session?.total ?? 0) ? "看总结" : "下一句"}
-            </button>
+            {/* 分数达标或重读次数达上限：显示"下一句" */}
+            {canAdvance && (
+              <button className={btnPrimary} onClick={goNext}>
+                {segIdx + 1 >= (session?.total ?? 0) ? "看总结" : "下一句"}
+              </button>
+            )}
           </div>
         </>
-      )}
-
-      {/* 录音按钮（等待或录音中，无评分结果时） */}
-      {(readState === "waiting" || readState === "recording") && !scoreResult && (
-        <RecordButton
-          recording={recording}
-          onStart={handleStartRecord}
-          onStop={handleStopRecord}
-          hint={recError || (readState === "waiting" ? "听完后点击开始跟读" : "朗读中，点击停止")}
-        />
-      )}
-
-      {/* 低分重读时的录音按钮 */}
-      {readState === "scored" && canRetry && (
-        <RecordButton
-          recording={recording}
-          onStart={handleStartRecord}
-          onStop={handleStopRecord}
-          hint={recError || "重新跟读，点击开始"}
-        />
-      )}
-
-      {readState === "scoring" && (
-        <p className="text-ui text-ink-soft text-center">评分中…</p>
       )}
 
       <ErrorText text={error} />

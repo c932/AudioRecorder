@@ -259,6 +259,19 @@ def summary(req: SummaryRequest):
     if not session:
         raise HTTPException(404, "会话不存在")
 
+    # 无评分结果时直接返回简单总结（用户中途退出场景）
+    if not session["results"]:
+        with _sessions_lock:
+            _sessions.pop(req.session_id, None)
+        return {
+            "summary": "练习未完成，下次继续加油！",
+            "avg_score": 0,
+            "weak_segments": [],
+            "weak_words": [],
+            "total_segments": len(session["segments"]),
+            "total_retries": 0,
+        }
+
     results_list = [
         {"seg_idx": idx, "score": r["score"], "retries": r["retries"]}
         for idx, r in sorted(session["results"].items())
