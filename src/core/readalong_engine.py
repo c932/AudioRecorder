@@ -239,9 +239,10 @@ class ReadAlongEngine:
 # Helpers — 剥离弱模型输出中的推理过程
 # ---------------------------------------------------------------------------
 
-# XML 思考标签 — 覆盖已知格式
+# XML 思考标签 — 覆盖已知格式 (think, thinking) + 处理指令 <?...?>
 _THINKING_RE = re.compile(
-    r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>',
+    r'<(?:think|thinking|action|reason)>.*?</(?:think|thinking|action|reason)>'
+    r'|<\?.*?\?>',
     re.DOTALL,
 )
 # 分隔线：---, ===, *** 等
@@ -260,6 +261,8 @@ _ENGLISH_PREFIX_RE = re.compile(
     r")",
     re.IGNORECASE,
 )
+# 中文标点结尾的句子（句号、问号、感叹号等）
+_CN_SENTENCE_END_RE = re.compile(r'[。！？…」）》、]')
 
 
 def _has_chinese(text: str) -> bool:
@@ -274,16 +277,52 @@ def _is_mostly_chinese(text: str) -> bool:
     return cn > en
 
 
-def _extract_chinese_part(text: str) -> str:
-    """从英文+中文混合行中提取纯中文部分。
+def _extract_last_chinese_sentence(text: str) -> str:
+    """从英文+中文混合文本中提取最后一个完整的中文句子。
 
-    例如 "The answer is 猫坐在垫子上。" → "猫坐在垫子上。"
+    策略：从右往左找中文标点结尾，再往前找中文开头，截取这段。
+    例如 '猫坐在垫子上。" but they said...猫坐在垫子上' → '猫坐在垫子上'
     """
+    # 先找最后一个中文标点结尾的位置
+    last_end = -1
+    for i in range(len(text) - 1, -1, -1):
+        if _CN_SENTENCE_END_RE.match(text[i]):
+            last_end = i
+            break
+
+    if last_end >= 0:
+        # 从这个标点往前找，找到中文句子的开头
+        # 往前找：直到遇到非中文/非中文标点的连续英文段
+        start = last_end
+        while start > 0 and (('一' <= text[start - 1] <= '鿿')
+                             or _CN_SENTENCE_END_RE.match(text[start - 1])
+                             or text[start - 1] in '，、；：""''（）【】'):
+            start -= 1
+        candidate = text[start:last_end + 1].strip()
+        if _has_chinese(candidate) and len(candidate) >= 2:
+            return candidate
+
+    # 没有中文标点结尾：取最后一个连续中文段
+    # 从右往左找中文字符连续段
+    in_chinese = False
+    end = len(text)
+    for i in range(len(text) - 1, -1, -1):
+        is_cn = '一' <= text[i] <= '鿿'
+        if is_cn and not in_chinese:
+            end = i + 1
+            in_chinese = True
+        elif not is_cn and in_chinese:
+            candidate = text[i + 1:end].strip()
+            if len(candidate) >= 2:
+                return candidate
+
+    # 回退：找第一个中文字符开始
     for i, ch in enumerate(text):
         if '一' <= ch <= '鿿':
             candidate = text[i:].strip()
             if _has_chinese(candidate) and len(candidate) >= 2:
                 return candidate
+
     return text
 
 
@@ -291,13 +330,13 @@ def _strip_model_thinking(text: str) -> str:
     """剥离模型输出的思考/推理过程，只保留最终翻译。
 
     处理策略（按顺序）：
-    1. XML 格式思考标签
+    1. XML 格式思考标签 + 处理指令 <?...?>
     2. 以分隔线分隔的推理+结论
-    3. 多行输出：取最后一行纯中文内容（递归处理该行）
-    4. 单行含英文推理前缀（如 "I'll go with: 翻译"）：剥离前缀
-    5. 单行含英文+中文混合：提取中文部分
+    3. 多行输出：取最后一行含中文内容（递归处理）
+    4. 单行含英文推理前缀：剥离前缀
+    5. 单行含英文+中文混合：提取最后一个完整中文句子
     """
-    # 1. 去掉 XML 思考标签
+    # 1. 去掉 XML 思考标签 + <?...?> 处理指令
     cleaned = _THINKING_RE.sub('', text).strip()
 
     # 2. 如果有分隔线，取分隔线之后的部分
@@ -319,11 +358,11 @@ def _strip_model_thinking(text: str) -> str:
         return cleaned
     single = lines[0]
 
-    # 4. 去掉英文推理前缀（"I'll go with:", "Translation:", 等）
+    # 4. 去掉英文推理前缀
     single = _ENGLISH_PREFIX_RE.sub('', single).strip()
 
-    # 5. 如果单行以英文开头但含中文，提取中文部分
+    # 5. 如果单行以英文为主但含中文，提取最后一个完整中文句子
     if _has_chinese(single) and not _is_mostly_chinese(single):
-        return _extract_chinese_part(single)
+        return _extract_last_chinese_sentence(single)
 
     return single
