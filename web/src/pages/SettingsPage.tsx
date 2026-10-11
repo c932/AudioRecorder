@@ -12,10 +12,15 @@ const TTS_OPTIONS = [
   "Edge (在线 — 快速)",
 ];
 const QWEN_TTS_VOICES = [
-  { id: "英文女", label: "英文女声 (Aiden)" },
-  { id: "英文男", label: "英文男声 (Aiden)" },
-  { id: "中文女", label: "中文女声 (Vivian)" },
-  { id: "中文男", label: "中文男声 (Uncle_Fu)" },
+  { id: "Aiden", label: "Aiden — 英文男声（阳光美式）" },
+  { id: "Ryan", label: "Ryan — 英文男声（动感）" },
+  { id: "Vivian", label: "Vivian — 中文女声（明亮年轻）" },
+  { id: "Serena", label: "Serena — 中文女声（温柔年轻）" },
+  { id: "Uncle_Fu", label: "Uncle Fu — 中文男声（沉稳）" },
+  { id: "Dylan", label: "Dylan — 中文男声（京腔）" },
+  { id: "Eric", label: "Eric — 中文男声（川腔）" },
+  { id: "Ono_Anna", label: "Ono Anna — 日文女声（俏皮）" },
+  { id: "Sohee", label: "Sohee — 韩文女声（温暖）" },
 ];
 const PROVIDER_OPTIONS = [
   "Custom (Local API)",
@@ -194,7 +199,7 @@ export default function SettingsPage() {
             ))}
           </select>
           <p className="text-body text-ink-soft">
-            英文练习选英文女声/男声，中文内容选中文女声/男声
+            英文练习选 Aiden / Ryan，中文内容选 Vivian / Serena
           </p>
         </div>
       )}
@@ -424,7 +429,7 @@ export default function SettingsPage() {
         </label>
         <select
           id="set-gop"
-          value={String(cfg["gop_mode"] ?? "local")}
+          value={String(cfg["gop_mode"] ?? "remote")}
           onChange={(e) => set("gop_mode", e.target.value)}
           className={inputCls}
         >
@@ -432,6 +437,9 @@ export default function SettingsPage() {
             <option key={o}>{o}</option>
           ))}
         </select>
+        <p className="text-body text-ink-soft">
+          Remote：GOP 服务由 AI Runtime 管理（默认）。Local：在 backend 进程内加载 wav2vec2（需 GPU）
+        </p>
       </div>
 
       <button className={btnPrimary} disabled={busy} onClick={save}>
