@@ -111,7 +111,11 @@ export default function ReadAlongPage() {
   // --- Start recording ---
   const handleStartRecord = async () => {
     setReadState("recording");
-    await start();
+    try {
+      await start();
+    } catch {
+      setReadState("waiting");
+    }
   };
 
   // --- Stop recording and score ---

@@ -10,13 +10,35 @@ class ExerciseManager:
     def load_data(self):
         if not os.path.exists(self.data_file):
             return {"words": [], "sentences": []}
-        with open(self.data_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            # JSON 损坏：备份坏文件，返回空数据
+            corrupt_path = self.data_file + ".corrupt"
+            try:
+                os.replace(self.data_file, corrupt_path)
+                print(f"[ExerciseManager] 数据文件损坏，已备份到 {corrupt_path}")
+            except OSError:
+                pass
+            return {"words": [], "sentences": []}
 
     def save_data(self):
         print(f"[DEBUG] ExerciseManager {id(self)} saving data to {self.data_file}...")
-        with open(self.data_file, 'w', encoding='utf-8') as f:
-            json.dump(self.exercises, f, indent=4, ensure_ascii=False)
+        # 原子写入：先写 .tmp，再 rename（防崩溃导致文件损坏）
+        tmp_path = self.data_file + ".tmp"
+        try:
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump(self.exercises, f, indent=4, ensure_ascii=False)
+            os.replace(tmp_path, self.data_file)
+        except Exception:
+            # rename 失败时回退到直接写（Windows 上偶尔 replace 失败）
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(self.exercises, f, indent=4, ensure_ascii=False)
         print(f"[DEBUG] ExerciseManager {id(self)} saved.")
 
     def add_exercises(self, new_items, category="words"):

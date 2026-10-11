@@ -354,7 +354,8 @@ Return JSON:"""
             blanked = item["text"]
             answers = []
             for idx, w in enumerate(to_blank):
-                blanked = blanked.replace(w, f"({idx+1})______", 1)
+                # 用单词边界匹配，防止短词匹配子串（如 "in" 匹配 "interested"）
+                blanked = re.sub(r'\b' + re.escape(w) + r'\b', f"({idx+1})______", blanked, count=1)
                 answers.append(w)
             
             questions.append({

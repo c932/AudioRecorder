@@ -79,10 +79,12 @@ export default function ScenarioPage() {
   }, []);
 
   // 驱动会话：A 角自动朗读并推进；B 角自动开始录音
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
   useEffect(() => {
     if (phase !== "chat" || script.length === 0) return;
     if (idx >= script.length) {
-      finish();
+      if (!busyRef.current) finish();
       return;
     }
     const turn = script[idx];
@@ -235,12 +237,11 @@ export default function ScenarioPage() {
             <button
               className={`${btnPrimary} mt-3`}
               onClick={() => {
-                // 用弱项句子重新开始一轮会话
-                const weakScript: Turn[] = weakEntries.map((w) => ({
-                  role: "B" as const,
-                  text: w.text,
-                  translation: "",
-                }));
+                // 用弱项句子重新开始一轮会话：A 读标准音，B 留给学生跟读
+                const weakScript: Turn[] = weakEntries.flatMap((w) => [
+                  { role: "A" as const, text: w.text, translation: "" },
+                  { role: "B" as const, text: w.text, translation: "" },
+                ]);
                 setScript(weakScript);
                 setEntries([]);
                 setResults([]);

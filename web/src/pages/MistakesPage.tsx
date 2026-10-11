@@ -83,7 +83,7 @@ export default function MistakesPage() {
               </span>
             ) : (
               <span className="text-ui font-bold text-clay tabular-nums shrink-0">
-                ×{w.quiz_wrong}
+                ×{w.quiz_wrong ?? 0}
               </span>
             )}
             <button

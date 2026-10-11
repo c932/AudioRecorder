@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MicIcon, QuizIcon, ChatIcon, MoreIcon } from "../components/icons";
 
 const SECTIONS = [
@@ -47,6 +47,7 @@ const SECTIONS = [
 ] as const;
 
 export default function HomePage() {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col items-center gap-6 pt-2">
       <img
@@ -77,13 +78,14 @@ export default function HomePage() {
               {s.children && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {s.children.map((c) => (
-                    <span
+                    <button
                       key={c.to}
-                      className="text-[10px] px-1.5 py-0.5 rounded bg-card border border-desk-line text-ink-soft"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(c.to); }}
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-card border border-desk-line text-ink-soft hover:text-mango-dk transition-colors"
                     >
-                      <Link to={c.to} className="hover:text-mango-dk transition-colors">{c.zh}</Link>
-                    </span>
+                      {c.zh}
+                    </button>
                   ))}
                 </div>
               )}

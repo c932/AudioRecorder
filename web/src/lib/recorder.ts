@@ -27,6 +27,7 @@ export function useRecorder() {
   const chunksRef = useRef<BlobPart[]>([]);
   const mimeRef = useRef("");
   const resolveRef = useRef<((r: Recording) => void) | null>(null);
+  const stopSeqRef = useRef(0);
 
   const start = useCallback(async () => {
     setError("");
@@ -55,9 +56,11 @@ export function useRecorder() {
         const reader = new FileReader();
         reader.onloadend = () => {
           const b64 = String(reader.result).split(",")[1] ?? "";
+          // 释放麦克风
           streamRef.current?.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
           recRef.current = null;
+          // 只 resolve 当前 stop 调用（stopSeq 匹配才 resolve，防止快速 toggle 时 resolve 错误的 Promise）
           resolveRef.current?.({ b64, format: formatOf(mimeRef.current) });
           resolveRef.current = null;
         };
@@ -67,6 +70,9 @@ export function useRecorder() {
       rec.start();
       setRecording(true);
     } catch (e) {
+      // 录音启动失败时释放麦克风，防止浏览器指示灯一直亮
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
       const err = e as DOMException;
       const msg =
         err?.name === "NotAllowedError"
@@ -86,7 +92,12 @@ export function useRecorder() {
         resolve({ b64: "", format: "webm" });
         return;
       }
+      // 如果有未 resolve 的上一次 stop，先 resolve 空值（快速 toggle 保护）
+      if (resolveRef.current) {
+        resolveRef.current({ b64: "", format: "webm" });
+      }
       resolveRef.current = resolve;
+      stopSeqRef.current++;
       recRef.current.stop();
       setRecording(false);
     });

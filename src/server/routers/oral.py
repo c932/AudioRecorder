@@ -56,5 +56,8 @@ def get_bank(bank_id: str):
 
 @router.get("/bank/{bank_id}/sentences")
 def bank_sentences(bank_id: str):
+    # 先检查 bank 是否存在
+    if not _get_engine().get_bank_by_id(bank_id):
+        raise HTTPException(status_code=404, detail="题库不存在")
     sentences = _get_engine().load_bank_sentences(bank_id)
     return {"sentences": sentences}

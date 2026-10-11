@@ -60,19 +60,32 @@ def generate_bank(req: GenerateBank):
 def generate_bank_from_items(req: GenerateBankFromItems):
     """用词条列表生成情景对话（词条无需在词库分组中）。"""
     eng = _get_engine()
-    # 构造虚拟分组名
-    texts = [it.get("text", "") if isinstance(it, dict) else str(it) for it in req.items]
-    name = req.name or f"速记 {len(texts)} 词"
+    # 把 items 临时注入 ExerciseManager 为虚拟分组，再传分组名给引擎
+    import uuid as _uuid
+    temp_group = f"_temp_{_uuid.uuid4().hex[:8]}"
+    mgr = get_exercise_manager()
+    items_to_add = []
+    for it in req.items:
+        if isinstance(it, dict):
+            item = {**it, "group": temp_group}
+        else:
+            item = {"text": str(it), "group": temp_group}
+        items_to_add.append(item)
+    mgr.add_exercises(items_to_add, "words")
+    name = req.name or f"速记 {len(items_to_add)} 词"
     try:
         bank = await_signal(
             eng, "bank_generation_done", "bank_generation_error",
-            lambda: eng.generate_bank(texts, req.turn_count, name, True),
+            lambda: eng.generate_bank([temp_group], req.turn_count, name, True),
             timeout=300,
         )[0]
     except TimeoutError as e:
         raise HTTPException(status_code=504, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # 清理临时分组（无论成功或失败）
+        mgr.delete_group(temp_group)
     return {"bank": bank}
 
 

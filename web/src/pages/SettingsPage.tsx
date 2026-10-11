@@ -74,6 +74,9 @@ export default function SettingsPage() {
     try {
       await api.saveConfig(cfg);
       setSaved(true);
+      // 保存成功后才真正切换 TTS 音色
+      const spk = String(cfg["tts_voice"] ?? cfg["cosyvoice_spk"] ?? "英文女");
+      setTtsVoice(spk);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -183,7 +186,6 @@ export default function SettingsPage() {
             value={String(cfg["tts_voice"] ?? cfg["cosyvoice_spk"] ?? "英文女")}
             onChange={(e) => {
               set("tts_voice", e.target.value);
-              setTtsVoice(e.target.value);
             }}
             className={inputCls}
           >

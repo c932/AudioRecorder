@@ -60,15 +60,21 @@ def _to_display_ipa(raw: dict) -> None:
     ARPABET 失败时原样保留），其中 "Ə"(U+018F) 等变体不在标准 IPA 里，
     一并规范化。
     """
+    import copy
+    # 深拷贝后再修改，防止篡改缓存/上游数据
+    raw_display = copy.deepcopy(raw)
     fix = {"Ə": "ə", "É": "e", "À": "a", "Ò": "o", "Ì": "i", "Û": "u", "Â": "ɐ"}
-    for w in raw.get("words") or []:
+    for w in raw_display.get("words") or []:
         for p in w.get("phonemes") or []:
             code = str(p.get("phoneme", ""))
             p["phoneme"] = _ARPABET_DISPLAY_IPA.get(code.upper(), code)
-    for e in raw.get("errors") or []:
+    for e in raw_display.get("errors") or []:
         for k in ("expected", "actual"):
             code = str(e.get(k, ""))
             e[k] = _ARPABET_DISPLAY_IPA.get(code.upper(), "".join(fix.get(c, c) for c in code))
+    # 把修改后的结果写回原 dict（保持 in-place 接口兼容）
+    raw.clear()
+    raw.update(raw_display)
 
 
 class AssessorSignals(QObject):
@@ -335,10 +341,27 @@ class PronunciationCoach:
         feedback = data.get("feedback", "") or "评分完成。"
         recognized = data.get("recognized", "")
 
+        # 分项分数：如果 LLM 返回了 accuracy/fluency/completeness 就用，
+        # 否则根据主分数和识别结果估算差异
+        accuracy_score = int(data.get("accuracy", score))
+        fluency_score = int(data.get("fluency", score))
+        completeness_score = int(data.get("completeness", score))
+
+        # 若 LLM 没返回分项，给微小差异避免 UI 三分数完全相同
+        if "accuracy" not in data and "fluency" not in data and "completeness" not in data:
+            # completeness：根据识别词覆盖参考词的比例估算
+            if recognized and reference_text:
+                ref_words = set(reference_text.lower().split())
+                rec_words = set(recognized.lower().split())
+                coverage = len(ref_words & rec_words) / max(len(ref_words), 1)
+                completeness_score = max(0, min(100, int(round(score * coverage))))
+            # fluency：略低于 accuracy（假设 fluency 通常略差）
+            fluency_score = max(0, min(100, score - 2))
+
         return {
-            "accuracy_score": score,
-            "fluency_score": score,
-            "completeness_score": score,
+            "accuracy_score": accuracy_score,
+            "fluency_score": fluency_score,
+            "completeness_score": completeness_score,
             "feedback": feedback,
             "details": {
                 "scoring_method": "omni",

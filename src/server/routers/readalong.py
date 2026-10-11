@@ -24,30 +24,52 @@ router = APIRouter(prefix="/api/readalong", tags=["readalong"])
 # ---------------------------------------------------------------------------
 _sessions: dict[str, dict] = {}
 _sessions_lock = threading.Lock()
+_SESSION_TTL_S = 30 * 60  # 30 分钟后清理过期会话
+
+
+def _cleanup_stale_sessions() -> None:
+    """删除超过 TTL 的会话（惰性清理，在 /start 和 /score 入口调用）。"""
+    import time
+    now = time.time()
+    stale = [
+        sid for sid, s in _sessions.items()
+        if now - s.get("created_at", 0) > _SESSION_TTL_S
+    ]
+    for sid in stale:
+        _sessions.pop(sid, None)
 
 
 def _new_session(text: str, mode: str) -> dict:
     """创建跟读会话：拆句/段 + 翻译。"""
+    import time
     config = load_config()
     segments_text = ReadAlongEngine.split_text(text, mode)
     if not segments_text:
         raise HTTPException(400, "课文解析结果为空，请检查内容")
 
-    translations = ReadAlongEngine.translate_segments(segments_text, config)
+    # 翻译失败时降级为空翻译，不阻断会话创建
+    try:
+        translations = ReadAlongEngine.translate_segments(segments_text, config)
+    except Exception as e:
+        print(f"[readalong] 翻译失败，降级为空翻译: {e}")
+        translations = [""] * len(segments_text)
+
     segments = [
         {"text": t, "translation": tr}
         for t, tr in zip(segments_text, translations)
     ]
 
-    session_id = str(uuid.uuid4())[:8]
+    session_id = str(uuid.uuid4())  # 完整 UUID，消除碰撞风险
     session = {
         "id": session_id,
         "mode": mode,
         "segments": segments,
         "results": {},       # seg_idx -> {"score": int, "retries": int}
         "current_idx": 0,
+        "created_at": time.time(),
     }
     with _sessions_lock:
+        _cleanup_stale_sessions()
         _sessions[session_id] = session
     return session
 
@@ -191,6 +213,7 @@ class ScoreRequest(BaseModel):
 def score(req: ScoreRequest):
     """录音评分 + LLM 纠错。"""
     with _sessions_lock:
+        _cleanup_stale_sessions()
         session = _sessions.get(req.session_id)
     if not session:
         raise HTTPException(404, "会话不存在")

@@ -106,8 +106,8 @@ export default function OralTestPage() {
       ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
       : 0;
     const weak = sentences
-      .map((s, i) => ({ s, score: scores[i] ?? 0 }))
-      .filter((x) => x.score < 80);
+      .map((s, i) => ({ s, score: scores[i] }))
+      .filter((x) => x.score !== undefined && x.score < 80);
     return (
       <div className="flex flex-col gap-4 py-6">
         <h1 className="text-section font-bold text-center">测试完成</h1>

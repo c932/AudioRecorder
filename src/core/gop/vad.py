@@ -47,15 +47,19 @@ def should_bypass_vad(audio_path: str, expected_phoneme_count: int) -> bool:
     return False
 
 
-def extract_speech(audio_path: str, expected_phoneme_count: int = 0) -> str:
+def extract_speech(audio_path: str, expected_phoneme_count: int = 0) -> tuple[str, bool]:
     """
     Run silero-vad and return path to a temp wav containing only speech segments.
 
     On bypass / failure, returns the original audio_path unchanged.
+
+    Returns:
+        (path, is_temp) — is_temp=True means the returned path is a temp file
+        that should be deleted after use.
     """
     if should_bypass_vad(audio_path, expected_phoneme_count):
         print(f"[gop.vad] bypass (short audio or few phonemes): {audio_path}")
-        return audio_path
+        return audio_path, False
 
     try:
         import numpy as np
@@ -85,7 +89,7 @@ def extract_speech(audio_path: str, expected_phoneme_count: int = 0) -> str:
         timestamps = get_speech_timestamps(wav, model, sampling_rate=16000)
         if not timestamps:
             print("[gop.vad] no speech detected, returning original audio")
-            return audio_path
+            return audio_path, False
 
         # Apply padding to preserve voiceless onsets (e.g. /p/, /t/, /k/).
         pad_before = int(PAD_BEFORE_MS * 16000 / 1000)  # samples
@@ -103,7 +107,7 @@ def extract_speech(audio_path: str, expected_phoneme_count: int = 0) -> str:
         sf.write(tmp_path, out, 16000, subtype="PCM_16")
         print(f"[gop.vad] speech segments extracted: {len(timestamps)} "
               f"(+{PAD_BEFORE_MS}/{PAD_AFTER_MS}ms padding) -> {tmp_path}")
-        return tmp_path
+        return tmp_path, True
     except Exception as e:
         print(f"[gop.vad] failed ({e}), returning original audio")
-        return audio_path
+        return audio_path, False

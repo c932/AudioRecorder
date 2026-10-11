@@ -217,7 +217,8 @@ def compute_phoneme_scores(
             competitor_lse = _topk_competitor_logsumexp(seg_mean, tid, blank_id, k=TOP_K)
             gop = target_lp - competitor_lse
             # P(target)：目标音素的后验概率（hybrid_score 在 GOP 过低时用作保底）
-            target_prob = math.exp(target_lp)
+            # clamp 防止 math.exp 溢出（target_lp > 500 时 exp 返回 inf）
+            target_prob = math.exp(min(target_lp, 500))
             score = hybrid_score(
                 gop, target_prob,
                 k=SIGMOID_K, mid=SIGMOID_MID, gop_floor=GOP_FLOOR,

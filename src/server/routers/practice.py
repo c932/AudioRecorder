@@ -76,7 +76,7 @@ def practice_session(count: int = 20):
             raise HTTPException(status_code=404, detail="所有词条都已掌握")
 
     if config.get("strategy_smart", True):
-        pool.sort(key=lambda x: (x.get("times_practiced", 0), x.get("last_score", 0)))
+        pool.sort(key=lambda x: (x.get("times_practiced") or 0, x.get("last_score") or 0))
         if config.get("strategy_random", True):
             # 取前 2N 再打乱，兼顾"优先低分"与"不打乱顺序"
             pool = pool[: count * 2]

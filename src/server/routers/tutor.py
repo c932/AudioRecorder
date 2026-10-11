@@ -37,6 +37,7 @@ _action_queue: list = []
 _pending_error: list = []
 _state_seq = 0
 _action_cond = threading.Condition()
+_request_lock = threading.Lock()  # 防止并发请求互相销毁 action
 
 # TTS audio cache: token → (audio_bytes, media_type)
 _tts_cache: dict[str, tuple[bytes, str]] = {}
@@ -182,12 +183,17 @@ def _await_actions(trigger: Callable[[], None],
 
 
 def _run(trigger: Callable[[], None]) -> dict:
+    # 串行化请求，防止并发请求互相销毁 action queue
+    if not _request_lock.acquire(timeout=5):
+        raise HTTPException(status_code=429, detail="AI 家教正在思考，请稍后再试")
     try:
         return _await_actions(trigger)
     except TimeoutError as e:
         raise HTTPException(status_code=504, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _request_lock.release()
 
 
 def _tts_fill_token(action: dict, tts_text: str):

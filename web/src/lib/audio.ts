@@ -37,6 +37,7 @@ export async function initTtsVoiceFromConfig() {
 }
 
 // (text, voice) → objectURL 缓存（同文本同音色只合成一次，重放零等待）
+const MAX_CACHE = 128;
 const urlCache = new Map<string, string>();
 // (text, voice) → 进行中的请求（并发去重）
 const pending = new Map<string, Promise<string>>();
@@ -62,6 +63,14 @@ async function fetchTts(text: string): Promise<string> {
     if (!res.ok) throw new Error("语音合成失败");
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
+    // 缓存上限：淘汰最旧的条目
+    if (urlCache.size >= MAX_CACHE) {
+      const oldest = urlCache.keys().next().value;
+      if (oldest !== undefined) {
+        URL.revokeObjectURL(urlCache.get(oldest)!);
+        urlCache.delete(oldest);
+      }
+    }
     urlCache.set(key, url);
     return url;
   })();

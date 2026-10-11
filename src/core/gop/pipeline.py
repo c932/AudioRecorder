@@ -109,10 +109,11 @@ class GopPipeline:
 
         # 2. VAD (with short-sentence bypass)
         align_input = audio_path
+        vad_temp = False  # 是否产生了 VAD 临时文件需要清理
         if self.use_vad:
             try:
                 from src.core.gop.vad import extract_speech
-                align_input = extract_speech(audio_path, expected_phoneme_count=ph_count)
+                align_input, vad_temp = extract_speech(audio_path, expected_phoneme_count=ph_count)
             except Exception as e:
                 print(f"[gop.pipeline] VAD failed, using original audio: {e}")
                 align_input = audio_path
@@ -132,6 +133,12 @@ class GopPipeline:
             fingerprint=aligner.fingerprint,
             elapsed_ms=elapsed_ms,
         )
+        # 清理 VAD 产生的临时文件
+        if vad_temp and align_input != audio_path:
+            try:
+                os.remove(align_input)
+            except OSError:
+                pass
         return result.to_dict()
 
     # ------------------------------------------------------------------ #
