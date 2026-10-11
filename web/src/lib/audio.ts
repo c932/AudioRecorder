@@ -137,15 +137,19 @@ export async function speak(text: string): Promise<void> {
   const el = new Audio(url);
   audioEl = el;
   return new Promise((resolve) => {
+    let resolved = false;
     el.onended = () => {
       if (audioEl === el) audioEl = null;
-      resolve();
+      if (!resolved) { resolved = true; resolve(); }
     };
     el.onerror = () => {
       if (audioEl === el) audioEl = null;
-      resolve();
+      if (!resolved) { resolved = true; resolve(); }
     };
-    el.play().catch(() => resolve());
+    el.play().catch(() => {
+      if (audioEl === el) audioEl = null;
+      if (!resolved) { resolved = true; resolve(); }
+    });
   });
 }
 

@@ -104,9 +104,10 @@ export default function TutorPage() {
   const scheduleAutoRecord = (m: Mode) => {
     if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
     if (m === "gop" || m === "asr") {
+      // 1500ms 缓冲：TTS 播放结束后给学生一点准备时间
       autoRecordTimer.current = setTimeout(() => {
         start().catch(() => {});
-      }, 600);
+      }, 1500);
     }
   };
 

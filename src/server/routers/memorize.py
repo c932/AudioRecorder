@@ -154,13 +154,25 @@ Return JSON:"""
     questions = []
     for i, item in enumerate(items):
         llm_result = next((r for r in parsed if r.get("index") == i), None)
+        correct_answer = item.get("translation", "")
         if llm_result and len(llm_result.get("options", [])) == 4:
-            ci = llm_result.get("correct_index", 0)
+            opts = llm_result["options"]
+            # 不信任 LLM 的 correct_index —— 自己找正确答案在 options 中的位置
+            # 正确答案可能不是完全匹配（LLM 可能用了略有不同的措辞）
+            ci = -1
+            for j, opt in enumerate(opts):
+                if opt.strip() == correct_answer.strip() or correct_answer.strip() in opt:
+                    ci = j
+                    break
+            # 如果找不到正确答案，强制替换第一个选项为正确答案
+            if ci < 0:
+                opts[0] = correct_answer
+                ci = 0
             questions.append({
                 "direction": "en2cn",
                 "question": item["text"],
                 "question_extra": item.get("pos", ""),
-                "options": llm_result["options"],
+                "options": opts,
                 "answer_index": ci,
                 "entry": item,
             })
@@ -198,13 +210,23 @@ Return JSON:"""
     questions = []
     for i, item in enumerate(items):
         llm_result = next((r for r in parsed if r.get("index") == i), None)
+        correct_answer = item["text"]
         if llm_result and len(llm_result.get("options", [])) == 4:
-            ci = llm_result.get("correct_index", 0)
+            opts = llm_result["options"]
+            # 不信任 LLM 的 correct_index —— 自己找正确答案
+            ci = -1
+            for j, opt in enumerate(opts):
+                if opt.strip().lower() == correct_answer.strip().lower():
+                    ci = j
+                    break
+            if ci < 0:
+                opts[0] = correct_answer
+                ci = 0
             questions.append({
                 "direction": "cn2en",
                 "question": item.get("translation", ""),
                 "question_extra": "",
-                "options": llm_result["options"],
+                "options": opts,
                 "answer_index": ci,
                 "entry": item,
             })

@@ -283,13 +283,23 @@ def _synthesize_qwen_tts(text: str, speaker: str = "", lang: str = "en") -> tupl
 def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
     """合成音频字节 + MIME 类型。
 
-    主引擎：Qwen3-TTS（中英文，内置音色，无需参考音频）。
-    回退：edge-tts（中英文均可）。
+    根据配置的 tts_engine 选择引擎：
+    - Qwen3-TTS：GPU 本地，中英文原生音色
+    - Edge-TTS：在线，快速
+    - Auto：优先 Qwen3-TTS，失败回退 Edge
     """
     lang = _detect_lang(text)
     speaker = _resolve_speaker(voice, lang)
 
-    # --- Qwen3-TTS 优先（中英文） ---
+    # 读取 TTS 引擎配置
+    cfg = load_config()
+    engine = (cfg.get("tts_engine", "Auto") or "Auto").strip()
+
+    # Edge-TTS 模式：直接用 edge-tts
+    if engine.startswith("Edge"):
+        return _synthesize_edge_tts(text, voice, lang)
+
+    # Qwen3-TTS / Auto 模式：优先 Qwen3-TTS，失败回退 edge-tts
     tts_key = ("qwen-tts", speaker, text)
     with _TTS_CACHE_LOCK:
         cached = _TTS_CACHE.get(tts_key)
@@ -306,17 +316,26 @@ def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
                 _TTS_CACHE.popitem(last=False)
         return result
 
-    # --- edge-tts 回退（中英文） ---
+    # Auto 模式回退
+    return _synthesize_edge_tts(text, voice, lang)
+
+
+def _synthesize_edge_tts(text: str, voice: Optional[str], lang: str) -> tuple[bytes, str]:
+    """edge-tts 合成，处理音色映射。"""
     if lang == "en":
-        en_voice_map = {"英文女": "en-US-AriaNeural", "英文男": "en-US-GuyNeural"}
-        edge_voice = en_voice_map.get(voice, "") if voice else ""
-        if not edge_voice:
-            edge_voice = voice if voice and voice not in ("中文女", "中文男") else "en-US-AriaNeural"
+        en_voice_map = {
+            "Aiden": "en-US-GuyNeural", "Ryan": "en-US-GuyNeural",
+            "英文女": "en-US-AriaNeural", "英文男": "en-US-GuyNeural",
+        }
+        edge_voice = en_voice_map.get(voice or "", "en-US-AriaNeural")
     else:
-        zh_voice_map = {"中文女": "zh-CN-XiaoxiaoNeural", "中文男": "zh-CN-YunxiNeural"}
-        edge_voice = zh_voice_map.get(voice, "") if voice else ""
-        if not edge_voice:
-            edge_voice = "zh-CN-XiaoxiaoNeural"
+        zh_voice_map = {
+            "Vivian": "zh-CN-XiaoxiaoNeural", "Serena": "zh-CN-XiaoxiaoNeural",
+            "Uncle_Fu": "zh-CN-YunxiNeural", "Dylan": "zh-CN-YunxiNeural",
+            "Eric": "zh-CN-YunxiNeural",
+            "中文女": "zh-CN-XiaoxiaoNeural", "中文男": "zh-CN-YunxiNeural",
+        }
+        edge_voice = zh_voice_map.get(voice or "", "zh-CN-XiaoxiaoNeural")
     return _synthesize_edge(text, edge_voice)
 
 
