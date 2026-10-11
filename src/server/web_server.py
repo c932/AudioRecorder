@@ -132,14 +132,16 @@ def health():
 @app.get("/api/cert/root-ca")
 def download_root_ca():
     """下载局域网 HTTPS 根 CA 证书（iPad/手机安装后可录音）。"""
-    # 容器内 mkcert 的根证书在 /certs/rootCA.pem（需手动放入 deploy/certs/）
-    # 或宿主机 ~/.local/share/mkcert/rootCA.pem
+    # 容器内数据卷 /app/src/data/rootCA.pem（与 config.json 同目录）
+    # 或旧路径 /certs/rootCA.pem，或宿主机 ~/.local/share/mkcert/rootCA.pem
     candidates = [
+        os.path.join(os.environ.get("ENGLISH_COACH_DATA_DIR", ""), "rootCA.pem"),
+        "/app/src/data/rootCA.pem",
         "/certs/rootCA.pem",
         os.path.expanduser("~/.local/share/mkcert/rootCA.pem"),
     ]
     for p in candidates:
-        if os.path.isfile(p):
+        if p and os.path.isfile(p):
             from fastapi.responses import FileResponse
             return FileResponse(
                 p,
@@ -147,7 +149,7 @@ def download_root_ca():
                 filename="rootCA.pem",
                 headers={"Content-Disposition": 'attachment; filename="rootCA.pem"'},
             )
-    raise HTTPException(status_code=404, detail="根证书未找到，请先将 rootCA.pem 放入 deploy/certs/")
+    raise HTTPException(status_code=404, detail="根证书未找到，请先将 rootCA.pem 放入 deploy/data/")
 
 
 # 静态托管 React 构建产物（若 web/dist 已构建）
