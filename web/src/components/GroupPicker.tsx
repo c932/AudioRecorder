@@ -18,7 +18,12 @@ export default function GroupPicker({ selected, onChange }: Props) {
         r.days.map((d) => ({ name: `速记Day${d.day}`, count: d.count })),
       ),
     ])
-      .then(([vocabGroups, memDays]) => setGroups([...vocabGroups, ...memDays]))
+      .then(([vocabGroups, memDays]) => {
+        // 速记DayN 可能同时出现在 vocabGroups 和 memDays，去重
+        const seen = new Set(vocabGroups.map((g) => g.name));
+        const dedupedMemDays = memDays.filter((d) => !seen.has(d.name));
+        setGroups([...vocabGroups, ...dedupedMemDays]);
+      })
       .catch((e) => setError(e.message));
   }, []);
 
