@@ -29,7 +29,7 @@ const PROVIDER_OPTIONS = [
   "MiniCPM-o (Omni 本地多模态)",
 ];
 const ASSESSOR_OPTIONS = ["gop", "omni", "azure"];
-const GOP_MODE_OPTIONS = ["local", "remote"];
+const GOP_MODE_OPTIONS = ["remote"];
 
 interface TestResult {
   ok: boolean;

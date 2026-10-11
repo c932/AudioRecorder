@@ -204,7 +204,7 @@ def _detect_lang(text: str) -> str:
     return "zh" if _has_chinese(text) else "en"
 
 
-# 音色名 → Qwen3-TTS 内置音色映射
+# 音色名 → Qwen3-TTS 内置音色映射（兼容旧中文别名）
 _VOICE_MAP = {
     "英文女": "Aiden",
     "英文男": "Aiden",
@@ -216,13 +216,27 @@ _VOICE_MAP = {
     "zh_male": "Uncle_Fu",
 }
 
+# Qwen3-TTS 原生音色名（直接传给 TTS server，无需映射）
+_NATIVE_SPEAKERS = {
+    "Aiden", "Ryan", "Vivian", "Serena",
+    "Uncle_Fu", "Dylan", "Eric",
+    "Ono_Anna", "Sohee",
+}
+
 # Qwen3-TTS 语言名
 _LANG_MAP = {"en": "English", "zh": "Chinese"}
 
 
 def _resolve_speaker(voice: str | None, lang: str) -> str:
-    """根据 voice 名称和语言返回 Qwen3-TTS 内置音色 ID。"""
+    """根据 voice 名称和语言返回 Qwen3-TTS 内置音色 ID。
+
+    优先级：原生音色名直传 > 中文别名映射 > 按语言选默认。
+    """
     if voice:
+        # 原生音色名直接用
+        if voice in _NATIVE_SPEAKERS:
+            return voice
+        # 旧中文别名映射
         mapped = _VOICE_MAP.get(voice)
         if mapped:
             return mapped
