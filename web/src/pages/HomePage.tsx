@@ -1,69 +1,67 @@
-import { Link, useNavigate } from "react-router-dom";
-import { MicIcon, QuizIcon, ChatIcon, MoreIcon } from "../components/icons";
+import { Link } from "react-router-dom";
+import {
+  MicIcon,
+  QuizIcon,
+  OralTestIcon,
+  TutorIcon,
+  ReadAlongIcon,
+  MemorizeIcon,
+  MistakesIcon,
+} from "../components/icons";
 
-/**
- * 主页一级入口 — 口语测试 / AI家教 / 跟读教练 / 分类速记 / 错题本
- * 跟读练习、中英互译、情景会话、导入词库、设置保留在二级页面。
- */
 const SECTIONS = [
+  {
+    to: "/practice",
+    zh: "跟读练习",
+    en: "Read & Score",
+    icon: MicIcon,
+    desc: "听标准音 · 录音 · 音素级评分",
+  },
+  {
+    to: "/quiz",
+    zh: "中英互译",
+    en: "Translation Quiz",
+    icon: QuizIcon,
+    desc: "看词选义 · 看义选词",
+  },
   {
     to: "/oral-test",
     zh: "口语测试",
     en: "Oral Test",
-    icon: ChatIcon,
+    icon: OralTestIcon,
     desc: "看题作答 · 限时录音 · 评分反馈",
-    children: null,
   },
   {
     to: "/tutor",
     zh: "AI 家教",
     en: "AI Tutor",
-    icon: ChatIcon,
+    icon: TutorIcon,
     desc: "自由对话 · 话题引导 · 实时纠错",
-    children: null,
   },
   {
     to: "/readalong",
     zh: "跟读教练",
     en: "Read-Along Coach",
-    icon: MicIcon,
+    icon: ReadAlongIcon,
     desc: "逐句跟读 · 音素级评分",
-    children: null,
   },
   {
     to: "/memorize",
     zh: "分类速记",
     en: "28-Day Memorize",
-    icon: MoreIcon,
+    icon: MemorizeIcon,
     desc: "按天推进的词汇计划",
-    children: null,
   },
   {
     to: "/mistakes",
     zh: "错题本",
     en: "Review Mistakes",
-    icon: QuizIcon,
+    icon: MistakesIcon,
     desc: "发音低分词 + 翻译错词",
-    children: null,
-  },
-  {
-    to: "/more",
-    zh: "更多",
-    en: "More",
-    icon: MoreIcon,
-    desc: "跟读练习 · 互译 · 情景会话 · 导入 · 设置",
-    children: [
-      { to: "/practice", zh: "跟读练习" },
-      { to: "/quiz", zh: "中英互译" },
-      { to: "/scenario", zh: "情景会话" },
-      { to: "/import", zh: "导入词库" },
-      { to: "/settings", zh: "设置" },
-    ],
   },
 ] as const;
 
 export default function HomePage() {
-  const navigate = useNavigate();
   return (
     <div className="flex flex-col items-center gap-6 pt-2">
       <img
@@ -91,20 +89,6 @@ export default function HomePage() {
               </div>
               <span className="text-body text-ink-soft">{s.en}</span>
               <span className="text-[11px] text-ink-soft/70 leading-snug">{s.desc}</span>
-              {s.children && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {s.children.map((c) => (
-                    <button
-                      key={c.to}
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(c.to); }}
-                      className="text-[10px] px-1.5 py-0.5 rounded bg-card border border-desk-line text-ink-soft hover:text-mango-dk transition-colors"
-                    >
-                      {c.zh}
-                    </button>
-                  ))}
-                </div>
-              )}
             </Link>
           );
         })}

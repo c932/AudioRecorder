@@ -70,6 +70,73 @@ export function MoreIcon({ className }: IconProps) {
   );
 }
 
+/** 口语测试 — 气泡 + 勾 */
+export function OralTestIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="4" y="4" width="16" height="12" rx="3" />
+      <path d="M8 16v4l4-4" />
+      <path d="M9 10l2 2 4-4" />
+    </Svg>
+  );
+}
+
+/** AI 家教 — 气泡 + 星 */
+export function TutorIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="4" y="4" width="16" height="12" rx="3" />
+      <path d="M8 16v4l4-4" />
+      <path d="M12 6.5l.8 1.7 1.9.3-1.4 1.3.3 1.9-1.6-.9-1.6.9.3-1.9L9.3 8.5l1.9-.3z" />
+    </Svg>
+  );
+}
+
+/** 跟读教练 — 麦克风 + 音波 */
+export function ReadAlongIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="9" y="2.5" width="6" height="12" rx="3" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
+      <path d="M12 18v3.5" />
+      <path d="M17 5.5a8 8 0 0 1 0 13" />
+    </Svg>
+  );
+}
+
+/** 分类速记 — 堆叠卡片 */
+export function MemorizeIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="5" y="5" width="14" height="14" rx="2" />
+      <path d="M8 5V3h12v14" />
+      <path d="M8 10h6M8 13.5h4" />
+    </Svg>
+  );
+}
+
+/** 错题本 — 叉号圆圈 */
+export function MistakesIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9 9l6 6M15 9l-6 6" />
+    </Svg>
+  );
+}
+
+/** 情景会话 — 双气泡 */
+export function ScenarioIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="2" y="5" width="12" height="9" rx="2.5" />
+      <path d="M6 14v3l3-3" />
+      <rect x="10" y="10" width="12" height="9" rx="2.5" />
+      <path d="M18 19v3l3-3" />
+    </Svg>
+  );
+}
+
 export function StopIcon({ className = "w-8 h-8" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
