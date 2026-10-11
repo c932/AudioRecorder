@@ -1,45 +1,61 @@
 import { Link, useNavigate } from "react-router-dom";
 import { MicIcon, QuizIcon, ChatIcon, MoreIcon } from "../components/icons";
 
+/**
+ * 主页一级入口 — 口语测试 / AI家教 / 跟读教练 / 分类速记 / 错题本
+ * 跟读练习、中英互译、情景会话、导入词库、设置保留在二级页面。
+ */
 const SECTIONS = [
   {
-    to: "/practice",
-    zh: "跟读练习",
-    en: "Read & Score",
-    icon: MicIcon,
-    desc: "听标准音 · 录音 · 音素级评分",
-    children: null,
-  },
-  {
-    to: "/quiz",
-    zh: "中英互译",
-    en: "Translation Quiz",
-    icon: QuizIcon,
-    desc: "看词选义 · 看义选词",
-    children: null,
-  },
-  {
-    to: "/oral",
-    zh: "口语训练",
-    en: "Oral Training",
+    to: "/oral-test",
+    zh: "口语测试",
+    en: "Oral Test",
     icon: ChatIcon,
-    desc: "三种口语模式",
-    children: [
-      { to: "/oral-test", zh: "口语测试" },
-      { to: "/scenario", zh: "情景会话" },
-      { to: "/tutor", zh: "AI 家教" },
-      { to: "/readalong", zh: "跟读教练" },
-    ],
+    desc: "看题作答 · 限时录音 · 评分反馈",
+    children: null,
+  },
+  {
+    to: "/tutor",
+    zh: "AI 家教",
+    en: "AI Tutor",
+    icon: ChatIcon,
+    desc: "自由对话 · 话题引导 · 实时纠错",
+    children: null,
+  },
+  {
+    to: "/readalong",
+    zh: "跟读教练",
+    en: "Read-Along Coach",
+    icon: MicIcon,
+    desc: "逐句跟读 · 音素级评分",
+    children: null,
+  },
+  {
+    to: "/memorize",
+    zh: "分类速记",
+    en: "28-Day Memorize",
+    icon: MoreIcon,
+    desc: "按天推进的词汇计划",
+    children: null,
+  },
+  {
+    to: "/mistakes",
+    zh: "错题本",
+    en: "Review Mistakes",
+    icon: QuizIcon,
+    desc: "发音低分词 + 翻译错词",
+    children: null,
   },
   {
     to: "/more",
     zh: "更多",
     en: "More",
     icon: MoreIcon,
-    desc: "速记 · 错题 · 导入 · 设置",
+    desc: "跟读练习 · 互译 · 情景会话 · 导入 · 设置",
     children: [
-      { to: "/memorize", zh: "分类速记" },
-      { to: "/mistakes", zh: "错题本" },
+      { to: "/practice", zh: "跟读练习" },
+      { to: "/quiz", zh: "中英互译" },
+      { to: "/scenario", zh: "情景会话" },
       { to: "/import", zh: "导入词库" },
       { to: "/settings", zh: "设置" },
     ],
