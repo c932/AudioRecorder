@@ -16,6 +16,9 @@ services:
       ENGLISH_COACH_REWRITE_HOST: host.docker.internal
       # RTX 4070 8GB 显存被 Qwen3-TTS 占满，backend 的模型跑 CPU 即可
       CUDA_VISIBLE_DEVICES: ""
+      # HTTPS：浏览器录音需要安全上下文，mkcert 生成的证书挂载到 /certs
+      ENGLISH_COACH_SSL_CERT: /certs/cert.pem
+      ENGLISH_COACH_SSL_KEY: /certs/key.pem
       # 国内网络模型下载慢可解开：
       # HF_ENDPOINT: https://hf-mirror.com
     extra_hosts:
