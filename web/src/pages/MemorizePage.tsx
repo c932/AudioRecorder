@@ -6,13 +6,12 @@ import {
   btnPrimary, btnSecondary,
 } from "../components/ui";
 
-/** 分类速记 — 28 天计划：开始 / 复习 / 拿去跟读练习 / 情景会话 / AI 家教。 */
+/** 分类速记 — 选 Day → 学习 / 复习 / 跟读 三个子模块。 */
 export default function MemorizePage() {
   const navigate = useNavigate();
   const [days, setDays] = useState<MemorizeDay[] | null>(null);
   const [due, setDue] = useState<{ day: number; stage: number; due_date: string }[]>([]);
   const [sel, setSel] = useState<MemorizeDay | null>(null);
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [entries, setEntries] = useState<MemorizeEntry[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -23,12 +22,6 @@ export default function MemorizePage() {
   };
 
   useEffect(refresh, []);
-
-  const toggleDay = (day: number) => {
-    setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
-    );
-  };
 
   const openDay = async (d: MemorizeDay) => {
     setSel(d);
@@ -67,7 +60,17 @@ export default function MemorizePage() {
     }
   };
 
-  const practice = () => {
+  const goStudy = () => {
+    if (!sel || !entries) return;
+    navigate("/memorize/study", { state: { day: sel.day, title: sel.title, entries } });
+  };
+
+  const goReview = () => {
+    if (!sel) return;
+    navigate("/memorize/review", { state: { day: sel.day, title: sel.title } });
+  };
+
+  const goPractice = () => {
     if (!sel || !entries) return;
     const items = entries.map((e) => ({
       text: e.text,
@@ -78,40 +81,7 @@ export default function MemorizePage() {
     navigate("/practice", { state: { items } });
   };
 
-  /** 收集选中 Day 的词条，跳转到情景会话或 AI 家教。 */
-  const goModule = async (path: string) => {
-    const dayList = sel ? [sel.day] : selectedDays;
-    if (dayList.length === 0) {
-      setError("请先选择至少一天");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      // 拉取所有选中 Day 的词条
-      const allEntries: MemorizeEntry[] = [];
-      for (const d of dayList) {
-        const r = await api.memorizeDay(d);
-        allEntries.push(...r.entries);
-      }
-      if (allEntries.length === 0) {
-        setError("选中的天没有词条");
-        return;
-      }
-      const items = allEntries.map((e) => ({
-        text: e.text,
-        translation: e.translation,
-        group: `速记Day${dayList.join(",")}`,
-        pos: e.pos,
-      }));
-      navigate(path, { state: { items } });
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
+  // ── Day 详情：三个子模块入口 ──
   if (sel) {
     const prog = sel.progress;
     const stage = prog?.stage ?? 0;
@@ -119,53 +89,56 @@ export default function MemorizePage() {
       <div className="flex flex-col gap-4">
         <PageHeader title={sel.title} onBack={() => setSel(null)} />
         <ErrorText text={error} />
-        {prog ? (
+
+        {/* 进度条 */}
+        {prog && (
           <div className="bg-desk border border-desk-line rounded-xl px-4 py-3 flex items-center justify-between">
-            <p className="text-ui font-bold">
-              复习进度 {stage}/{prog.total_stages}
-            </p>
+            <p className="text-ui font-bold">复习进度 {stage}/{prog.total_stages}</p>
             <p className="text-body text-ink-soft">
-              {stage >= prog.total_stages
-                ? "已完成"
-                : prog.next_due
-                  ? `下次复习 ${prog.next_due}`
-                  : ""}
+              {stage >= prog.total_stages ? "已完成" : prog.next_due ? `下次复习 ${prog.next_due}` : ""}
             </p>
           </div>
-        ) : (
-          <p className="text-body text-ink-soft">还没开始这一天的学习</p>
         )}
 
+        {/* 词条预览 */}
         {!entries && <Spinner label="加载词条…" />}
-        <div className="flex flex-col gap-2">
-          {entries?.map((e, i) => (
-            <div
-              key={i}
-              className="bg-card border border-desk-line rounded-lg px-3 py-2 flex items-baseline gap-2"
-            >
-              <span className="text-ui font-bold">{e.text}</span>
-              {e.pos && <span className="text-body text-ink-soft">{e.pos}</span>}
-              <span className="text-body text-ink-soft ml-auto">{e.translation}</span>
-            </div>
-          ))}
+        {entries && (
+          <p className="text-body text-ink-soft">{entries.length} 个词条</p>
+        )}
+
+        {/* 三子模块入口 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            className="bg-desk rounded-xl p-4 flex flex-col gap-1 border border-desk-line hover:bg-[#DDD7C6] active:bg-[#CFC8B5] transition-colors text-left"
+            onClick={goStudy}
+          >
+            <span className="text-title font-bold">📖 学习</span>
+            <span className="text-body text-ink-soft">闪卡翻页 · 英中对照</span>
+          </button>
+          <button
+            className="bg-desk rounded-xl p-4 flex flex-col gap-1 border border-desk-line hover:bg-[#DDD7C6] active:bg-[#CFC8B5] transition-colors text-left"
+            onClick={goReview}
+          >
+            <span className="text-title font-bold">✍️ 复习</span>
+            <span className="text-body text-ink-soft">英翻中 / 中翻英四选一</span>
+          </button>
+          <button
+            className="bg-desk rounded-xl p-4 flex flex-col gap-1 border border-desk-line hover:bg-[#DDD7C6] active:bg-[#CFC8B5] transition-colors text-left"
+            onClick={goPractice}
+          >
+            <span className="text-title font-bold">🎤 跟读</span>
+            <span className="text-body text-ink-soft">录音评分练习</span>
+          </button>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button className={btnSecondary} disabled={busy} onClick={practice}>
-            跟读这些词
-          </button>
-          <button className={btnSecondary} disabled={busy} onClick={() => goModule("/scenario")}>
-            情景会话
-          </button>
-          <button className={btnSecondary} disabled={busy} onClick={() => goModule("/tutor")}>
-            AI 家教
-          </button>
+        {/* 艾宾浩斯进度按钮 */}
+        <div className="flex flex-wrap gap-2 mt-2">
           {!sel.started ? (
             <button className={btnPrimary} disabled={busy} onClick={() => start(sel.day)}>
               开始学习
             </button>
           ) : stage < (prog?.total_stages ?? 5) ? (
-            <button className={btnPrimary} disabled={busy} onClick={() => review(sel.day)}>
+            <button className={btnSecondary} disabled={busy} onClick={() => review(sel.day)}>
               完成今日复习
             </button>
           ) : null}
@@ -174,6 +147,7 @@ export default function MemorizePage() {
     );
   }
 
+  // ── Day 列表 ──
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="分类速记" />
@@ -182,68 +156,30 @@ export default function MemorizePage() {
       {due.length > 0 && (
         <div className="bg-mango/20 border border-mango rounded-xl p-4">
           <p className="text-ui font-bold">今天要复习</p>
-          <p className="text-body text-ink-soft">
-            {due.map((d) => `Day ${d.day}`).join(" · ")}
-          </p>
-        </div>
-      )}
-
-      {selectedDays.length > 0 && (
-        <div className="bg-desk border border-desk-line rounded-xl px-4 py-3 flex items-center justify-between">
-          <p className="text-ui font-bold">
-            已选 {selectedDays.length} 天
-          </p>
-          <div className="flex gap-2">
-            <button
-              className={btnSecondary}
-              disabled={busy}
-              onClick={() => goModule("/scenario")}
-            >
-              情景会话
-            </button>
-            <button
-              className={btnPrimary}
-              disabled={busy}
-              onClick={() => goModule("/tutor")}
-            >
-              AI 家教
-            </button>
-          </div>
+          <p className="text-body text-ink-soft">{due.map((d) => `Day ${d.day}`).join(" · ")}</p>
         </div>
       )}
 
       {!days && <Spinner label="加载计划…" />}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        {days?.map((d) => {
-          const picked = selectedDays.includes(d.day);
-          return (
-            <button
-              key={d.day}
-              type="button"
-              onClick={() => toggleDay(d.day)}
-              onDoubleClick={() => openDay(d)}
-              className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
-                picked
-                  ? "border-l-4 border-mango bg-mango/10"
-                  : d.started
-                    ? "border-l-4 border-mango"
-                    : "border-desk-line"
-              }`}
-            >
-              <p className="text-ui font-bold">
-                {picked && "✓ "}Day {d.day}
-              </p>
-              <p className="text-body text-ink-soft truncate">{d.title}</p>
-              <p className="text-body text-ink-soft">
-                {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
-              </p>
-            </button>
-          );
-        })}
+        {days?.map((d) => (
+          <button
+            key={d.day}
+            type="button"
+            onClick={() => openDay(d)}
+            className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
+              d.started ? "border-l-4 border-mango" : "border-desk-line"
+            }`}
+          >
+            <p className="text-ui font-bold">Day {d.day}</p>
+            <p className="text-body text-ink-soft truncate">{d.title}</p>
+            <p className="text-body text-ink-soft">
+              {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
+            </p>
+          </button>
+        ))}
       </div>
-      <p className="text-body text-ink-soft text-center">
-        单击选择 → 情景会话 / AI 家教 · 双击查看详情 / 跟读
-      </p>
+      <p className="text-body text-ink-soft text-center">点击选择一天开始学习</p>
     </div>
   );
 }

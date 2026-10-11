@@ -146,6 +146,15 @@ export interface MemorizeEntry {
   category: string;
 }
 
+export interface MemorizeQuizQuestion {
+  direction: "en2cn" | "cn2en";
+  question: string;
+  question_extra: string;
+  options: string[];
+  answer_index: number;
+  entry: MemorizeEntry;
+}
+
 export interface ParsedItem {
   text: string;
   phonetic: string;
@@ -297,6 +306,8 @@ export const api = {
     req<{ due: { day: number; stage: number; due_date: string }[] }>("GET", "/api/memorize/due"),
   memorizeStart: (day: number) => req<{ ok: boolean }>("POST", "/api/memorize/start", { day }),
   memorizeReview: (day: number) => req<{ ok: boolean }>("POST", "/api/memorize/review", { day }),
+  memorizeQuiz: (day: number, mode: "en2cn" | "cn2en") =>
+    req<{ questions: MemorizeQuizQuestion[]; total: number }>("POST", "/api/memorize/quiz", { day, mode }),
 
   // ── 错题本 / 配置 ─────────────────────────────────────────────
   mistakes: () => req<{ oral: WordItem[]; quiz: WordItem[] }>("GET", "/api/mistakes"),

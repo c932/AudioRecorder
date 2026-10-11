@@ -9,6 +9,8 @@ import ScenarioPage from "./pages/ScenarioPage";
 import TutorPage from "./pages/TutorPage";
 import ReadAlongPage from "./pages/ReadAlongPage";
 import MemorizePage from "./pages/MemorizePage";
+import MemorizeStudyPage from "./pages/MemorizeStudyPage";
+import MemorizeReviewPage from "./pages/MemorizeReviewPage";
 import MistakesPage from "./pages/MistakesPage";
 import ImportPage from "./pages/ImportPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -32,6 +34,8 @@ export default function App() {
           <Route path="tutor" element={<TutorPage />} />
           <Route path="readalong" element={<ReadAlongPage />} />
           <Route path="memorize" element={<MemorizePage />} />
+          <Route path="memorize/study" element={<MemorizeStudyPage />} />
+          <Route path="memorize/review" element={<MemorizeReviewPage />} />
           <Route path="mistakes" element={<MistakesPage />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="settings" element={<SettingsPage />} />
