@@ -7,6 +7,9 @@ import {
   ReadAlongIcon,
   MemorizeIcon,
   MistakesIcon,
+  ScenarioIcon,
+  ImportIcon,
+  SettingsIcon,
 } from "../components/icons";
 
 const SECTIONS = [
@@ -46,6 +49,13 @@ const SECTIONS = [
     desc: "逐句跟读 · 音素级评分",
   },
   {
+    to: "/scenario",
+    zh: "情景会话",
+    en: "Scenario Dialogue",
+    icon: ScenarioIcon,
+    desc: "LLM 生成的 A/B 角色对话",
+  },
+  {
     to: "/memorize",
     zh: "分类速记",
     en: "28-Day Memorize",
@@ -58,6 +68,20 @@ const SECTIONS = [
     en: "Review Mistakes",
     icon: MistakesIcon,
     desc: "发音低分词 + 翻译错词",
+  },
+  {
+    to: "/import",
+    zh: "导入词库",
+    en: "Import Words",
+    icon: ImportIcon,
+    desc: "粘贴文本批量建词",
+  },
+  {
+    to: "/settings",
+    zh: "设置",
+    en: "Settings",
+    icon: SettingsIcon,
+    desc: "练习偏好与引擎选择",
   },
 ] as const;
 

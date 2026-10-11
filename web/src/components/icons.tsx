@@ -137,6 +137,27 @@ export function ScenarioIcon({ className }: IconProps) {
   );
 }
 
+/** 导入词库 — 下载箭头 */
+export function ImportIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="5" y="3" width="14" height="18" rx="2.5" />
+      <path d="M12 8v6M9 11l3 3 3-3" />
+      <path d="M6 17h12" />
+    </Svg>
+  );
+}
+
+/** 设置 — 齿轮 */
+export function SettingsIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 1.5v2M12 20.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1.5 12h2M20.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+    </Svg>
+  );
+}
+
 export function StopIcon({ className = "w-8 h-8" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>

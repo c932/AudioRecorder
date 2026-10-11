@@ -6,8 +6,11 @@ import {
   OralTestIcon,
   TutorIcon,
   ReadAlongIcon,
+  ScenarioIcon,
   MemorizeIcon,
   MistakesIcon,
+  ImportIcon,
+  SettingsIcon,
 } from "./icons";
 
 const TABS = [
@@ -17,8 +20,11 @@ const TABS = [
   { to: "/oral-test", label: "口语", icon: OralTestIcon, end: false },
   { to: "/tutor", label: "家教", icon: TutorIcon, end: false },
   { to: "/readalong", label: "跟读教练", icon: ReadAlongIcon, end: false },
+  { to: "/scenario", label: "会话", icon: ScenarioIcon, end: false },
   { to: "/memorize", label: "速记", icon: MemorizeIcon, end: false },
   { to: "/mistakes", label: "错题", icon: MistakesIcon, end: false },
+  { to: "/import", label: "导入", icon: ImportIcon, end: false },
+  { to: "/settings", label: "设置", icon: SettingsIcon, end: false },
 ];
 
 /** 移动端底部标签栏（拇指可达）+ 桌面顶部导航。 */

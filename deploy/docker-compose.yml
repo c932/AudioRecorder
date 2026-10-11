@@ -1,5 +1,6 @@
 # 少儿英语发音教练 Web 版 — Ubuntu NUC 局域网部署
 # 用法见 deploy/README.md；首次：docker compose up -d --build
+# TTS 已迁移到 AI Runtime Manager 管理（~/AI/services/qwen-tts/）
 services:
   backend:
     build:
@@ -21,9 +22,6 @@ services:
     extra_hosts:
       # Linux：把 host.docker.internal 解析到宿主机
       - "host.docker.internal:host-gateway"
-    depends_on:
-      tts:
-        condition: service_healthy
     volumes:
       - ./data:/app/src/data      # 词库/进度/config.json（首次启动自动播种）
       - hf-cache:/hf-cache        # wav2vec2 / Whisper 模型缓存
@@ -34,35 +32,5 @@ services:
       retries: 3
       start_period: 60s
 
-  # Qwen3-TTS 服务（GPU 加速，中英文 10 语言，内置 9 种音色，无需参考音频）
-  # 模型自动从 ModelScope 下载到 /opt/qwen-tts/models/
-  tts:
-    build:
-      context: ../deploy/qwen-tts
-      dockerfile: Dockerfile
-    image: qwen-tts:latest
-    container_name: qwen-tts
-    restart: unless-stopped
-    ports:
-      - "50000:50000"
-    environment:
-      MODELSCOPE_CACHE: /opt/qwen-tts/models
-    volumes:
-      - qwen-tts-models:/opt/qwen-tts/models
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 50000), timeout=5).close()"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-
 volumes:
   hf-cache:
-  qwen-tts-models:
