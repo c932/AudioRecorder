@@ -39,6 +39,14 @@ def get_coach():
     if _coach is None:
         from src.core.ai_assessor import PronunciationCoach
         _coach = PronunciationCoach()
+        # If GOP_REMOTE_URL env is set, force remote GOP mode
+        remote_url = os.environ.get("GOP_REMOTE_URL", "").strip()
+        if remote_url:
+            cfg = load_config()
+            cfg["gop_mode"] = "remote"
+            cfg["gop_remote_url"] = remote_url
+            _coach.config = cfg
+            _coach._gop_pipeline = None  # reset to pick up new config
     return _coach
 
 
@@ -51,12 +59,17 @@ def get_memorize():
 
 
 def get_recognizer():
-    """Lazy Whisper ASR（跨请求复用，避免重复加载模型）。"""
+    """Lazy Whisper ASR — local or remote (WHISPER_REMOTE_URL env)."""
     global _recognizer
     if _recognizer is None:
-        from src.core.speech_recognizer import WhisperRecognizer
-        size = load_config().get("whisper_model_size", "medium")
-        _recognizer = WhisperRecognizer(model_size=size)
+        remote_url = os.environ.get("WHISPER_REMOTE_URL", "").strip()
+        if remote_url:
+            from src.core.speech_recognizer import RemoteWhisperRecognizer
+            _recognizer = RemoteWhisperRecognizer(remote_url=remote_url)
+        else:
+            from src.core.speech_recognizer import WhisperRecognizer
+            size = load_config().get("whisper_model_size", "medium")
+            _recognizer = WhisperRecognizer(model_size=size)
     return _recognizer
 
 

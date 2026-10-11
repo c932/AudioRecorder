@@ -82,10 +82,27 @@ async def lifespan(app: FastAPI):
     def _warmup():
         try:
             from src.server.deps import get_coach, get_recognizer
-            print("[lifespan] 预热 GOP 评分引擎...")
-            get_coach().warmup()
-            print("[lifespan] 预热 Whisper 语音识别...")
-            get_recognizer().warmup()
+            # GOP: remote mode just checks health; local mode loads wav2vec2
+            gop_remote = os.environ.get("GOP_REMOTE_URL", "").strip()
+            if gop_remote:
+                print(f"[lifespan] GOP remote mode: {gop_remote}")
+                import requests
+                try:
+                    r = requests.get(gop_remote.rstrip("/") + "/v1/health", timeout=5)
+                    print(f"[lifespan] GOP server health: {r.status_code}")
+                except Exception as e:
+                    print(f"[lifespan] GOP server not reachable: {e}")
+            else:
+                print("[lifespan] 预热 GOP 评分引擎...")
+                get_coach().warmup()
+            # Whisper: remote or local
+            whisper_remote = os.environ.get("WHISPER_REMOTE_URL", "").strip()
+            if whisper_remote:
+                print(f"[lifespan] Whisper remote mode: {whisper_remote}")
+                get_recognizer().warmup()
+            else:
+                print("[lifespan] 预热 Whisper 语音识别...")
+                get_recognizer().warmup()
             print("[lifespan] 引擎预热完成")
         except Exception as e:
             print(f"[lifespan] 引擎预热出错（不影响服务，首次请求时仍会懒加载）: {e}")

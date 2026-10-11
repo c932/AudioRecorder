@@ -127,3 +127,54 @@ class WhisperRecognizer(SpeechRecognizer):
         except Exception as e:
             print(f"[WhisperRecognizer] Unexpected load error: {e}")
             self._model = None
+
+
+class RemoteWhisperRecognizer(SpeechRecognizer):
+    """Remote Whisper ASR client — calls a separate whisper_server.py instance.
+
+    Used when WHISPER_REMOTE_URL env var is set, so the backend Docker container
+    doesn't need to load Whisper locally (saves GPU/CPU memory).
+    """
+
+    def __init__(self, remote_url: str):
+        self._url = remote_url.rstrip("/")
+        self._ready = True  # remote server is always "ready" from client perspective
+
+    def is_ready(self) -> bool:
+        return self._ready
+
+    def warmup(self) -> None:
+        """Check if remote server is reachable."""
+        import requests
+        try:
+            r = requests.get(self._url + "/v1/health", timeout=5)
+            if r.status_code == 200:
+                print(f"[RemoteWhisper] Server ready: {r.json()}")
+            else:
+                print(f"[RemoteWhisper] Health check returned {r.status_code}")
+        except Exception as e:
+            print(f"[RemoteWhisper] Health check failed (will retry on use): {e}")
+
+    def transcribe(self, audio_path: str, language: str = "en") -> str:
+        """POST audio file to remote whisper server."""
+        import requests
+        try:
+            with open(audio_path, "rb") as f:
+                files = {"audio": (audio_path, f)}
+                data = {"language": language}
+                r = requests.post(
+                    self._url + "/v1/transcribe",
+                    files=files,
+                    data=data,
+                    timeout=60,
+                )
+            if r.status_code == 200:
+                text = r.json().get("text", "").strip()
+                print(f"[RemoteWhisper] Transcribed: '{text}'")
+                return text
+            else:
+                print(f"[RemoteWhisper] Error {r.status_code}: {r.text[:200]}")
+                return ""
+        except Exception as e:
+            print(f"[RemoteWhisper] Transcription error: {e}")
+            return ""

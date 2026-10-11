@@ -15,15 +15,11 @@ services:
       # 容器内 127.0.0.1 指向容器自身：config.json 里的回环地址
       # （宿主机上的 MiniCPM-o / Ollama 等）启动时自动改写为 host.docker.internal
       ENGLISH_COACH_REWRITE_HOST: host.docker.internal
+      # GOP/Whisper 已迁移到 AI Runtime Manager，backend 通过 host.docker.internal 调用
+      GOP_REMOTE_URL: http://host.docker.internal:18200
+      WHISPER_REMOTE_URL: http://host.docker.internal:18350
       # 国内网络模型下载慢可解开：
       # HF_ENDPOINT: https://hf-mirror.com
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     extra_hosts:
       # Linux：把 host.docker.internal 解析到宿主机
       - "host.docker.internal:host-gateway"
