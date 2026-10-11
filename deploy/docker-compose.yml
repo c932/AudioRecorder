@@ -18,6 +18,7 @@ services:
       # GOP/Whisper 已迁移到 AI Runtime Manager，backend 通过 host.docker.internal 调用
       GOP_REMOTE_URL: http://host.docker.internal:18200
       WHISPER_REMOTE_URL: http://host.docker.internal:18350
+      KOKORO_URL: http://host.docker.internal:18400
       # 国内网络模型下载慢可解开：
       # HF_ENDPOINT: https://hf-mirror.com
     extra_hosts:

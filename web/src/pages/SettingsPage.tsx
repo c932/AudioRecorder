@@ -8,6 +8,7 @@ import { setTtsVoice } from "../lib/audio";
 
 const TTS_OPTIONS = [
   "Auto",
+  "Kokoro (本地英文 — 快速清晰)",
   "Qwen3-TTS (GPU 本地 — 中英混合)",
   "Edge (在线 — 快速)",
 ];

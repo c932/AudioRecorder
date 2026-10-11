@@ -283,23 +283,64 @@ def _synthesize_qwen_tts(text: str, speaker: str = "", lang: str = "en") -> tupl
 def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
     """合成音频字节 + MIME 类型。
 
-    根据配置的 tts_engine 选择引擎：
-    - Qwen3-TTS：GPU 本地，中英文原生音色
-    - Edge-TTS：在线，快速
-    - Auto：优先 Qwen3-TTS，失败回退 Edge
+    引擎选择（按 tts_engine 配置）：
+    - Kokoro: 英文用 Kokoro 本地 TTS，中文用 Edge-TTS
+    - Edge-TTS: 全部用 Edge-TTS
+    - Qwen3-TTS: 全部用 Qwen3-TTS GPU
+    - Auto: 英文用 Kokoro（如可用），中文用 Edge-TTS，Qwen3-TTS 兜底
     """
     lang = _detect_lang(text)
-    speaker = _resolve_speaker(voice, lang)
 
-    # 读取 TTS 引擎配置
     cfg = load_config()
     engine = (cfg.get("tts_engine", "Auto") or "Auto").strip()
 
-    # Edge-TTS 模式：直接用 edge-tts
+    # Edge-TTS 模式
     if engine.startswith("Edge"):
         return _synthesize_edge_tts(text, voice, lang)
 
-    # Qwen3-TTS / Auto 模式：优先 Qwen3-TTS，失败回退 edge-tts
+    # Qwen3-TTS 模式
+    if "Qwen3" in engine or "CosyVoice" in engine:
+        speaker = _resolve_speaker(voice, lang)
+        return _synthesize_qwen_tts_cached(text, speaker, lang)
+
+    # Kokoro / Auto 模式：英文用 Kokoro，中文用 Edge-TTS
+    if lang == "en":
+        try:
+            return _synthesize_kokoro(text, voice)
+        except Exception as e:
+            print(f"[deps] Kokoro 失败，回退 Edge: {e}")
+            return _synthesize_edge_tts(text, voice, lang)
+    else:
+        # 中文：Edge-TTS
+        return _synthesize_edge_tts(text, voice, lang)
+
+
+def _synthesize_kokoro(text: str, voice: Optional[str]) -> tuple[bytes, str]:
+    """用 Kokoro TTS 服务合成英文语音。"""
+    import requests
+
+    # 音色映射：设置页的音色名 → Kokoro 音色
+    kokoro_voice_map = {
+        "Aiden": "am_michael", "Ryan": "am_adam",
+        "Vivian": "af_bella", "Serena": "af_sarah",
+        "英文女": "af_bella", "英文男": "am_michael",
+        "中文女": "af_bella", "中文男": "am_michael",
+    }
+    kv = kokoro_voice_map.get(voice or "", "af_bella")
+
+    kokoro_url = os.environ.get("KOKORO_URL", "http://host.docker.internal:18400")
+    resp = requests.post(
+        f"{kokoro_url}/tts",
+        data={"text": text, "voice": kv, "speed": "1.0"},
+        timeout=30,
+    )
+    if resp.status_code != 200 or len(resp.content) < 100:
+        raise RuntimeError(f"Kokoro 返回 {resp.status_code}, size={len(resp.content)}")
+    return (resp.content, "audio/wav")
+
+
+def _synthesize_qwen_tts_cached(text: str, speaker: str, lang: str) -> tuple[bytes, str]:
+    """Qwen3-TTS with cache."""
     tts_key = ("qwen-tts", speaker, text)
     with _TTS_CACHE_LOCK:
         cached = _TTS_CACHE.get(tts_key)
@@ -309,15 +350,13 @@ def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
         result = _synthesize_qwen_tts(text, speaker, lang)
     except Exception as e:
         print(f"[deps] Qwen3-TTS 失败，回退 edge-tts: {e}")
+        return _synthesize_edge_tts(text, speaker, lang)
     else:
         with _TTS_CACHE_LOCK:
             _TTS_CACHE[tts_key] = result
             while len(_TTS_CACHE) > _TTS_CACHE_MAX:
                 _TTS_CACHE.popitem(last=False)
         return result
-
-    # Auto 模式回退
-    return _synthesize_edge_tts(text, voice, lang)
 
 
 def _synthesize_edge_tts(text: str, voice: Optional[str], lang: str) -> tuple[bytes, str]:
