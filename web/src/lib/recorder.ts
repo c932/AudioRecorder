@@ -1,5 +1,6 @@
 // 浏览器录音 — MediaRecorder → base64（后端 ffmpeg 转 16kHz WAV 供 GOP/Whisper）。
-import { useCallback, useRef, useState } from "react";
+// 麦克风 stream 在组件生命周期内复用，避免每次录音都弹权限提示。
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface Recording {
   b64: string;
@@ -29,6 +30,24 @@ export function useRecorder() {
   const resolveRef = useRef<((r: Recording) => void) | null>(null);
   const stopSeqRef = useRef(0);
 
+  // 预获取麦克风 stream（只弹一次权限）
+  const ensureStream = useCallback(async (): Promise<MediaStream> => {
+    if (streamRef.current && streamRef.current.getTracks().some((t) => t.readyState === "live")) {
+      return streamRef.current;
+    }
+    // 释放旧的
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    streamRef.current = stream;
+    return stream;
+  }, []);
+
+  // 组件卸载时释放 stream
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
   const start = useCallback(async () => {
     setError("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -42,8 +61,8 @@ export function useRecorder() {
       throw new Error(msg);
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      // 复用已有 stream，避免重复弹权限
+      const stream = await ensureStream();
       const mime = MIME_CANDIDATES.find((t) => MediaRecorder.isTypeSupported?.(t)) ?? "";
       mimeRef.current = mime;
       const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -56,11 +75,8 @@ export function useRecorder() {
         const reader = new FileReader();
         reader.onloadend = () => {
           const b64 = String(reader.result).split(",")[1] ?? "";
-          // 释放麦克风
-          streamRef.current?.getTracks().forEach((t) => t.stop());
-          streamRef.current = null;
+          // 不释放 stream——保持复用
           recRef.current = null;
-          // 只 resolve 当前 stop 调用（stopSeq 匹配才 resolve，防止快速 toggle 时 resolve 错误的 Promise）
           resolveRef.current?.({ b64, format: formatOf(mimeRef.current) });
           resolveRef.current = null;
         };
@@ -70,7 +86,7 @@ export function useRecorder() {
       rec.start();
       setRecording(true);
     } catch (e) {
-      // 录音启动失败时释放麦克风，防止浏览器指示灯一直亮
+      // 录音启动失败时释放麦克风
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       const err = e as DOMException;
@@ -83,7 +99,7 @@ export function useRecorder() {
       setError(msg);
       throw e;
     }
-  }, []);
+  }, [ensureStream]);
 
   const stop = useCallback((): Promise<Recording> => {
     return new Promise((resolve) => {
@@ -92,7 +108,6 @@ export function useRecorder() {
         resolve({ b64: "", format: "webm" });
         return;
       }
-      // 如果有未 resolve 的上一次 stop，先 resolve 空值（快速 toggle 保护）
       if (resolveRef.current) {
         resolveRef.current({ b64: "", format: "webm" });
       }

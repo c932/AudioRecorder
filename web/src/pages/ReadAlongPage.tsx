@@ -17,14 +17,15 @@ import { SpeakerIcon } from "../components/icons";
 type Phase = "setup" | "readalong" | "summary";
 type ReadState = "idle" | "playing" | "waiting" | "recording" | "scoring" | "scored";
 
+const STORAGE_KEY = "readalong_text";
+
 export default function ReadAlongPage() {
-  // Phase
   const [phase, setPhase] = useState<Phase>("setup");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Setup
-  const [rawText, setRawText] = useState("");
+  // Setup — 从 localStorage 恢复
+  const [rawText, setRawText] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [mode, setMode] = useState<"sentence" | "paragraph">("sentence");
 
   // Session
@@ -40,6 +41,14 @@ export default function ReadAlongPage() {
   const [summary, setSummary] = useState<ReadAlongSummary | null>(null);
 
   const { recording, error: recError, start, stop } = useRecorder();
+
+  // 保存课文到 localStorage
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (rawText.trim()) localStorage.setItem(STORAGE_KEY, rawText);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [rawText]);
 
   useEffect(() => () => stopAudio(), []);
 
@@ -99,13 +108,25 @@ export default function ReadAlongPage() {
       // 预取前几句 TTS 音频
       const texts = r.segments.slice(0, 4).map((s) => s.text);
       prefetchTts(texts);
-      // Auto-play first segment TTS
-      setTimeout(() => playCurrentSegment(r.segments, 0), 300);
+      // Auto-play first segment TTS (延迟稍长确保 phase 切换完成)
+      setTimeout(() => playCurrentSegment(r.segments, 0), 500);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusy(false);
     }
+  };
+
+  // --- 点击句子切换 ---
+  const clickSegment = (idx: number) => {
+    if (!session || idx >= session.segments.length) return;
+    // 停止当前播放/录音
+    stopAudio();
+    setSegIdx(idx);
+    setScoreResult(null);
+    setLlmFeedback("");
+    // 播放选中句的标准音
+    playCurrentSegment(session.segments, idx);
   };
 
   // --- Start recording ---
@@ -151,11 +172,9 @@ export default function ReadAlongPage() {
     if (!session) return;
     const nextIdx = segIdx + 1;
     if (nextIdx >= session.total) {
-      // All done → summary
       finishSession();
     } else {
       setSegIdx(nextIdx);
-      // 预取后面几句 TTS
       const prefetchStart = nextIdx + 1;
       if (prefetchStart < session.segments.length) {
         const texts = session.segments
@@ -167,12 +186,11 @@ export default function ReadAlongPage() {
     }
   }, [session, segIdx, playCurrentSegment]);
 
-  // --- Retry current segment: 先重播 TTS，再进入录音等待 ---
+  // --- Retry current segment ---
   const retrySegment = useCallback(() => {
     if (!session) return;
     setScoreResult(null);
     setLlmFeedback("");
-    // 重播标准音后再进入录音等待
     playCurrentSegment(session.segments, segIdx);
   }, [session, segIdx, playCurrentSegment]);
 
@@ -181,6 +199,23 @@ export default function ReadAlongPage() {
     if (!session) return;
     playCurrentSegment(session.segments, segIdx);
   }, [session, segIdx, playCurrentSegment]);
+
+  // --- 拖拽排序 ---
+  const dragIdx = useRef<number | null>(null);
+  const handleDragStart = (idx: number) => { dragIdx.current = idx; };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
+  const handleDrop = (idx: number) => {
+    if (!session || dragIdx.current === null || dragIdx.current === idx) return;
+    const segs = [...session.segments];
+    const [moved] = segs.splice(dragIdx.current, 1);
+    segs.splice(idx, 0, moved);
+    setSession({ ...session, segments: segs });
+    // 如果当前句被移动，更新 segIdx
+    if (segIdx === dragIdx.current) setSegIdx(idx);
+    else if (dragIdx.current < segIdx && idx >= segIdx) setSegIdx(segIdx - 1);
+    else if (dragIdx.current > segIdx && idx <= segIdx) setSegIdx(segIdx + 1);
+    dragIdx.current = null;
+  };
 
   // --- Finish session ---
   const finishSession = async () => {
@@ -193,13 +228,11 @@ export default function ReadAlongPage() {
       setPhase("summary");
     } catch (err) {
       setError((err as Error).message);
-      // 失败时留在当前阶段，用户可重试
     } finally {
       setBusy(false);
     }
   };
 
-  // --- End session early ---
   const endSession = () => {
     stopAudio();
     finishSession();
@@ -238,7 +271,17 @@ export default function ReadAlongPage() {
 
         {/* Text input */}
         <div className="flex flex-col gap-2">
-          <p className="text-ui font-bold">或者粘贴课文</p>
+          <div className="flex items-center justify-between">
+            <p className="text-ui font-bold">或者粘贴课文</p>
+            {rawText.trim() && (
+              <button
+                className="text-body text-ink-soft/50 hover:text-clay transition-colors"
+                onClick={() => { setRawText(""); localStorage.removeItem(STORAGE_KEY); }}
+              >
+                清除
+              </button>
+            )}
+          </div>
           <textarea
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
@@ -339,7 +382,6 @@ export default function ReadAlongPage() {
 
   // ==================== readalong phase ====================
   const canRetry = scoreResult?.should_retry === true;
-  // 重读次数已达上限或分数达标才允许进入下一句
   const canAdvance = scoreResult && !canRetry;
 
   return (
@@ -350,23 +392,29 @@ export default function ReadAlongPage() {
         <ProgressBar current={segIdx + 1} total={session.total} />
       )}
 
-      {/* 课文显示区 */}
+      {/* 课文显示区 — 支持点击切换 + 拖拽排序 */}
       <div className="bg-desk border border-desk-line rounded-xl p-4 max-h-[40vh] overflow-y-auto">
         {session?.segments.map((seg, i) => (
           <div
             key={i}
             ref={i === segIdx ? segRef : undefined}
-            className={`mb-3 last:mb-0 transition-colors ${
+            draggable
+            onDragStart={() => handleDragStart(i)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(i)}
+            onClick={() => clickSegment(i)}
+            className={`mb-3 last:mb-0 transition-colors cursor-pointer rounded-lg px-2 py-1 -mx-2 ${
               i < segIdx
                 ? "text-ink-soft/60"
                 : i === segIdx
-                  ? "text-mango-dk"
-                  : "text-ink"
+                  ? "text-mango-dk bg-mango/5"
+                  : "text-ink hover:bg-desk/50"
             }`}
           >
             <p className={`leading-relaxed break-words ${
               i === segIdx ? "font-bold text-title" : "text-ui"
             }`}>
+              <span className="text-body text-ink-soft/30 mr-1 select-none">{i + 1}.</span>
               {seg.text}
             </p>
             {seg.translation && (
@@ -380,7 +428,7 @@ export default function ReadAlongPage() {
         ))}
       </div>
 
-      {/* 领读/听标准音 按钮（非播放、非录音、非评分中时显示） */}
+      {/* 领读/听标准音 按钮 */}
       {readState !== "playing" && readState !== "recording" && readState !== "scoring" && (
         <button
           type="button"
@@ -400,7 +448,6 @@ export default function ReadAlongPage() {
       )}
 
       {/* ── 录音按钮 ── */}
-      {/* 等待录音 或 正在录音（且非评分已出状态） */}
       {(readState === "waiting" || readState === "recording") && (
         <RecordButton
           recording={recording}
@@ -426,7 +473,6 @@ export default function ReadAlongPage() {
             </div>
           )}
 
-          {/* 低分重读提示 */}
           {canRetry && (
             <div className="bg-clay-soft border border-clay rounded-xl px-4 py-3">
               <p className="text-ui font-bold text-clay">
@@ -435,15 +481,12 @@ export default function ReadAlongPage() {
             </div>
           )}
 
-          {/* 操作按钮 */}
           <div className="flex gap-2">
-            {/* 低分必须重读：只显示"重新跟读" */}
             {canRetry && (
               <button className={btnPrimary} onClick={retrySegment}>
                 重新跟读
               </button>
             )}
-            {/* 分数达标或重读次数达上限：显示"下一句" */}
             {canAdvance && (
               <button className={btnPrimary} onClick={goNext}>
                 {segIdx + 1 >= (session?.total ?? 0) ? "看总结" : "下一句"}
