@@ -355,5 +355,17 @@ if changed:
 else:
     print("6. services.json — all services already have autostart field")
 
+# ═══════════════════════════════════════════════════════════════════════
+# 7. Copy patched index.html to static/ (the directory Manager serves from)
+# ═══════════════════════════════════════════════════════════════════════
+
+import shutil
+static_index = f"{BASE}/static/index.html"
+if os.path.exists(static_index):
+    shutil.copy2(f"{BASE}/index.html", static_index)
+    print("7. static/index.html synced from patched root index.html")
+else:
+    print("7. WARNING: static/ directory not found, index.html not copied to serving path")
+
 print("\nALL PATCHES APPLIED — restart AI Runtime Manager to activate autostart_all()")
 print("  sudo systemctl restart ai-runtime-manager")
