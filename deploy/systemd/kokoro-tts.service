@@ -1,0 +1,17 @@
+[Unit]
+Description=Kokoro TTS Server (English TTS, ONNX CPU)
+After=network.target ai-runtime-manager.service
+Wants=ai-runtime-manager.service
+
+[Service]
+Type=simple
+User=manfred
+WorkingDirectory=/home/manfred/AI/services/kokoro
+Environment=KOKORO_MODEL=/home/manfred/AI/services/kokoro/kokoro-v0_19.onnx
+Environment=KOKORO_VOICES=/home/manfred/AI/services/kokoro/voices.npz
+ExecStart=/home/manfred/AI/services/kokoro/venv/bin/python3 server.py --host 0.0.0.0 --port 18400
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

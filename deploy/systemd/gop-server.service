@@ -1,0 +1,18 @@
+[Unit]
+Description=GOP Scoring Server (wav2vec2 phoneme alignment)
+After=network.target ai-runtime-manager.service
+Wants=ai-runtime-manager.service
+
+[Service]
+Type=simple
+User=manfred
+WorkingDirectory=/home/manfred/english-coach/AudioRecorder
+Environment=NLTK_DATA=/home/manfred/nltk_data
+Environment=HF_HOME=/home/manfred/AI/models/huggingface
+Environment=GOP_DEVICE=cuda
+ExecStart=/home/manfred/AI/services/gop/venv/bin/python3 -m src.server.gop_server --host 0.0.0.0 --port 18200
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

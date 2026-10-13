@@ -75,9 +75,25 @@ if FastAPI is not None:
         audio_format: str = "wav"
         reference: str
 
+    @app.on_event("startup")
+    def _startup_load_model():
+        """热加载：启动时立即加载 wav2vec2 模型到 GPU，确保首次评分零延迟。"""
+        import threading
+        def _load():
+            try:
+                print("[gop_server] 热加载 wav2vec2 模型...")
+                fp = _get_pipeline().fingerprint()
+                print(f"[gop_server] 模型已就绪, fingerprint={fp}")
+            except Exception as e:
+                print(f"[gop_server] 热加载失败: {e}")
+        threading.Thread(target=_load, daemon=True).start()
+
     @app.get("/v1/health")
     def health():
-        return {"status": "ok"}
+        # 检查 aligner 是否已加载
+        from src.core.gop.pipeline import _ALIGNER_SINGLETON
+        ready = _ALIGNER_SINGLETON is not None and getattr(_ALIGNER_SINGLETON, "_loaded", False)
+        return {"status": "ok", "model_loaded": ready}
 
     @app.get("/v1/gop/fingerprint")
     def fingerprint(authorization: Optional[str] = Header(default=None)):

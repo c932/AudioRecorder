@@ -108,14 +108,30 @@ export default function ReadAlongPage() {
       // 预取前几句 TTS 音频
       const texts = r.segments.slice(0, 4).map((s) => s.text);
       prefetchTts(texts);
-      // Auto-play first segment TTS (延迟稍长确保 phase 切换完成)
-      setTimeout(() => playCurrentSegment(r.segments, 0), 500);
+      // 自动播放由 useEffect(phase=="readalong") 触发
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusy(false);
     }
   };
+
+  // ── 进入跟读阶段时自动播放第一句 ──
+  const autoPlayRef = useRef(false);
+  useEffect(() => {
+    if (phase === "readalong" && session && !autoPlayRef.current) {
+      autoPlayRef.current = true;
+      // 短暂延迟让组件渲染完成
+      const t = setTimeout(() => {
+        playCurrentSegment(session.segments, 0);
+      }, 300);
+      return () => clearTimeout(t);
+    }
+    // 离开 readalong 时重置
+    if (phase !== "readalong") {
+      autoPlayRef.current = false;
+    }
+  }, [phase, session, playCurrentSegment]);
 
   // --- 点击句子切换 ---
   const clickSegment = (idx: number) => {
