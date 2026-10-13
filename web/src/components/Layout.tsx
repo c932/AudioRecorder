@@ -9,6 +9,7 @@ import {
   ScenarioIcon,
   MemorizeIcon,
   MistakesIcon,
+  StudyLogIcon,
   ImportIcon,
   SettingsIcon,
 } from "./icons";
@@ -23,6 +24,7 @@ const TABS = [
   { to: "/scenario", label: "会话", icon: ScenarioIcon, end: false },
   { to: "/memorize", label: "速记", icon: MemorizeIcon, end: false },
   { to: "/mistakes", label: "错题", icon: MistakesIcon, end: false },
+  { to: "/study-log", label: "记录", icon: StudyLogIcon, end: false },
   { to: "/import", label: "导入", icon: ImportIcon, end: false },
   { to: "/settings", label: "设置", icon: SettingsIcon, end: false },
 ];

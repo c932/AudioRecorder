@@ -8,6 +8,7 @@ import {
   MemorizeIcon,
   MistakesIcon,
   ScenarioIcon,
+  StudyLogIcon,
   ImportIcon,
   SettingsIcon,
 } from "../components/icons";
@@ -68,6 +69,13 @@ const SECTIONS = [
     en: "Review Mistakes",
     icon: MistakesIcon,
     desc: "发音低分词 + 翻译错词",
+  },
+  {
+    to: "/study-log",
+    zh: "学习记录",
+    en: "Study Log",
+    icon: StudyLogIcon,
+    desc: "学习统计 · 续学 · 历史记录",
   },
   {
     to: "/import",

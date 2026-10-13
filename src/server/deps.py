@@ -24,6 +24,7 @@ _exercise_manager = None
 _coach = None
 _memorize = None
 _recognizer = None
+_study_log = None
 
 
 def get_exercise_manager():
@@ -56,6 +57,14 @@ def get_memorize():
         from src.core.memorize_engine import MemorizeEngine
         _memorize = MemorizeEngine()
     return _memorize
+
+
+def get_study_log():
+    global _study_log
+    if _study_log is None:
+        from src.core.study_log import StudyLogManager
+        _study_log = StudyLogManager()
+    return _study_log
 
 
 def get_recognizer():

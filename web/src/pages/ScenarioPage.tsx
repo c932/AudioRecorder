@@ -4,6 +4,7 @@ import {
   api, type ScenarioBank, type WordItem,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
+import useStudyTracker from "../hooks/useStudyTracker";
 import { playSoundForScore, speak, stopAudio } from "../lib/audio";
 import GroupPicker from "../components/GroupPicker";
 import {
@@ -35,6 +36,12 @@ interface ChatEntry {
 export default function ScenarioPage() {
   const location = useLocation();
   const stateItems = (location.state as { items?: WordItem[] } | null)?.items;
+  const tracker = useStudyTracker("scenario", "情景会话");
+
+  const resumeSnap = tracker.resumeSnapshot as {
+    bankId?: string; idx?: number; results?: { turn_idx: number; text: string; score: number }[];
+  } | null;
+
   const [phase, setPhase] = useState<"banks" | "chat" | "summary">("banks");
   const [banks, setBanks] = useState<ScenarioBank[] | null>(null);
   const [bank, setBank] = useState<ScenarioBank | null>(null);
@@ -44,8 +51,8 @@ export default function ScenarioPage() {
   const [error, setError] = useState("");
   const [script, setScript] = useState<Turn[]>([]);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
-  const [idx, setIdx] = useState(0);
-  const [results, setResults] = useState<{ turn_idx: number; text: string; score: number }[]>([]);
+  const [idx, setIdx] = useState(resumeSnap?.idx ?? 0);
+  const [results, setResults] = useState<{ turn_idx: number; text: string; score: number }[]>(resumeSnap?.results ?? []);
   const [summary, setSummary] = useState("");
   const [weakEntries, setWeakEntries] = useState<{ text: string; score: number }[]>([]);
   const { recording, start, stop } = useRecorder();
@@ -115,6 +122,7 @@ export default function ScenarioPage() {
       const weak = results.filter((r) => r.score < 80);
       setWeakEntries(weak);
       setPhase("summary");
+      tracker.endSession(`会话完成：${results.length}句对话`);
     } catch (e) {
       setError((e as Error).message);
       setPhase("summary");

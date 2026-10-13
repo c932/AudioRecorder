@@ -4,10 +4,12 @@ import { api, type WordItem } from "../lib/api";
 import { PageHeader, Spinner, ErrorText, btnPrimary } from "../components/ui";
 import { SpeakerIcon } from "../components/icons";
 import { speak } from "../lib/audio";
+import useStudyTracker from "../hooks/useStudyTracker";
 
 /** 错题本 — 发音低分词 + 翻译错词，一键拿去跟读。 */
 export default function MistakesPage() {
   const navigate = useNavigate();
+  const tracker = useStudyTracker("mistakes", "错题本");
   const [tab, setTab] = useState<"oral" | "quiz">("oral");
   const [oral, setOral] = useState<WordItem[] | null>(null);
   const [quiz, setQuiz] = useState<WordItem[] | null>(null);
@@ -26,6 +28,8 @@ export default function MistakesPage() {
   const items = tab === "oral" ? oral : quiz;
   const practice = () => {
     if (!items?.length) return;
+    // 离开错题本去跟读，结束本模块的学习记录
+    tracker.endSession(`查看错题：${items.length}词`);
     navigate("/practice", { state: { items } });
   };
 

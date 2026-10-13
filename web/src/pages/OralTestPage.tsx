@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type OralBank, type OralSentence, type ScoreResult } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
+import useStudyTracker from "../hooks/useStudyTracker";
 import { playSoundForScore, speak, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import ScoreResultView from "../components/ScoreResultView";
@@ -13,16 +14,24 @@ import { SpeakerIcon } from "../components/icons";
 
 /** 口语朗读测试 — 从题库选句，逐句朗读评分。 */
 export default function OralTestPage() {
-  const [phase, setPhase] = useState<"banks" | "test" | "done">("banks");
+  const tracker = useStudyTracker("oral", "口语测试");
+
+  const snapshot = tracker.resumeSnapshot as {
+    bankId?: string; idx?: number; scores?: number[];
+  } | null;
+
+  const [phase, setPhase] = useState<"banks" | "test" | "done">(
+    snapshot?.bankId ? "test" : "banks",
+  );
   const [banks, setBanks] = useState<OralBank[] | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
   const [count, setCount] = useState(10);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sentences, setSentences] = useState<OralSentence[]>([]);
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(snapshot?.idx ?? 0);
   const [result, setResult] = useState<ScoreResult | null>(null);
-  const [scores, setScores] = useState<number[]>([]);
+  const [scores, setScores] = useState<number[]>(snapshot?.scores ?? []);
   const { recording, error: recError, start, stop } = useRecorder();
 
   useEffect(() => {
@@ -31,6 +40,15 @@ export default function OralTestPage() {
       .then((r) => setBanks(r.banks))
       .catch((e) => setError(e.message));
   }, []);
+
+  // 续学：恢复 bankId 对应的句子
+  useEffect(() => {
+    if (snapshot?.bankId && phase === "test") {
+      api.oralBankSentences(snapshot.bankId)
+        .then((r) => setSentences(r.sentences))
+        .catch((e) => setError(e.message));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => stopAudio(), []);
 
@@ -85,8 +103,13 @@ export default function OralTestPage() {
     try {
       const r = await api.score(rec.b64, rec.format, sentence.text);
       setResult(r);
-      setScores((s) => [...s, r.accuracy_score]);
+      const newScores = [...scores, r.accuracy_score];
+      setScores(newScores);
       playSoundForScore(r.accuracy_score);
+      // 保存学习进度
+      const snap = { bankId: snapshot?.bankId, idx, scores: newScores };
+      tracker.setLatest(snap, `朗读${newScores.length}句，平均分${Math.round(newScores.reduce((a,b)=>a+b,0)/newScores.length)}`);
+      tracker.saveSnapshot(snap);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -97,8 +120,16 @@ export default function OralTestPage() {
   const next = () => {
     stopAudio();
     setResult(null);
-    if (idx + 1 >= sentences.length) setPhase("done");
-    else setIdx((i) => i + 1);
+    if (idx + 1 >= sentences.length) {
+      tracker.endSession(`口语测试完成：${scores.length}句，平均分${scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0}`);
+      setPhase("done");
+    } else {
+      const nextIdx = idx + 1;
+      setIdx(nextIdx);
+      const snap = { bankId: snapshot?.bankId, idx: nextIdx, scores };
+      tracker.setLatest(snap, `朗读${scores.length}句`);
+      tracker.saveSnapshot(snap);
+    }
   };
 
   if (phase === "done") {

@@ -3,15 +3,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { MemorizeEntry } from "../lib/api";
 import { PageHeader, btnPrimary, btnSecondary } from "../components/ui";
 import { speak, prefetchTts } from "../lib/audio";
+import useStudyTracker from "../hooks/useStudyTracker";
 
 /** 闪卡学习 — 三态翻转：英文 → 中文 → 英文+中文，点三次自动下一个，带 TTS 发音。 */
 export default function MemorizeStudyPage() {
   const navigate = useNavigate();
   const loc = useLocation();
   const state = (loc.state ?? {}) as { day?: number; title?: string; entries?: MemorizeEntry[] };
+  const tracker = useStudyTracker("memorize", "分类速记");
+
+  const resumeSnap = tracker.resumeSnapshot as {
+    day?: number; idx?: number;
+  } | null;
 
   const entries = state.entries ?? [];
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(resumeSnap?.idx ?? 0);
   const [flip, setFlip] = useState(0); // 0=英文, 1=中文, 2=英文+中文
 
   // 预取当前及后续几个词的发音
@@ -34,14 +40,22 @@ export default function MemorizeStudyPage() {
 
   const goToNext = () => {
     if (idx < total - 1) {
-      setIdx(idx + 1);
+      const nextIdx = idx + 1;
+      setIdx(nextIdx);
       setFlip(0);
+      const snap = { day: state.day, idx: nextIdx };
+      tracker.setLatest(snap, `速记Day${state.day}：第${nextIdx + 1}/${total}词`);
+      tracker.saveSnapshot(snap, `速记Day${state.day}：第${nextIdx + 1}/${total}词`);
     }
   };
   const prev = () => {
     if (idx > 0) {
-      setIdx(idx - 1);
+      const prevIdx = idx - 1;
+      setIdx(prevIdx);
       setFlip(0);
+      const snap = { day: state.day, idx: prevIdx };
+      tracker.setLatest(snap, `速记Day${state.day}：第${prevIdx + 1}/${total}词`);
+      tracker.saveSnapshot(snap, `速记Day${state.day}：第${prevIdx + 1}/${total}词`);
     }
   };
 
@@ -59,6 +73,11 @@ export default function MemorizeStudyPage() {
   const playSound = (ev: React.MouseEvent) => {
     ev.stopPropagation();
     speak(e.text);
+  };
+
+  const handleFinish = () => {
+    tracker.endSession(`速记Day${state.day}完成：${total}词`);
+    navigate("/memorize");
   };
 
   return (
@@ -136,7 +155,7 @@ export default function MemorizeStudyPage() {
       </div>
 
       {idx === total - 1 && flip === 2 && (
-        <button className={btnPrimary} onClick={() => navigate("/memorize")}>
+        <button className={btnPrimary} onClick={handleFinish}>
           完成
         </button>
       )}

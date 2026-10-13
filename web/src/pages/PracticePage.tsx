@@ -3,6 +3,7 @@ import type { TouchEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { api, type ScoreResult, type WordItem } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
+import useStudyTracker from "../hooks/useStudyTracker";
 import { playSoundForScore, prefetchTts, speak, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import ScoreResultView from "../components/ScoreResultView";
@@ -17,17 +18,25 @@ import { BackIcon, ForwardIcon, SpeakerIcon } from "../components/icons";
 export default function PracticePage() {
   const location = useLocation();
   const custom = (location.state as { items?: WordItem[] } | null)?.items;
+  const tracker = useStudyTracker("practice", "跟读练习");
+
+  // 从快照恢复，或用自定义词条
+  const snapshot = tracker.resumeSnapshot as {
+    groups?: string[]; items?: WordItem[]; idx?: number; scores?: number[];
+  } | null;
+
   const [phase, setPhase] = useState<"setup" | "practice">(
-    custom ? "practice" : "setup",
+    (custom || snapshot?.items) ? "practice" : "setup",
   );
-  const [groups, setGroups] = useState<string[]>([]);
+  const [groups, setGroups] = useState<string[]>(snapshot?.groups ?? []);
   const [count, setCount] = useState(20);
-  const [items, setItems] = useState<WordItem[] | null>(custom ?? null);
-  const [idx, setIdx] = useState(0);
+  const [items, setItems] = useState<WordItem[] | null>(custom ?? snapshot?.items ?? null);
+  const [idx, setIdx] = useState(snapshot?.idx ?? 0);
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
+  const [scores, setScores] = useState<number[]>(snapshot?.scores ?? []);
+  const [finished, setFinished] = useState(false);
   // 启动时从配置加载已保存的分组
   useEffect(() => {
     if (custom) return;
@@ -36,8 +45,6 @@ export default function PracticePage() {
       if (saved.length > 0) setGroups(saved);
     }).catch(() => {});
   }, [custom]);
-  const [scores, setScores] = useState<number[]>([]);
-  const [finished, setFinished] = useState(false);
   const { recording, error: recError, start, stop } = useRecorder();
   const touchX = useRef<number | null>(null);
 
@@ -68,6 +75,15 @@ export default function PracticePage() {
   useEffect(() => {
     if (custom) return;
   }, [custom]);
+
+  // ── 学习记录：进度变化时保存快照 ──
+  useEffect(() => {
+    if (phase !== "practice" || !items) return;
+    const snap = { groups, items, idx, scores };
+    const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    tracker.setLatest(snap, `学习了${scores.length}个词，平均分${avg}`);
+    tracker.saveSnapshot(snap, `学习了${scores.length}个词，平均分${avg}`);
+  }, [phase, items, idx, scores]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => stopAudio(), []);
 
@@ -174,6 +190,8 @@ export default function PracticePage() {
     const avg = scores.length
       ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
       : 0;
+    // 结束学习记录
+    tracker.endSession(`练习完成：${scores.length}词，平均分${avg}`);
     return (
       <div className="flex flex-col items-center gap-3 py-10">
         <h1 className="text-section font-bold">练习完成</h1>

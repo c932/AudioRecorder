@@ -7,6 +7,7 @@ import {
   api, type TutorAction, type TutorState, type WordItem,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
+import useStudyTracker from "../hooks/useStudyTracker";
 import { speak, speakViaToken, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import GroupPicker from "../components/GroupPicker";
@@ -42,6 +43,7 @@ function findCorrectOption(options: string[], word: string, translation: string)
 export default function TutorPage() {
   const location = useLocation();
   const stateItems = (location.state as { items?: WordItem[] } | null)?.items;
+  const tracker = useStudyTracker("tutor", "AI 家教");
   const [phase, setPhase] = useState<"setup" | "chat" | "summary">(
     stateItems && stateItems.length > 0 ? "chat" : "setup",
   );
@@ -123,6 +125,12 @@ export default function TutorPage() {
     setLastAction(last);
     setOptions([]);
     setCorrectOption("");
+
+    // 学习记录：保存进度
+    if (st) {
+      tracker.setLatest(null, `学习${st.word_index + 1}/${st.total_words}词`);
+      tracker.saveSnapshot(null, `学习${st.word_index + 1}/${st.total_words}词`);
+    }
 
     // 输入模式：优先看 action（明确的提问类型）；feedback 等非输入 action
     // 按 phase 兜底——发音重试的鼓励 feedback 后学生还要继续跟读。
@@ -285,6 +293,7 @@ export default function TutorPage() {
     try {
       const s = await api.tutorSummary();
       setSummary(s);
+      tracker.endSession(`AI家教完成：${s.total_words}词，掌握${s.mastered}词`);
     } catch (e) {
       setError((e as Error).message);
     } finally {

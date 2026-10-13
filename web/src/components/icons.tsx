@@ -158,6 +158,38 @@ export function SettingsIcon({ className }: IconProps) {
   );
 }
 
+/** 学习记录 — 时钟 + 列表 */
+export function StudyLogIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
+    </Svg>
+  );
+}
+
+/** 删除 — 垃圾桶 */
+export function TrashIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M5 7h14" />
+      <path d="M9 7V4.5h6V7" />
+      <path d="M7 7l1 12.5h8L17 7" />
+      <path d="M10 11v5M14 11v5" />
+    </Svg>
+  );
+}
+
+/** 继续播放 — play circle */
+export function ResumeIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 8l6 4-6 4z" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
 export function StopIcon({ className = "w-8 h-8" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>

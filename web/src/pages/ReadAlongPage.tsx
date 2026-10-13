@@ -5,6 +5,7 @@ import {
   type ReadAlongScoreResult, type ReadAlongSummary,
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
+import useStudyTracker from "../hooks/useStudyTracker";
 import { playSoundForScore, prefetchTts, speak, stopAudio } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import ScoreResultView from "../components/ScoreResultView";
@@ -20,7 +21,13 @@ type ReadState = "idle" | "playing" | "waiting" | "recording" | "scoring" | "sco
 const STORAGE_KEY = "readalong_text";
 
 export default function ReadAlongPage() {
-  const [phase, setPhase] = useState<Phase>("setup");
+  const tracker = useStudyTracker("readalong", "跟读教练");
+
+  const resumeSnap = tracker.resumeSnapshot as {
+    sessionId?: string; segIdx?: number;
+  } | null;
+
+  const [phase, setPhase] = useState<Phase>(resumeSnap?.sessionId ? "readalong" : "setup");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,7 +37,7 @@ export default function ReadAlongPage() {
 
   // Session
   const [session, setSession] = useState<ReadAlongSession | null>(null);
-  const [segIdx, setSegIdx] = useState(0);
+  const [segIdx, setSegIdx] = useState(resumeSnap?.segIdx ?? 0);
 
   // Read-along state machine
   const [readState, setReadState] = useState<ReadState>("idle");
@@ -171,6 +178,11 @@ export default function ReadAlongPage() {
 
       playSoundForScore(r.score);
 
+      // 学习记录：保存进度
+      const snap = { sessionId: session?.session_id, segIdx };
+      tracker.setLatest(snap, `跟读第${segIdx + 1}/${session?.total ?? "?"}句`);
+      tracker.saveSnapshot(snap, `跟读第${segIdx + 1}/${session?.total ?? "?"}句`);
+
       // Speak LLM correction if available
       if (r.llm_feedback) {
         speak(r.llm_feedback).catch(() => {});
@@ -242,6 +254,7 @@ export default function ReadAlongPage() {
       const s = await api.readalongSummary(session.session_id);
       setSummary(s);
       setPhase("summary");
+      tracker.endSession(`跟读完成：${s.total_segments}句，平均分${s.avg_score}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {

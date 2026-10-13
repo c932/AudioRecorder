@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api, type QuizQuestion } from "../lib/api";
 import GroupPicker from "../components/GroupPicker";
+import useStudyTracker from "../hooks/useStudyTracker";
 import {
   PageHeader, ProgressBar, Spinner, ErrorText,
   btnPrimary, inputCls,
@@ -16,16 +17,24 @@ interface QState {
 
 /** 中英互译测验 — zh2en 填空 / en2zh 选择。 */
 export default function QuizPage() {
-  const [groups, setGroups] = useState<string[]>([]);
+  const tracker = useStudyTracker("quiz", "中英互译");
+
+  const snapshot = tracker.resumeSnapshot as {
+    groups?: string[]; questions?: QuizQuestion[]; idx?: number; correctCount?: number;
+  } | null;
+
+  const [groups, setGroups] = useState<string[]>(snapshot?.groups ?? []);
   const [count, setCount] = useState(10);
-  const [phase, setPhase] = useState<"setup" | "quiz" | "done">("setup");
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [idx, setIdx] = useState(0);
+  const [phase, setPhase] = useState<"setup" | "quiz" | "done">(
+    snapshot?.questions ? "quiz" : "setup",
+  );
+  const [questions, setQuestions] = useState<QuizQuestion[]>(snapshot?.questions ?? []);
+  const [idx, setIdx] = useState(snapshot?.idx ?? 0);
   const [qState, setQState] = useState<QState | null>(null);
   const [inputs, setInputs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [correctCount, setCorrectCount] = useState(0);
+  const [correctCount, setCorrectCount] = useState(snapshot?.correctCount ?? 0);
 
   const start = async () => {
     if (groups.length === 0) {
@@ -72,7 +81,13 @@ export default function QuizPage() {
         correctAnswer: correct,
         chosen: Array.isArray(userAnswer) ? userAnswer.join(" / ") : userAnswer,
       });
-      if (r.is_correct) setCorrectCount((c) => c + 1);
+      if (r.is_correct) {
+        const newCount = correctCount + 1;
+        setCorrectCount(newCount);
+        saveSnap(idx, newCount);
+      } else {
+        saveSnap(idx, correctCount);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -80,11 +95,25 @@ export default function QuizPage() {
     }
   };
 
+  // ── 学习记录：保存进度快照 ──
+  const saveSnap = (curIdx: number, curCorrect: number) => {
+    if (phase !== "quiz") return;
+    const snap = { groups, questions, idx: curIdx, correctCount: curCorrect };
+    tracker.setLatest(snap, `${curCorrect}/${curIdx}题正确`);
+    tracker.saveSnapshot(snap, `${curCorrect}/${curIdx}题正确`);
+  };
+
   const next = () => {
     setQState(null);
     setInputs([]);
-    if (idx + 1 >= questions.length) setPhase("done");
-    else setIdx((i) => i + 1);
+    const nextIdx = idx + 1;
+    if (nextIdx >= questions.length) {
+      tracker.endSession(`测验完成：${correctCount}/${questions.length}题正确`);
+      setPhase("done");
+    } else {
+      setIdx(nextIdx);
+      saveSnap(nextIdx, correctCount);
+    }
   };
 
   if (phase === "setup") {

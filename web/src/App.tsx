@@ -12,6 +12,7 @@ import MemorizePage from "./pages/MemorizePage";
 import MemorizeStudyPage from "./pages/MemorizeStudyPage";
 import MemorizeReviewPage from "./pages/MemorizeReviewPage";
 import MistakesPage from "./pages/MistakesPage";
+import StudyLogPage from "./pages/StudyLogPage";
 import ImportPage from "./pages/ImportPage";
 import SettingsPage from "./pages/SettingsPage";
 import MorePage from "./pages/MorePage";
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="memorize/study" element={<MemorizeStudyPage />} />
           <Route path="memorize/review" element={<MemorizeReviewPage />} />
           <Route path="mistakes" element={<MistakesPage />} />
+          <Route path="study-log" element={<StudyLogPage />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="more" element={<MorePage />} />

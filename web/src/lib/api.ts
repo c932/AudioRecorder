@@ -191,6 +191,27 @@ export interface ReadAlongSummary {
   total_retries: number;
 }
 
+export interface StudyRecord {
+  id: string;
+  module: string;
+  module_label: string;
+  status: "active" | "completed" | "abandoned";
+  started_at: string;
+  ended_at: string | null;
+  duration_sec: number;
+  content_summary: string;
+  snapshot: unknown;
+}
+
+export interface StudyStats {
+  today_sec: number;
+  week_sec: number;
+  month_sec: number;
+  total_count: number;
+  streak_days: number;
+  module_breakdown: Record<string, number>;
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
@@ -343,4 +364,33 @@ export const api = {
     }),
   readalongSummary: (session_id: string) =>
     req<ReadAlongSummary>("POST", "/api/readalong/summary", { session_id }),
+
+  // ── 学习记录 ──────────────────────────────────────────────────
+  studyLogStart: (module: string, module_label: string) =>
+    req<StudyRecord>("POST", "/api/study-log/start", { module, module_label }),
+  studyLogUpdate: (record_id: string, snapshot?: unknown, content_summary?: string) =>
+    req<{ ok: boolean }>("PUT", `/api/study-log/update/${record_id}`, {
+      snapshot: snapshot ?? null,
+      content_summary: content_summary ?? "",
+    }),
+  studyLogEnd: (record_id: string, content_summary?: string, snapshot?: unknown, status?: string) =>
+    req<StudyRecord>("POST", `/api/study-log/end/${record_id}`, {
+      content_summary: content_summary ?? "",
+      snapshot: snapshot ?? null,
+      status: status ?? "completed",
+    }),
+  studyLogRecords: (params?: { module?: string; status?: string; date_from?: string; date_to?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.module) qs.set("module", params.module);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.date_from) qs.set("date_from", params.date_from);
+    if (params?.date_to) qs.set("date_to", params.date_to);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    const s = qs.toString();
+    return req<{ records: StudyRecord[] }>("GET", `/api/study-log/records${s ? `?${s}` : ""}`);
+  },
+  studyLogStats: () => req<StudyStats>("GET", "/api/study-log/stats"),
+  studyLogDelete: (record_id: string) =>
+    req<{ ok: boolean }>("DELETE", `/api/study-log/${record_id}`),
 };
