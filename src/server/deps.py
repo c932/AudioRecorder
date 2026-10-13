@@ -303,16 +303,26 @@ def synthesize_tts(text: str, voice: Optional[str] = None) -> tuple[bytes, str]:
         speaker = _resolve_speaker(voice, lang)
         return _synthesize_qwen_tts_cached(text, speaker, lang)
 
-    # Kokoro / Auto 模式：英文用 Kokoro，中文用 Edge-TTS
+    # Kokoro / Auto 模式：英文用 Kokoro，中文优先 Qwen3-TTS
     if lang == "en":
         try:
             return _synthesize_kokoro(text, voice)
         except Exception as e:
             print(f"[deps] Kokoro 失败，回退 Edge: {e}")
-            return _synthesize_edge_tts(text, voice, lang)
+            try:
+                return _synthesize_edge_tts(text, voice, lang)
+            except Exception as e2:
+                print(f"[deps] Edge 失败，回退 Qwen3-TTS: {e2}")
+                speaker = _resolve_speaker(voice, lang)
+                return _synthesize_qwen_tts_cached(text, speaker, lang)
     else:
-        # 中文：Edge-TTS
-        return _synthesize_edge_tts(text, voice, lang)
+        # 中文：优先 Qwen3-TTS，失败回退 Edge-TTS
+        speaker = _resolve_speaker(voice, lang)
+        try:
+            return _synthesize_qwen_tts_cached(text, speaker, lang)
+        except Exception as e:
+            print(f"[deps] Qwen3-TTS 中文失败，回退 Edge: {e}")
+            return _synthesize_edge_tts(text, voice, lang)
 
 
 def _synthesize_kokoro(text: str, voice: Optional[str]) -> tuple[bytes, str]:
