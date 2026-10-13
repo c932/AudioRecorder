@@ -107,7 +107,11 @@ new_autostart_section = '''    # -----------------------------------------------
     # ------------------------------------------------------------------ #
 
     async def set_autostart(self, service_id: str, enabled: bool) -> ServiceState:
-        """Enable or disable autostart for a service (any type)."""
+        """Enable or disable autostart for a service (any type).
+
+        For systemd services, also runs systemctl enable/disable so the OS-level
+        autostart stays in sync with the AI Runtime autostart flag.
+        """
         state = self._states.get(service_id)
         if not state or not state.config:
             raise ValueError(f"Service '{service_id}' not found")
@@ -117,11 +121,48 @@ new_autostart_section = '''    # -----------------------------------------------
         # Also update in-memory config
         state.config.autostart = enabled
 
+        # For systemd services, also sync systemctl enable/disable
+        if state.config.type == ServiceType.SYSTEMD:
+            unit = state.config.systemd_unit or state.config.params.get("systemd_unit", "")
+            if unit:
+                action = "enable" if enabled else "disable"
+                try:
+                    result = subprocess.run(
+                        ["sudo", "systemctl", action, unit],
+                        capture_output=True, text=True, timeout=15,
+                    )
+                    if result.returncode != 0:
+                        logger.warning("systemctl %s %s failed: %s", action, unit, result.stderr)
+                    else:
+                        logger.info("systemctl %s %s OK", action, unit)
+                except Exception as e:
+                    logger.warning("systemctl %s %s error: %s", action, unit, e)
+
         logger.info("Autostart %s for %s", "enabled" if enabled else "disabled", service_id)
         return state
 
     def get_autostart(self, service_id: str) -> bool:
-        """Check if a service has autostart enabled."""
+        """Check if a service has autostart enabled.
+
+        For systemd services, checks systemctl is-enabled as the source of truth
+        (since that's what actually controls OS-level boot autostart).
+        Falls back to services.json for non-systemd services.
+        """
+        state = self._states.get(service_id)
+        if state and state.config and state.config.type == ServiceType.SYSTEMD:
+            unit = state.config.systemd_unit or state.config.params.get("systemd_unit", "")
+            if unit:
+                try:
+                    result = subprocess.run(
+                        ["systemctl", "is-enabled", unit],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    is_enabled = result.stdout.strip() == "enabled"
+                    # Sync services.json with the actual state
+                    cfg.update_service_autostart(service_id, is_enabled)
+                    return is_enabled
+                except Exception:
+                    pass
         return cfg.get_service_autostart(service_id)
 
     async def autostart_all(self) -> None:
