@@ -24,6 +24,8 @@ export default function PracticePage() {
   const snapshot = tracker.resumeSnapshot as {
     groups?: string[]; items?: WordItem[]; idx?: number; scores?: number[];
   } | null;
+  // 续学恢复进度，再来一次只恢复设置（进度归零）
+  const restoreProgress = !!snapshot && !tracker.isReplay;
 
   const [phase, setPhase] = useState<"setup" | "practice">(
     (custom || snapshot?.items) ? "practice" : "setup",
@@ -31,11 +33,11 @@ export default function PracticePage() {
   const [groups, setGroups] = useState<string[]>(snapshot?.groups ?? []);
   const [count, setCount] = useState(20);
   const [items, setItems] = useState<WordItem[] | null>(custom ?? snapshot?.items ?? null);
-  const [idx, setIdx] = useState(snapshot?.idx ?? 0);
+  const [idx, setIdx] = useState(restoreProgress ? (snapshot?.idx ?? 0) : 0);
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [scores, setScores] = useState<number[]>(snapshot?.scores ?? []);
+  const [scores, setScores] = useState<number[]>(restoreProgress ? (snapshot?.scores ?? []) : []);
   const [finished, setFinished] = useState(false);
   // 启动时从配置加载已保存的分组
   useEffect(() => {

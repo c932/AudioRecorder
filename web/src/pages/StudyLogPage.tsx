@@ -1,4 +1,4 @@
-/** 学习记录页 — 统计汇总 + 可续学的活跃记录 + 历史记录列表（可删除）。
+/** 学习记录页 — 统计汇总 + 可续学的活跃记录 + 历史记录列表（可删除/继续）。
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -69,6 +69,7 @@ export default function StudyLogPage() {
     }
   };
 
+  /** 续学：未完成的记录，从中断处恢复 */
   const handleResume = (rec: StudyRecord) => {
     const info = MODULE_ROUTE[rec.module];
     if (!info) return;
@@ -80,14 +81,27 @@ export default function StudyLogPage() {
     });
   };
 
-  // 活跃记录（可续学）
+  /** 再来一次：已完成的记录，用相同设置重新开始 */
+  const handleReplay = (rec: StudyRecord) => {
+    const info = MODULE_ROUTE[rec.module];
+    if (!info) return;
+    navigate(info.route, {
+      state: {
+        // 不传 resumeRecordId → 会创建新记录
+        // 传 replaySnapshot → 页面用这个恢复设置（如词库、分组）但不恢复进度
+        replaySnapshot: rec.snapshot,
+      },
+    });
+  };
+
+  // 活跃记录（未完成 + 有快照）
   const activeRecords = records.filter((r) => r.status === "active" && r.snapshot);
-  // 已完成/放弃的记录
-  const completedRecords = records.filter((r) => r.status !== "active" || !r.snapshot);
+  // 其他记录（已完成或无快照的）
+  const otherRecords = records.filter((r) => r.status !== "active" || !r.snapshot);
 
   // 按日期分组
   const grouped: { date: string; items: StudyRecord[] }[] = [];
-  for (const rec of completedRecords) {
+  for (const rec of otherRecords) {
     const dk = dateKey(rec.started_at);
     let group = grouped.find((g) => g.date === dk);
     if (!group) {
@@ -142,7 +156,7 @@ export default function StudyLogPage() {
         </div>
       )}
 
-      {/* ── 活跃会话（可续学）── */}
+      {/* ── 活跃会话（未完成，可续学）── */}
       {activeRecords.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-ui font-bold">未完成的学习</p>
@@ -202,6 +216,17 @@ export default function StudyLogPage() {
                 <span className="text-body text-ink-soft/60 tabular-nums shrink-0">
                   {rec.started_at.slice(11, 16)}
                 </span>
+                {/* 有快照的记录可以再来一次 */}
+                {rec.snapshot != null && (
+                  <button
+                    className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-ink-soft hover:text-mango-dk hover:bg-mango/10 transition-colors text-[11px] font-bold"
+                    onClick={() => handleReplay(rec)}
+                    aria-label="再来一次"
+                  >
+                    <ResumeIcon className="w-3.5 h-3.5" />
+                    再来
+                  </button>
+                )}
                 <button
                   className="shrink-0 p-1.5 rounded-lg text-ink-soft/40 hover:text-clay hover:bg-clay-soft transition-colors"
                   onClick={() => setConfirmDelete(rec.id)}

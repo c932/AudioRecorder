@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { MemorizeEntry } from "../lib/api";
+import { api, type MemorizeEntry } from "../lib/api";
 import { PageHeader, btnPrimary, btnSecondary } from "../components/ui";
 import { speak, prefetchTts } from "../lib/audio";
 import useStudyTracker from "../hooks/useStudyTracker";
@@ -15,10 +15,19 @@ export default function MemorizeStudyPage() {
   const resumeSnap = tracker.resumeSnapshot as {
     day?: number; idx?: number;
   } | null;
+  const restoreProgress = !!resumeSnap && !tracker.isReplay;
 
-  const entries = state.entries ?? [];
-  const [idx, setIdx] = useState(resumeSnap?.idx ?? 0);
+  // 续学/再来一次时，从快照恢复 day，重新加载词条
+  const day = state.day ?? resumeSnap?.day;
+  const [entries, setEntries] = useState<MemorizeEntry[]>(state.entries ?? []);
+  const [idx, setIdx] = useState(restoreProgress ? (resumeSnap?.idx ?? 0) : 0);
   const [flip, setFlip] = useState(0); // 0=英文, 1=中文, 2=英文+中文
+
+  // 续学/再来一次：如果没 entries 但有 day，从 API 加载
+  useEffect(() => {
+    if (entries.length > 0 || !day) return;
+    api.memorizeDay(day).then((r) => setEntries(r.entries)).catch(() => {});
+  }, [day]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 预取当前及后续几个词的发音
   if (entries.length > 0) {

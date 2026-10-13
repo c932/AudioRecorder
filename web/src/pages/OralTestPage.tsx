@@ -19,9 +19,10 @@ export default function OralTestPage() {
   const snapshot = tracker.resumeSnapshot as {
     bankId?: string; idx?: number; scores?: number[];
   } | null;
+  const restoreProgress = !!snapshot && !tracker.isReplay;
 
   const [phase, setPhase] = useState<"banks" | "test" | "done">(
-    snapshot?.bankId ? "test" : "banks",
+    (restoreProgress && snapshot?.bankId) ? "test" : "banks",
   );
   const [banks, setBanks] = useState<OralBank[] | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
@@ -29,9 +30,9 @@ export default function OralTestPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sentences, setSentences] = useState<OralSentence[]>([]);
-  const [idx, setIdx] = useState(snapshot?.idx ?? 0);
+  const [idx, setIdx] = useState(restoreProgress ? (snapshot?.idx ?? 0) : 0);
   const [result, setResult] = useState<ScoreResult | null>(null);
-  const [scores, setScores] = useState<number[]>(snapshot?.scores ?? []);
+  const [scores, setScores] = useState<number[]>(restoreProgress ? (snapshot?.scores ?? []) : []);
   const { recording, error: recError, start, stop } = useRecorder();
 
   useEffect(() => {

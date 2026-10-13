@@ -41,6 +41,7 @@ export default function ScenarioPage() {
   const resumeSnap = tracker.resumeSnapshot as {
     bankId?: string; idx?: number; results?: { turn_idx: number; text: string; score: number }[];
   } | null;
+  const restoreProgress = !!resumeSnap && !tracker.isReplay;
 
   const [phase, setPhase] = useState<"banks" | "chat" | "summary">("banks");
   const [banks, setBanks] = useState<ScenarioBank[] | null>(null);
@@ -51,8 +52,8 @@ export default function ScenarioPage() {
   const [error, setError] = useState("");
   const [script, setScript] = useState<Turn[]>([]);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
-  const [idx, setIdx] = useState(resumeSnap?.idx ?? 0);
-  const [results, setResults] = useState<{ turn_idx: number; text: string; score: number }[]>(resumeSnap?.results ?? []);
+  const [idx, setIdx] = useState(restoreProgress ? (resumeSnap?.idx ?? 0) : 0);
+  const [results, setResults] = useState<{ turn_idx: number; text: string; score: number }[]>(restoreProgress ? (resumeSnap?.results ?? []) : []);
   const [summary, setSummary] = useState("");
   const [weakEntries, setWeakEntries] = useState<{ text: string; score: number }[]>([]);
   const { recording, start, stop } = useRecorder();

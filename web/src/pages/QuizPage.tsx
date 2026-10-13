@@ -22,19 +22,20 @@ export default function QuizPage() {
   const snapshot = tracker.resumeSnapshot as {
     groups?: string[]; questions?: QuizQuestion[]; idx?: number; correctCount?: number;
   } | null;
+  const restoreProgress = !!snapshot && !tracker.isReplay;
 
   const [groups, setGroups] = useState<string[]>(snapshot?.groups ?? []);
   const [count, setCount] = useState(10);
   const [phase, setPhase] = useState<"setup" | "quiz" | "done">(
-    snapshot?.questions ? "quiz" : "setup",
+    (restoreProgress && snapshot?.questions) ? "quiz" : "setup",
   );
-  const [questions, setQuestions] = useState<QuizQuestion[]>(snapshot?.questions ?? []);
-  const [idx, setIdx] = useState(snapshot?.idx ?? 0);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(restoreProgress ? (snapshot?.questions ?? []) : []);
+  const [idx, setIdx] = useState(restoreProgress ? (snapshot?.idx ?? 0) : 0);
   const [qState, setQState] = useState<QState | null>(null);
   const [inputs, setInputs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [correctCount, setCorrectCount] = useState(snapshot?.correctCount ?? 0);
+  const [correctCount, setCorrectCount] = useState(restoreProgress ? (snapshot?.correctCount ?? 0) : 0);
 
   const start = async () => {
     if (groups.length === 0) {

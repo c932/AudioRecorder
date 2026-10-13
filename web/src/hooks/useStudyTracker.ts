@@ -11,8 +11,9 @@ import { useLocation } from "react-router-dom";
 import { api } from "../lib/api";
 
 export interface ResumeState {
-  resumeRecordId?: string;
-  resumeSnapshot?: unknown;
+  resumeRecordId?: string;   // 续学：继续已有记录
+  resumeSnapshot?: unknown;   // 续学：从快照恢复进度
+  replaySnapshot?: unknown;   // 再来一次：恢复设置但不恢复进度（不续学记录）
 }
 
 export default function useStudyTracker(module: string, label: string) {
@@ -20,7 +21,9 @@ export default function useStudyTracker(module: string, label: string) {
   const resume = (location.state as ResumeState | null) ?? {};
 
   const [recordId, setRecordId] = useState<string | null>(resume.resumeRecordId ?? null);
-  const [resumeSnapshot] = useState<unknown>(resume.resumeSnapshot ?? null);
+  // 续学用 resumeSnapshot，再来一次用 replaySnapshot（恢复设置但不恢复进度）
+  const [resumeSnapshot] = useState<unknown>(resume.resumeSnapshot ?? resume.replaySnapshot ?? null);
+  const isReplay = !!resume.replaySnapshot && !resume.resumeRecordId;
   const startedRef = useRef(false);
   const savedRef = useRef(false); // 防止卸载时重复 end
 
@@ -82,6 +85,7 @@ export default function useStudyTracker(module: string, label: string) {
   return {
     recordId,
     resumeSnapshot,
+    isReplay,
     saveSnapshot,
     endSession,
     setLatest,

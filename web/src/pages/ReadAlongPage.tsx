@@ -26,8 +26,9 @@ export default function ReadAlongPage() {
   const resumeSnap = tracker.resumeSnapshot as {
     sessionId?: string; segIdx?: number;
   } | null;
+  const restoreProgress = !!resumeSnap && !tracker.isReplay;
 
-  const [phase, setPhase] = useState<Phase>(resumeSnap?.sessionId ? "readalong" : "setup");
+  const [phase, setPhase] = useState<Phase>(restoreProgress && resumeSnap?.sessionId ? "readalong" : "setup");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,7 +38,7 @@ export default function ReadAlongPage() {
 
   // Session
   const [session, setSession] = useState<ReadAlongSession | null>(null);
-  const [segIdx, setSegIdx] = useState(resumeSnap?.segIdx ?? 0);
+  const [segIdx, setSegIdx] = useState(restoreProgress ? (resumeSnap?.segIdx ?? 0) : 0);
 
   // Read-along state machine
   const [readState, setReadState] = useState<ReadState>("idle");
