@@ -260,9 +260,11 @@ def _pcm_to_wav(pcm_data: bytes, sample_rate: int = 24000) -> tuple[bytes, str]:
 def _synthesize_qwen_tts(text: str, speaker: str = "", lang: str = "en") -> tuple[bytes, str]:
     """用 Qwen3-TTS FastAPI 服务合成语音（GPU 加速，中英文原生），返回 (WAV bytes, media_type)。
 
-    Qwen3-TTS 内置 9 种音色，无需参考音频。
+    Qwen3-TTS 内置 9 种音色，无需参考音频。含自动重试（最多 2 次）。
     """
     import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
 
     url = _tts_url()
     data = {
@@ -271,7 +273,15 @@ def _synthesize_qwen_tts(text: str, speaker: str = "", lang: str = "en") -> tupl
         "language": _LANG_MAP.get(lang, "English"),
     }
 
-    resp = requests.post(f"{url}/tts", data=data, timeout=60)
+    # 带重试的 session：连接失败 / 读取不完整自动重试
+    session = requests.Session()
+    retry = Retry(total=2, backoff_factor=1,
+                  status_forcelist=[502, 503, 504],
+                  connect=2, read=2)
+    session.mount("http://", HTTPAdapter(max_retries=retry))
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+
+    resp = session.post(f"{url}/tts", data=data, timeout=60)
     if resp.status_code != 200:
         raise RuntimeError(f"Qwen3-TTS 返回 {resp.status_code}: {resp.text[:200]}")
     pcm_data = resp.content
