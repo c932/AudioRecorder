@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "id": "711cf44f0987",
+      "module": "practice",
+      "module_label": "跟读练习",
+      "status": "active",
+      "started_at": "2026-10-13T21:06:07.192012",
+      "ended_at": "2026-10-13T21:06:47.498727",
+      "duration_sec": 40,
+      "content_summary": "",
+      "snapshot": null
+    }
+  ]
+}

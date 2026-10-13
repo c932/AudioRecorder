@@ -35,15 +35,13 @@ class ReadAlongEngine:
             protected = protected.replace(m.group(), ph, 1)
 
         # 按句末标点拆分
+        # 先把换行替换为空格（OCR/图片识别的换行是视觉换行，不是语义断句）
+        protected = re.sub(r'\n+', ' ', protected)
         parts = re.split(r'(?<=[.!?])\s+', protected)
-        # 按换行也拆（课文可能一行一句）
-        expanded = []
-        for p in parts:
-            expanded.extend(p.split('\n'))
 
         # 还原缩写 + 清理
         result = []
-        for seg in expanded:
+        for seg in parts:
             seg = seg.strip()
             for ph, original in placeholder_map.items():
                 seg = seg.replace(ph, original)

@@ -154,7 +154,12 @@ class Wav2Vec2Aligner:
             return
         import json as _json
         import torch
-        from transformers import AutoFeatureExtractor, AutoModelForCTC
+        from transformers import AutoModelForCTC
+        try:
+            from transformers import AutoFeatureExtractor
+        except ImportError:
+            # transformers >= 5.0 removed AutoFeatureExtractor; use AutoProcessor
+            from transformers import AutoProcessor as AutoFeatureExtractor
 
         if self.device_pref == "cuda":
             device = "cuda" if torch.cuda.is_available() else "cpu"
