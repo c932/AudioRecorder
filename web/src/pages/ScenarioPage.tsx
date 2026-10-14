@@ -77,6 +77,13 @@ export default function ScenarioPage() {
     }
   }, []);
 
+  // "再来一次"：有 bankId 时自动加载题库并开始会话
+  useEffect(() => {
+    if (!tracker.isReplay || !resumeSnap?.bankId || banks === null) return;
+    const found = banks.find((b) => b.id === resumeSnap.bankId);
+    if (found) startSession(found);
+  }, [tracker.isReplay, resumeSnap?.bankId, banks]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries]);

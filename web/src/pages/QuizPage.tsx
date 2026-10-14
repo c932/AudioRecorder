@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, type QuizQuestion } from "../lib/api";
 import GroupPicker from "../components/GroupPicker";
 import useStudyTracker from "../hooks/useStudyTracker";
@@ -36,6 +36,13 @@ export default function QuizPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [correctCount, setCorrectCount] = useState(restoreProgress ? (snapshot?.correctCount ?? 0) : 0);
+
+  // "再来一次"：有分组时自动重新出题
+  useEffect(() => {
+    if (tracker.isReplay && snapshot?.groups && snapshot.groups.length > 0) {
+      start(); // auto-generate new questions with same groups
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = async () => {
     if (groups.length === 0) {

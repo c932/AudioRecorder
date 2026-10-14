@@ -22,7 +22,7 @@ export default function OralTestPage() {
   const restoreProgress = !!snapshot && !tracker.isReplay;
 
   const [phase, setPhase] = useState<"banks" | "test" | "done">(
-    (restoreProgress && snapshot?.bankId) ? "test" : "banks",
+    ((restoreProgress || tracker.isReplay) && snapshot?.bankId) ? "test" : "banks",
   );
   const [banks, setBanks] = useState<OralBank[] | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
