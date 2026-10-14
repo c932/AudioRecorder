@@ -364,6 +364,8 @@ export const api = {
     }),
   readalongSummary: (session_id: string) =>
     req<ReadAlongSummary>("POST", "/api/readalong/summary", { session_id }),
+  readalongState: (session_id: string) =>
+    req<{ session_id: string; segments: ReadAlongSegment[]; total: number; mode: string; current_idx: number; results: Record<string, { score: number; retries: number }> }>("GET", `/api/readalong/state/${encodeURIComponent(session_id)}`),
 
   // ── 学习记录 ──────────────────────────────────────────────────
   studyLogStart: (module: string, module_label: string) =>

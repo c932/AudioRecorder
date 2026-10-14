@@ -330,16 +330,18 @@ def summary(req: SummaryRequest):
 
 @router.get("/state/{session_id}")
 def state(session_id: str):
-    """获取会话状态。"""
+    """获取会话状态（含 segments，供续学恢复）。"""
     with _sessions_lock:
         session = _sessions.get(session_id)
     if not session:
         raise HTTPException(404, "会话不存在")
     return {
+        "session_id": session_id,
         "current_idx": session["current_idx"],
         "total": len(session["segments"]),
         "results": session["results"],
         "mode": session["mode"],
+        "segments": session["segments"],
     }
 
 

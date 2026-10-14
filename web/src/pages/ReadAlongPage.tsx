@@ -6,7 +6,7 @@ import {
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
 import useStudyTracker from "../hooks/useStudyTracker";
-import { playSoundForScore, prefetchTts, speak, stopAudio } from "../lib/audio";
+import { playSoundForScore, prefetchTts, speak, stopAudio, fetchTts } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import ScoreResultView from "../components/ScoreResultView";
 import {
@@ -39,6 +39,37 @@ export default function ReadAlongPage() {
   // Session
   const [session, setSession] = useState<ReadAlongSession | null>(null);
   const [segIdx, setSegIdx] = useState(restoreProgress ? (resumeSnap?.segIdx ?? 0) : 0);
+
+  // 续学：从后端恢复会话
+  useEffect(() => {
+    if (!restoreProgress || !resumeSnap?.sessionId) return;
+    setBusy(true);
+    setError("");
+    api.readalongState(resumeSnap.sessionId)
+      .then((r) => {
+        const sess: ReadAlongSession = {
+          session_id: r.session_id,
+          segments: r.segments,
+          total: r.total,
+          mode: r.mode as "sentence" | "paragraph",
+        };
+        setSession(sess);
+        setSegIdx(r.current_idx);
+        // 预取当前句 TTS 并自动播放
+        const curText = r.segments[r.current_idx]?.text;
+        if (curText) {
+          fetchTts(curText).catch(() => {});
+        }
+        prefetchTts(r.segments.slice(r.current_idx + 1, r.current_idx + 4).map((s) => s.text));
+        playCurrentSegment(r.segments, r.current_idx);
+      })
+      .catch(() => {
+        // 会话已过期，回到设置页
+        setError("会话已过期，请重新开始");
+        setPhase("setup");
+      })
+      .finally(() => setBusy(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Read-along state machine
   const [readState, setReadState] = useState<ReadState>("idle");
@@ -111,35 +142,22 @@ export default function ReadAlongPage() {
       setSegIdx(0);
       setScoreResult(null);
       setLlmFeedback("");
-      setReadState("idle");
       setPhase("readalong");
-      // 预取前几句 TTS 音频
-      const texts = r.segments.slice(0, 4).map((s) => s.text);
-      prefetchTts(texts);
-      // 自动播放由 useEffect(phase=="readalong") 触发
+      // 预取第一句 TTS 音频并等待就绪，确保 play() 在用户手势上下文附近
+      const firstText = r.segments[0]?.text;
+      if (firstText) {
+        try { await fetchTts(firstText); } catch { /* 预取失败也没关系 */ }
+      }
+      // 预取后续几句（不等待）
+      prefetchTts(r.segments.slice(1, 4).map((s) => s.text));
+      // 直接播放第一句（在点击手势上下文中，浏览器不会阻止）
+      playCurrentSegment(r.segments, 0);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusy(false);
     }
   };
-
-  // ── 进入跟读阶段时自动播放第一句 ──
-  const autoPlayRef = useRef(false);
-  useEffect(() => {
-    if (phase === "readalong" && session && !autoPlayRef.current) {
-      autoPlayRef.current = true;
-      // 短暂延迟让组件渲染完成
-      const t = setTimeout(() => {
-        playCurrentSegment(session.segments, 0);
-      }, 300);
-      return () => clearTimeout(t);
-    }
-    // 离开 readalong 时重置
-    if (phase !== "readalong") {
-      autoPlayRef.current = false;
-    }
-  }, [phase, session, playCurrentSegment]);
 
   // --- 点击句子切换 ---
   const clickSegment = (idx: number) => {

@@ -46,7 +46,7 @@ function cacheKey(text: string): string {
   return `${text}\0${currentVoice}`;
 }
 
-async function fetchTts(text: string): Promise<string> {
+export async function fetchTts(text: string): Promise<string> {
   const key = cacheKey(text);
   const hit = urlCache.get(key);
   if (hit) return hit;
