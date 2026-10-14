@@ -81,6 +81,9 @@ export default function ReadAlongPage() {
 
   const { recording, error: recError, start, stop } = useRecorder();
 
+  // 防止录音/评分流程并发（双击、快速重复点击）
+  const scoringRef = useRef(false);
+
   // 保存课文到 localStorage
   useEffect(() => {
     const t = setTimeout(() => {
@@ -173,6 +176,7 @@ export default function ReadAlongPage() {
 
   // --- Start recording ---
   const handleStartRecord = async () => {
+    if (readState !== "waiting") return; // 防止并发
     setReadState("recording");
     try {
       await start();
@@ -183,9 +187,16 @@ export default function ReadAlongPage() {
 
   // --- Stop recording and score ---
   const handleStopRecord = async () => {
+    if (scoringRef.current) return; // 防止评分流程并发
     const rec = await stop();
-    if (!rec.b64 || !session) { setReadState("waiting"); return; }
+    if (!rec.b64 || !session) {
+      // 录音数据为空 → 给出明确提示而非静默返回
+      if (!rec.b64 && session) setError("录音时长太短，请长按再试");
+      setReadState("waiting");
+      return;
+    }
 
+    scoringRef.current = true;
     setReadState("scoring");
     setBusy(true);
     setError("");
@@ -210,6 +221,7 @@ export default function ReadAlongPage() {
       setError((err as Error).message);
       setReadState("waiting");
     } finally {
+      scoringRef.current = false;
       setBusy(false);
     }
   };
