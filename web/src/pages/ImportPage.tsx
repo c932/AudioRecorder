@@ -18,6 +18,7 @@ export default function ImportPage() {
   const [useAi, setUseAi] = useState(true);
   const [fileName, setFileName] = useState("");
   const [items, setItems] = useState<ParsedItem[] | null>(null);
+  const [progress, setProgress] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => {
@@ -36,22 +37,44 @@ export default function ImportPage() {
     setItems((arr) => (arr ? arr.filter((_, idx) => idx !== i) : arr));
   };
 
-  const pickFile = async (f: File) => {
-    setFileName(f.name);
-    setGroup(f.name.replace(/\.[^.]+$/, ""));
+  /** 逐个解析多个文件，合并结果到同一预览；单个失败不阻断整体。 */
+  const pickFiles = async (files: File[]) => {
+    if (files.length === 1) {
+      setFileName(files[0].name);
+      setGroup(files[0].name.replace(/\.[^.]+$/, ""));
+    } else {
+      setFileName(`${files.length} 个文件`);
+      setGroup(files[0].name.replace(/\.[^.]+$/, ""));
+    }
     setItems(null);
     setDone(null);
     setError("");
     setBusy(true);
-    try {
-      const r = await api.parseFile(f, useAi);
-      setItems(r.items);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
+
+    const allItems: ParsedItem[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      setProgress(`正在解析第 ${i + 1}/${files.length} 个文件…`);
+      try {
+        const r = await api.parseFile(files[i], useAi);
+        allItems.push(...r.items);
+      } catch (e) {
+        errors.push(`${files[i].name}: ${(e as Error).message}`);
+      }
     }
+
+    setItems(allItems.length > 0 ? allItems : null);
+    if (errors.length > 0) {
+      if (allItems.length === 0) {
+        setError(`全部文件解析失败：${errors.join("；")}`);
+      } else {
+        setError(`${errors.length} 个文件解析失败（已跳过）：${errors.join("；")}`);
+      }
+    }
+    setBusy(false);
+    setProgress("");
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const importParsed = async () => {
@@ -138,21 +161,22 @@ export default function ImportPage() {
             className="border-2 border-dashed border-desk-line rounded-xl px-4 py-8 text-center cursor-pointer hover:border-mango transition-colors"
           >
             <p className="text-ui font-bold">
-              {fileName || "选择 PDF / TXT / 图片词表"}
+              {fileName || "选择 PDF / TXT / 图片词表（可多选）"}
             </p>
             <p className="text-body text-ink-soft mt-1">
-              PDF 和图片由 AI 智能解析，扫描版课本也能识别
+              支持一次选择多个文件，结果合并到同一分组
             </p>
           </label>
           <input
             ref={fileRef}
             id="import-file"
             type="file"
+            multiple
             accept=".pdf,.txt,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
             className="sr-only"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) pickFile(f);
+              const files = e.target.files;
+              if (files && files.length > 0) pickFiles(Array.from(files));
             }}
           />
           <label className="flex items-center gap-2 text-ui font-semibold">
@@ -165,7 +189,7 @@ export default function ImportPage() {
             AI 智能解析（图片必须开启）
           </label>
 
-          {busy && <Spinner label="AI 解析中，可能要一分钟…" />}
+          {busy && <Spinner label={progress || "AI 解析中，可能要一分钟…"} />}
 
           {items && (
             <div className="flex flex-col gap-3">
