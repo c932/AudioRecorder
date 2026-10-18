@@ -16,10 +16,11 @@ export default function ImportPage() {
 
   // 文件模式：解析 → 预览表格（可编辑）→ 导入
   const [useAi, setUseAi] = useState(true);
-  const [fileName, setFileName] = useState("");
   const [items, setItems] = useState<ParsedItem[] | null>(null);
   const [progress, setProgress] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const imageRef = useRef<HTMLInputElement>(null);
+  const docRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => {
     api.groups().then((r) => setGroups(r.groups)).catch(() => {});
@@ -37,14 +38,24 @@ export default function ImportPage() {
     setItems((arr) => (arr ? arr.filter((_, idx) => idx !== i) : arr));
   };
 
-  /** 逐个解析多个文件，合并结果到同一预览；单个失败不阻断整体。 */
-  const pickFiles = async (files: File[]) => {
-    if (files.length === 1) {
-      setFileName(files[0].name);
-      setGroup(files[0].name.replace(/\.[^.]+$/, ""));
+  /** 从 input 追加图片到待解析列表 */
+  const addImages = (files: FileList | File[]) => {
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+    setPendingFiles((prev) => [...prev, ...images]);
+  };
+
+  const removePending = (i: number) => {
+    setPendingFiles((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  /** 逐个解析待选文件，合并结果到同一预览；单个失败不阻断整体。 */
+  const parsePending = async () => {
+    if (pendingFiles.length === 0) return;
+    if (pendingFiles.length === 1) {
+      setGroup(pendingFiles[0].name.replace(/\.[^.]+$/, ""));
     } else {
-      setFileName(`${files.length} 个文件`);
-      setGroup(files[0].name.replace(/\.[^.]+$/, ""));
+      setGroup(pendingFiles[0].name.replace(/\.[^.]+$/, ""));
     }
     setItems(null);
     setDone(null);
@@ -54,27 +65,47 @@ export default function ImportPage() {
     const allItems: ParsedItem[] = [];
     const errors: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      setProgress(`正在解析第 ${i + 1}/${files.length} 个文件…`);
+    for (let i = 0; i < pendingFiles.length; i++) {
+      setProgress(`正在解析第 ${i + 1}/${pendingFiles.length} 张图片…`);
       try {
-        const r = await api.parseFile(files[i], useAi);
+        const r = await api.parseFile(pendingFiles[i], true);
         allItems.push(...r.items);
       } catch (e) {
-        errors.push(`${files[i].name}: ${(e as Error).message}`);
+        errors.push(`${pendingFiles[i].name}: ${(e as Error).message}`);
       }
     }
 
     setItems(allItems.length > 0 ? allItems : null);
     if (errors.length > 0) {
       if (allItems.length === 0) {
-        setError(`全部文件解析失败：${errors.join("；")}`);
+        setError(`全部图片解析失败：${errors.join("；")}`);
       } else {
-        setError(`${errors.length} 个文件解析失败（已跳过）：${errors.join("；")}`);
+        setError(`${errors.length} 张图片解析失败（已跳过）：${errors.join("；")}`);
       }
     }
     setBusy(false);
     setProgress("");
-    if (fileRef.current) fileRef.current.value = "";
+    setPendingFiles([]);
+    if (imageRef.current) imageRef.current.value = "";
+    if (docRef.current) docRef.current.value = "";
+  };
+
+  /** 解析单个 PDF/TXT 文件 */
+  const pickDoc = async (f: File) => {
+    setGroup(f.name.replace(/\.[^.]+$/, ""));
+    setItems(null);
+    setDone(null);
+    setError("");
+    setBusy(true);
+    try {
+      const r = await api.parseFile(f, useAi);
+      setItems(r.items);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      if (docRef.current) docRef.current.value = "";
+    }
   };
 
   const importParsed = async () => {
@@ -87,7 +118,6 @@ export default function ImportPage() {
       const r = await api.importItems(items, g);
       setDone(r.imported);
       setItems(null);
-      setFileName("");
       refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -156,29 +186,85 @@ export default function ImportPage() {
 
       {tab === "file" ? (
         <div className="flex flex-col gap-3">
+          {/* ── 图片导入（累积模式，兼容不支持多选的手机） ── */}
           <label
-            htmlFor="import-file"
-            className="border-2 border-dashed border-desk-line rounded-xl px-4 py-8 text-center cursor-pointer hover:border-mango transition-colors"
+            htmlFor="import-images"
+            className="border-2 border-dashed border-desk-line rounded-xl px-4 py-5 text-center cursor-pointer hover:border-mango transition-colors"
           >
-            <p className="text-ui font-bold">
-              {fileName || "选择 PDF / TXT / 图片词表（可多选）"}
-            </p>
+            <p className="text-ui font-bold">📷 添加图片</p>
             <p className="text-body text-ink-soft mt-1">
-              支持一次选择多个文件，结果合并到同一分组
+              点此选择图片，可多次添加，选好后点下方按钮解析
             </p>
           </label>
           <input
-            ref={fileRef}
-            id="import-file"
+            ref={imageRef}
+            id="import-images"
             type="file"
-            multiple
-            accept="image/*,.pdf,.txt"
+            accept="image/*"
             className="sr-only"
             onChange={(e) => {
-              const files = e.target.files;
-              if (files && files.length > 0) pickFiles(Array.from(files));
+              if (e.target.files) addImages(e.target.files);
+              // 清空 value 以便再次选同名文件
+              e.target.value = "";
             }}
           />
+
+          {/* 待解析图片列表 */}
+          {pendingFiles.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-ui font-bold">
+                已选 {pendingFiles.length} 张图片
+              </p>
+              {pendingFiles.map((f, i) => (
+                <div
+                  key={`${f.name}-${i}`}
+                  className="bg-card border border-desk-line rounded-lg px-3 py-2 flex items-center gap-2"
+                >
+                  <span className="text-body flex-1 truncate">{f.name}</span>
+                  <span className="text-body text-ink-soft tabular-nums shrink-0">
+                    {(f.size / 1024).toFixed(0)} KB
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removePending(i)}
+                    className="text-body text-clay font-bold shrink-0 px-1.5"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                className={btnPrimary}
+                disabled={busy}
+                onClick={parsePending}
+              >
+                {busy ? "解析中…" : `开始解析 ${pendingFiles.length} 张图片`}
+              </button>
+            </div>
+          )}
+
+          {/* ── PDF / TXT 文件导入 ── */}
+          <label
+            htmlFor="import-doc"
+            className="border-2 border-dashed border-desk-line rounded-xl px-4 py-5 text-center cursor-pointer hover:border-mango transition-colors"
+          >
+            <p className="text-ui font-bold">📄 选择 PDF / TXT 文件</p>
+            <p className="text-body text-ink-soft mt-1">
+              适合整本词表或扫描版课本
+            </p>
+          </label>
+          <input
+            ref={docRef}
+            id="import-doc"
+            type="file"
+            accept=".pdf,.txt"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) pickDoc(f);
+            }}
+          />
+
           <label className="flex items-center gap-2 text-ui font-semibold">
             <input
               type="checkbox"
@@ -186,7 +272,7 @@ export default function ImportPage() {
               onChange={(e) => setUseAi(e.target.checked)}
               className="w-4 h-4 accent-mango"
             />
-            AI 智能解析（图片必须开启）
+            AI 智能解析（图片/PDF 必须开启）
           </label>
 
           {busy && <Spinner label={progress || "AI 解析中，可能要一分钟…"} />}
