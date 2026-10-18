@@ -172,7 +172,7 @@ export default function ImportPage() {
             id="import-file"
             type="file"
             multiple
-            accept=".pdf,.txt,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
+            accept="image/*,.pdf,.txt"
             className="sr-only"
             onChange={(e) => {
               const files = e.target.files;
