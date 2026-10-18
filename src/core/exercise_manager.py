@@ -86,6 +86,15 @@ class ExerciseManager:
                 counts[g] = counts.get(g, 0) + 1
         return counts
 
+    def get_group_words(self, group_name):
+        """Returns all items belonging to the specified group."""
+        words = []
+        for category in self.exercises:
+            for item in self.exercises[category]:
+                if item.get('group', 'Default') == group_name:
+                    words.append(item)
+        return words
+
     def delete_group(self, group_name):
         """Deletes all items belonging to the specified group."""
         changed = False

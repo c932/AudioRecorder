@@ -1,4 +1,4 @@
-"""分类速记（28天计划）路由。"""
+"""分类速记路由 — 支持 Day1-28 内置词库 + 用户导入词库。"""
 from __future__ import annotations
 
 import json
@@ -14,33 +14,49 @@ router = APIRouter(prefix="/api/memorize", tags=["memorize"])
 
 @router.get("/days")
 def list_days():
-    """返回全部 28 天模块（含当天词数、是否已开始）。"""
+    """返回全部模块（内置 Day1-28 + 词库分组），含词数、是否已开始。"""
     eng = get_memorize()
-    days = []
+    items = []
+
+    # 内置速记 Day1-28
     for d in eng.get_days():
         day_no = d.get("day")
+        key = f"d{day_no}"
         entries = eng.get_day_entries(day_no)
-        days.append({
-            "day": day_no,
+        items.append({
+            "key": key,
             "title": d.get("title", f"Day {day_no}"),
+            "source": "builtin",
             "count": len(entries),
-            "started": eng.is_started(day_no),
-            "progress": eng.get_module_progress(day_no),
+            "started": eng.is_started(key),
+            "progress": eng.get_module_progress(key),
         })
-    return {"days": days}
+
+    # 用户词库分组
+    for v in eng.get_vocab_days():
+        items.append({
+            "key": v["key"],
+            "title": v["title"],
+            "source": "vocab",
+            "count": v["count"],
+            "started": eng.is_started(v["key"]),
+            "progress": eng.get_module_progress(v["key"]),
+        })
+
+    return {"days": items}
 
 
-@router.get("/day/{day_no}")
-def get_day(day_no: int):
-    """返回某天的全部词条 + 进度。"""
+@router.get("/module")
+def get_module(key: str):
+    """返回某模块的全部词条 + 进度。key=d1~d28 或 v:分组名。"""
     eng = get_memorize()
-    entries = eng.get_day_entries(day_no)
+    entries = eng.get_entries(key)
     if not entries:
-        raise HTTPException(status_code=404, detail=f"Day {day_no} 不存在")
+        raise HTTPException(status_code=404, detail=f"模块 {key} 不存在")
     return {
-        "day": day_no,
+        "key": key,
         "entries": entries,
-        "progress": eng.get_module_progress(day_no),
+        "progress": eng.get_module_progress(key),
     }
 
 
@@ -50,26 +66,27 @@ def due_reviews():
     return {"due": get_memorize().get_due_reviews()}
 
 
-class StartModule(BaseModel):
-    day: int
+class KeyRequest(BaseModel):
+    key: str
 
 
 @router.post("/start")
-def start_module(req: StartModule):
+def start_module(req: KeyRequest):
     eng = get_memorize()
-    if not eng.get_day(req.day):
-        raise HTTPException(status_code=404, detail=f"Day {req.day} 不存在")
-    eng.start_module(req.day)
-    return {"ok": True, "progress": eng.get_module_progress(req.day)}
+    entries = eng.get_entries(req.key)
+    if not entries:
+        raise HTTPException(status_code=404, detail=f"模块 {req.key} 不存在")
+    eng.start_module(req.key)
+    return {"ok": True, "progress": eng.get_module_progress(req.key)}
 
 
 @router.post("/review")
-def complete_review(req: StartModule):
+def complete_review(req: KeyRequest):
     eng = get_memorize()
-    ok = eng.complete_review(req.day)
+    ok = eng.complete_review(req.key)
     if not ok:
-        raise HTTPException(status_code=400, detail=f"Day {req.day} 尚未开始")
-    return {"ok": True, "progress": eng.get_module_progress(req.day)}
+        raise HTTPException(status_code=400, detail=f"模块 {req.key} 尚未开始")
+    return {"ok": True, "progress": eng.get_module_progress(req.key)}
 
 
 # ------------------------------------------------------------------ #
@@ -77,7 +94,7 @@ def complete_review(req: StartModule):
 # ------------------------------------------------------------------ #
 
 class QuizRequest(BaseModel):
-    day: int
+    key: str
     mode: str = "en2cn"  # "en2cn" (英→中) 或 "cn2en" (中→英)
 
 
@@ -85,9 +102,9 @@ class QuizRequest(BaseModel):
 def generate_quiz(req: QuizRequest):
     """用 LLM 生成四选一测验题（混淆选项质量远高于本地随机抽取）。"""
     eng = get_memorize()
-    entries = eng.get_day_entries(req.day)
+    entries = eng.get_entries(req.key)
     if not entries:
-        raise HTTPException(status_code=404, detail=f"Day {req.day} 不存在或无词条")
+        raise HTTPException(status_code=404, detail=f"模块 {req.key} 不存在或无词条")
 
     mode = req.mode if req.mode in ("en2cn", "cn2en") else "en2cn"
 
@@ -99,7 +116,7 @@ def generate_quiz(req: QuizRequest):
         questions = _generate_local_quiz(entries, mode)
 
     # 记录测试
-    eng.record_test(req.day, 0, len(questions))
+    eng.record_test(req.key, 0, len(questions))
     return {"questions": questions, "total": len(questions)}
 
 
@@ -157,14 +174,11 @@ Return JSON:"""
         correct_answer = item.get("translation", "")
         if llm_result and len(llm_result.get("options", [])) == 4:
             opts = llm_result["options"]
-            # 不信任 LLM 的 correct_index —— 自己找正确答案在 options 中的位置
-            # 正确答案可能不是完全匹配（LLM 可能用了略有不同的措辞）
             ci = -1
             for j, opt in enumerate(opts):
                 if opt.strip() == correct_answer.strip() or correct_answer.strip() in opt:
                     ci = j
                     break
-            # 如果找不到正确答案，强制替换第一个选项为正确答案
             if ci < 0:
                 opts[0] = correct_answer
                 ci = 0
@@ -213,7 +227,6 @@ Return JSON:"""
         correct_answer = item["text"]
         if llm_result and len(llm_result.get("options", [])) == 4:
             opts = llm_result["options"]
-            # 不信任 LLM 的 correct_index —— 自己找正确答案
             ci = -1
             for j, opt in enumerate(opts):
                 if opt.strip().lower() == correct_answer.strip().lower():
@@ -284,12 +297,10 @@ def _local_cn2en(item: dict, entries_pool: list) -> dict:
 
 def _parse_json(content: str) -> list:
     """从 LLM 响应中提取 JSON 数组。"""
-    # 去掉 markdown 代码块
     if content.startswith("```"):
         lines = content.split("\n")
         content = "\n".join(l for l in lines if not l.startswith("```"))
     content = content.strip()
-    # 找到第一个 [ 和最后一个 ]
     start = content.find("[")
     end = content.rfind("]")
     if start >= 0 and end > start:

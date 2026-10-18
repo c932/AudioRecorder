@@ -9,25 +9,25 @@ import useStudyTracker from "../hooks/useStudyTracker";
 export default function MemorizeStudyPage() {
   const navigate = useNavigate();
   const loc = useLocation();
-  const state = (loc.state ?? {}) as { day?: number; title?: string; entries?: MemorizeEntry[] };
+  const state = (loc.state ?? {}) as { key?: string; title?: string; entries?: MemorizeEntry[] };
   const tracker = useStudyTracker("memorize", "分类速记");
 
   const resumeSnap = tracker.resumeSnapshot as {
-    day?: number; idx?: number;
+    key?: string; idx?: number;
   } | null;
   const restoreProgress = !!resumeSnap && !tracker.isReplay;
 
-  // 续学/再来一次时，从快照恢复 day，重新加载词条
-  const day = state.day ?? resumeSnap?.day;
+  // 续学/再来一次时，从快照恢复 key，重新加载词条
+  const key = state.key ?? resumeSnap?.key;
   const [entries, setEntries] = useState<MemorizeEntry[]>(state.entries ?? []);
   const [idx, setIdx] = useState(restoreProgress ? (resumeSnap?.idx ?? 0) : 0);
   const [flip, setFlip] = useState(0); // 0=英文, 1=中文, 2=英文+中文
 
-  // 续学/再来一次：如果没 entries 但有 day，从 API 加载
+  // 续学/再来一次：如果没 entries 但有 key，从 API 加载
   useEffect(() => {
-    if (entries.length > 0 || !day) return;
-    api.memorizeDay(day).then((r) => setEntries(r.entries)).catch(() => {});
-  }, [day]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (entries.length > 0 || !key) return;
+    api.memorizeModule(key).then((r) => setEntries(r.entries)).catch(() => {});
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 预取当前及后续几个词的发音
   if (entries.length > 0) {
@@ -39,22 +39,23 @@ export default function MemorizeStudyPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="学习" onBack={() => navigate("/memorize")} />
-        <p className="text-body text-ink-soft">没有词条，请从分类速记选择一天。</p>
+        <p className="text-body text-ink-soft">没有词条，请从分类速记选择一个模块。</p>
       </div>
     );
   }
 
   const e = entries[idx];
   const total = entries.length;
+  const label = state.title ?? key ?? "速记";
 
   const goToNext = () => {
     if (idx < total - 1) {
       const nextIdx = idx + 1;
       setIdx(nextIdx);
       setFlip(0);
-      const snap = { day: state.day, idx: nextIdx };
-      tracker.setLatest(snap, `速记Day${state.day}：第${nextIdx + 1}/${total}词`);
-      tracker.saveSnapshot(snap, `速记Day${state.day}：第${nextIdx + 1}/${total}词`);
+      const snap = { key, idx: nextIdx };
+      tracker.setLatest(snap, `${label}：第${nextIdx + 1}/${total}词`);
+      tracker.saveSnapshot(snap, `${label}：第${nextIdx + 1}/${total}词`);
     }
   };
   const prev = () => {
@@ -62,9 +63,9 @@ export default function MemorizeStudyPage() {
       const prevIdx = idx - 1;
       setIdx(prevIdx);
       setFlip(0);
-      const snap = { day: state.day, idx: prevIdx };
-      tracker.setLatest(snap, `速记Day${state.day}：第${prevIdx + 1}/${total}词`);
-      tracker.saveSnapshot(snap, `速记Day${state.day}：第${prevIdx + 1}/${total}词`);
+      const snap = { key, idx: prevIdx };
+      tracker.setLatest(snap, `${label}：第${prevIdx + 1}/${total}词`);
+      tracker.saveSnapshot(snap, `${label}：第${prevIdx + 1}/${total}词`);
     }
   };
 
@@ -85,13 +86,13 @@ export default function MemorizeStudyPage() {
   };
 
   const handleFinish = () => {
-    tracker.endSession(`速记Day${state.day}完成：${total}词`);
+    tracker.endSession(`${label}完成：${total}词`);
     navigate("/memorize");
   };
 
   return (
     <div className="flex flex-col gap-4 items-center">
-      <PageHeader title={state.title ?? `Day ${state.day} 学习`} onBack={() => navigate("/memorize")} />
+      <PageHeader title={state.title ?? "学习"} onBack={() => navigate("/memorize")} />
 
       {/* 进度 */}
       <p className="text-ui text-ink-soft">{idx + 1} / {total}</p>

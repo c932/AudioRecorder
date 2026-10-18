@@ -37,10 +37,30 @@ class MemorizeEngine:
         if os.path.exists(self.progress_file):
             try:
                 with open(self.progress_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                # 迁移旧键：纯数字 "1" → "d1"
+                self._migrate_keys(data)
+                return data
             except (json.JSONDecodeError, IOError):
                 pass
         return {"modules": {}}
+
+    def _migrate_keys(self, data):
+        """将旧版纯数字键（如 "1", "2"）迁移为 "d1", "d2" 格式。"""
+        modules = data.get("modules", {})
+        to_rename = []
+        for k in modules:
+            if k.isdigit():
+                to_rename.append(k)
+        if not to_rename:
+            return
+        for k in to_rename:
+            modules[f"d{k}"] = modules.pop(k)
+        try:
+            with open(self.progress_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception:
+            pass
 
     def save_progress(self):
         with open(self.progress_file, "w", encoding="utf-8") as f:
@@ -73,8 +93,73 @@ class MemorizeEngine:
                 })
         return entries
 
-    def to_practice_list(self, day_no):
+    def get_vocab_days(self):
+        """返回词库分组列表（以速记兼容格式），key 为 "v:分组名"。"""
+        from src.server.deps import get_exercise_manager
+        em = get_exercise_manager()
+        groups = em.get_groups()
+        counts = em.get_group_word_counts()
+        result = []
+        for g in groups:
+            if g.startswith("速记Day"):
+                continue  # 不重复展示内置速记分组
+            result.append({
+                "key": f"v:{g}",
+                "title": g,
+                "source": "vocab",
+                "count": counts.get(g, 0),
+            })
+        return result
+
+    def get_vocab_entries(self, group_name):
+        """返回词库分组的词条列表（以速记 entries 格式）。"""
+        from src.server.deps import get_exercise_manager
+        em = get_exercise_manager()
+        words = em.get_group_words(group_name)
+        entries = []
+        for w in words:
+            entries.append({
+                "text": w.get("text", ""),
+                "pos": w.get("phonetic", ""),
+                "translation": w.get("translation", ""),
+                "category": group_name,
+            })
+        return entries
+
+    def get_entries(self, key):
+        """按 key 统一获取词条：d1~d28 返回内置，v:分组名 返回词库。"""
+        if key.startswith("v:"):
+            return self.get_vocab_entries(key[2:])
+        if key.startswith("d") and key[1:].isdigit():
+            return self.get_day_entries(int(key[1:]))
+        return []
+
+    def get_module_title(self, key):
+        """按 key 获取模块标题。"""
+        if key.startswith("v:"):
+            return key[2:]
+        if key.startswith("d") and key[1:].isdigit():
+            day_no = int(key[1:])
+            day = self.get_day(day_no)
+            return day["title"] if day else f"Day {day_no}"
+        return key
+
+    def to_practice_list(self, key):
         """转成口语练习可用的词条列表（发音跟读用）"""
+        if key.startswith("v:"):
+            group_name = key[2:]
+            items = []
+            for e in self.get_vocab_entries(group_name):
+                items.append({
+                    "text": e["text"],
+                    "translation": e["translation"],
+                    "phonetic": "",
+                    "group": group_name,
+                })
+            return items
+        day_no = int(key[1:]) if key.startswith("d") and key[1:].isdigit() else None
+        if day_no is None:
+            return []
         items = []
         for e in self.get_day_entries(day_no):
             items.append({
@@ -87,9 +172,10 @@ class MemorizeEngine:
 
     # ---------- 学习进度与复习计划 ----------
 
-    def start_module(self, day_no, start_date=None):
-        """开始学习某天模块，记录起始日期并生成复习计划"""
-        key = str(day_no)
+    def start_module(self, key, start_date=None):
+        """开始学习某模块，记录起始日期并生成复习计划。
+        key: "d1"~"d28" (内置) 或 "v:分组名" (词库)
+        """
         modules = self.progress["modules"]
         if key not in modules:
             if start_date is None:
@@ -102,12 +188,12 @@ class MemorizeEngine:
             }
             self.save_progress()
 
-    def is_started(self, day_no):
-        return str(day_no) in self.progress["modules"]
+    def is_started(self, key):
+        return key in self.progress["modules"]
 
-    def get_module_progress(self, day_no):
+    def get_module_progress(self, key):
         """返回模块进度信息；未开始返回 None"""
-        m = self.progress["modules"].get(str(day_no))
+        m = self.progress["modules"].get(key)
         if not m:
             return None
         start = date.fromisoformat(m["start_date"])
@@ -140,7 +226,7 @@ class MemorizeEngine:
             due_date = start + timedelta(days=REVIEW_INTERVALS[stage])
             if due_date <= today:
                 due.append({
-                    "day": int(key),
+                    "key": key,
                     "stage": stage,
                     "due_date": due_date.isoformat(),
                     "overdue_days": (today - due_date).days,
@@ -148,9 +234,9 @@ class MemorizeEngine:
         due.sort(key=lambda x: x["due_date"])
         return due
 
-    def complete_review(self, day_no):
+    def complete_review(self, key):
         """完成一次复习，推进阶段"""
-        m = self.progress["modules"].get(str(day_no))
+        m = self.progress["modules"].get(key)
         if not m:
             return False
         m["stage"] = min(m["stage"] + 1, len(REVIEW_INTERVALS))
@@ -158,8 +244,8 @@ class MemorizeEngine:
         self.save_progress()
         return True
 
-    def record_test(self, day_no, score, total):
-        m = self.progress["modules"].get(str(day_no))
+    def record_test(self, key, score, total):
+        m = self.progress["modules"].get(key)
         if not m:
             return
         m["tests"].append({
@@ -175,9 +261,9 @@ class MemorizeEngine:
 
     # ---------- 记忆卡片 ----------
 
-    def build_cards(self, day_no, per_card=WORDS_PER_CARD):
+    def build_cards(self, key, per_card=WORDS_PER_CARD):
         """切分卡片。末尾只剩 1~3 个词条时并入前面 1~2 张卡，不单独成卡。"""
-        entries = self.get_day_entries(day_no)
+        entries = self.get_entries(key)
         if not entries:
             return []
         cards = [entries[i:i + per_card] for i in range(0, len(entries), per_card)]
@@ -189,7 +275,7 @@ class MemorizeEngine:
             cards[-1].extend(leftover[half:])
         return cards
 
-    def export_cards_pdf(self, day_no, out_path):
+    def export_cards_pdf(self, key, out_path):
         try:
             from reportlab.lib.pagesizes import A4
             from reportlab.lib.units import mm
@@ -198,9 +284,8 @@ class MemorizeEngine:
             raise RuntimeError("缺少 reportlab 库，请先安装：pip install reportlab")
 
         font, bold_font = _ensure_pdf_fonts()
-        cards = self.build_cards(day_no)
-        day = self.get_day(day_no)
-        title = day["title"] if day else ""
+        cards = self.build_cards(key)
+        title = self.get_module_title(key)
         total = len(cards)
 
         pw, ph = A4
@@ -210,7 +295,7 @@ class MemorizeEngine:
         card_w = pw - 2 * margin
 
         c = canvas.Canvas(out_path, pagesize=A4)
-        c.setTitle(f"单词速记卡 Day {day_no}")
+        c.setTitle(f"单词速记卡 {title}")
 
         all_entries = [e for c_ in cards for e in c_]
         x_idx = margin + 5 * mm
@@ -249,7 +334,7 @@ class MemorizeEngine:
             c.setFillColorRGB(0.05, 0.25, 0.55)
             c.setFont(bold_font, 17)
             c.drawCentredString(cx, top - 7.5 * mm,
-                                f"单词速记卡（第{day_no}天：{idx + 1:03d}/{total:03d}）")
+                                f"单词速记卡（{title}：{idx + 1:03d}/{total:03d}）")
             if title:
                 c.setFillColorRGB(0.55, 0.55, 0.55)
                 c.setFont(font, 10)
@@ -285,7 +370,7 @@ class MemorizeEngine:
         c.save()
         return out_path
 
-    def export_cards_docx(self, day_no, out_path):
+    def export_cards_docx(self, key, out_path):
         try:
             from docx import Document
             from docx.shared import Mm, Pt, RGBColor
@@ -296,9 +381,8 @@ class MemorizeEngine:
         except ImportError:
             raise RuntimeError("缺少 python-docx 库，请先安装：pip install python-docx")
 
-        cards = self.build_cards(day_no)
-        day = self.get_day(day_no)
-        title = day["title"] if day else ""
+        cards = self.build_cards(key)
+        title = self.get_module_title(key)
         total = len(cards)
 
         doc = Document()
@@ -392,7 +476,7 @@ class MemorizeEngine:
             cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             p = cell.paragraphs[0]
             clean_para(p, WD_ALIGN_PARAGRAPH.CENTER)
-            set_run(p.add_run(f"单词速记卡（第{day_no}天：{idx + 1:03d}/{total:03d}）"),
+            set_run(p.add_run(f"单词速记卡（{title}：{idx + 1:03d}/{total:03d}）"),
                     15, bold=True, color=(0x0D, 0x37, 0x6E))
             if title:
                 sub = cell.add_paragraph()
@@ -453,12 +537,12 @@ class MemorizeEngine:
 
     # ---------- 测验生成 ----------
 
-    def generate_quiz(self, day_no, count=10, mode="mixed"):
+    def generate_quiz(self, key, count=10, mode="mixed"):
         """生成选择题测验。
         mode: en2cn（英选中）/ cn2en（中选英）/ mixed（混合）
         返回 [{direction, question, question_extra, options, answer_index, entry}]
         """
-        entries = [e for e in self.get_day_entries(day_no) if e["translation"]]
+        entries = [e for e in self.get_entries(key) if e["translation"]]
         if not entries:
             return []
         rng = random.Random()

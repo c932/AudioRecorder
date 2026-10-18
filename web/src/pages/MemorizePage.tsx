@@ -6,11 +6,11 @@ import {
   btnPrimary, btnSecondary,
 } from "../components/ui";
 
-/** 分类速记 — 选 Day → 学习 / 复习 / 跟读 三个子模块。 */
+/** 分类速记 — 选模块 → 学习 / 复习 / 跟读 三个子模块。 */
 export default function MemorizePage() {
   const navigate = useNavigate();
   const [days, setDays] = useState<MemorizeDay[] | null>(null);
-  const [due, setDue] = useState<{ day: number; stage: number; due_date: string }[]>([]);
+  const [due, setDue] = useState<{ key: string; stage: number; due_date: string }[]>([]);
   const [sel, setSel] = useState<MemorizeDay | null>(null);
   const [entries, setEntries] = useState<MemorizeEntry[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,22 +23,22 @@ export default function MemorizePage() {
 
   useEffect(refresh, []);
 
-  const openDay = async (d: MemorizeDay) => {
+  const openModule = async (d: MemorizeDay) => {
     setSel(d);
     setEntries(null);
     setError("");
     try {
-      const r = await api.memorizeDay(d.day);
+      const r = await api.memorizeModule(d.key);
       setEntries(r.entries);
     } catch (e) {
       setError((e as Error).message);
     }
   };
 
-  const start = async (day: number) => {
+  const start = async (key: string) => {
     setBusy(true);
     try {
-      await api.memorizeStart(day);
+      await api.memorizeStart(key);
       refresh();
       setSel((s) => (s ? { ...s, started: true } : s));
     } catch (e) {
@@ -48,10 +48,10 @@ export default function MemorizePage() {
     }
   };
 
-  const review = async (day: number) => {
+  const review = async (key: string) => {
     setBusy(true);
     try {
-      await api.memorizeReview(day);
+      await api.memorizeReview(key);
       refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -62,26 +62,27 @@ export default function MemorizePage() {
 
   const goStudy = () => {
     if (!sel || !entries) return;
-    navigate("/memorize/study", { state: { day: sel.day, title: sel.title, entries } });
+    navigate("/memorize/study", { state: { key: sel.key, title: sel.title, entries } });
   };
 
   const goReview = () => {
     if (!sel) return;
-    navigate("/memorize/review", { state: { day: sel.day, title: sel.title } });
+    navigate("/memorize/review", { state: { key: sel.key, title: sel.title } });
   };
 
   const goPractice = () => {
     if (!sel || !entries) return;
+    const groupName = sel.source === "vocab" ? sel.title : `速记Day${sel.key.slice(1)}`;
     const items = entries.map((e) => ({
       text: e.text,
       translation: e.translation,
-      group: `速记Day${sel.day}`,
+      group: groupName,
       pos: e.pos,
     }));
     navigate("/practice", { state: { items } });
   };
 
-  // ── Day 详情：三个子模块入口 ──
+  // ── 模块详情：三个子模块入口 ──
   if (sel) {
     const prog = sel.progress;
     const stage = prog?.stage ?? 0;
@@ -134,11 +135,11 @@ export default function MemorizePage() {
         {/* 艾宾浩斯进度按钮 */}
         <div className="flex flex-wrap gap-2 mt-2">
           {!sel.started ? (
-            <button className={btnPrimary} disabled={busy} onClick={() => start(sel.day)}>
+            <button className={btnPrimary} disabled={busy} onClick={() => start(sel.key)}>
               开始学习
             </button>
           ) : stage < (prog?.total_stages ?? 5) ? (
-            <button className={btnSecondary} disabled={busy} onClick={() => review(sel.day)}>
+            <button className={btnSecondary} disabled={busy} onClick={() => review(sel.key)}>
               完成今日复习
             </button>
           ) : null}
@@ -147,7 +148,10 @@ export default function MemorizePage() {
     );
   }
 
-  // ── Day 列表 ──
+  // ── 模块列表 ──
+  const builtinDays = days?.filter((d) => d.source === "builtin") ?? [];
+  const vocabDays = days?.filter((d) => d.source === "vocab") ?? [];
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="分类速记" />
@@ -156,30 +160,64 @@ export default function MemorizePage() {
       {due.length > 0 && (
         <div className="bg-mango/20 border border-mango rounded-xl p-4">
           <p className="text-ui font-bold">今天要复习</p>
-          <p className="text-body text-ink-soft">{due.map((d) => `Day ${d.day}`).join(" · ")}</p>
+          <p className="text-body text-ink-soft">
+            {due.map((d) => d.key.startsWith("d") ? `Day ${d.key.slice(1)}` : d.key.slice(2)).join(" · ")}
+          </p>
         </div>
       )}
 
       {!days && <Spinner label="加载计划…" />}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        {days?.map((d) => (
-          <button
-            key={d.day}
-            type="button"
-            onClick={() => openDay(d)}
-            className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
-              d.started ? "border-l-4 border-mango" : "border-desk-line"
-            }`}
-          >
-            <p className="text-ui font-bold">Day {d.day}</p>
-            <p className="text-body text-ink-soft truncate">{d.title}</p>
-            <p className="text-body text-ink-soft">
-              {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
-            </p>
-          </button>
-        ))}
-      </div>
-      <p className="text-body text-ink-soft text-center">点击选择一天开始学习</p>
+
+      {/* 内置速记 Day1-28 */}
+      {builtinDays.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-ui font-bold">内置速记</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {builtinDays.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => openModule(d)}
+                className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
+                  d.started ? "border-l-4 border-mango" : "border-desk-line"
+                }`}
+              >
+                <p className="text-ui font-bold">Day {d.key.slice(1)}</p>
+                <p className="text-body text-ink-soft truncate">{d.title}</p>
+                <p className="text-body text-ink-soft">
+                  {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 我的词库 */}
+      {vocabDays.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-ui font-bold">我的词库</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {vocabDays.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => openModule(d)}
+                className={`bg-desk rounded-xl p-3 text-left border transition-colors hover:bg-[#DDD7C6] ${
+                  d.started ? "border-l-4 border-leaf" : "border-desk-line"
+                }`}
+              >
+                <p className="text-ui font-bold truncate">{d.title}</p>
+                <p className="text-body text-ink-soft">
+                  {d.count} 词{d.started ? ` · 复习 ${d.progress?.stage ?? 0} 轮` : ""}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-body text-ink-soft text-center">点击选择一个模块开始学习</p>
     </div>
   );
 }

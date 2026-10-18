@@ -15,7 +15,10 @@ export default function GroupPicker({ selected, onChange }: Props) {
     Promise.all([
       api.groups().then((r) => r.groups),
       api.memorizeDays().then((r) =>
-        r.days.map((d) => ({ name: `速记Day${d.day}`, count: d.count })),
+        r.days.map((d) => ({
+          name: d.source === "vocab" ? d.title : `速记Day${d.key.slice(1)}`,
+          count: d.count,
+        })),
       ),
     ])
       .then(([vocabGroups, memDays]) => {

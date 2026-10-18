@@ -132,8 +132,9 @@ export interface MemorizeProgress {
 }
 
 export interface MemorizeDay {
-  day: number;
+  key: string;       // "d1"~"d28" for builtin, "v:groupName" for vocab
   title: string;
+  source: string;    // "builtin" | "vocab"
   count: number;
   started: boolean;
   progress: MemorizeProgress | null;
@@ -318,17 +319,17 @@ export const api = {
 
   // ── 分类速记 ──────────────────────────────────────────────────
   memorizeDays: () => req<{ days: MemorizeDay[] }>("GET", "/api/memorize/days"),
-  memorizeDay: (day: number) =>
-    req<{ day: number; entries: MemorizeEntry[]; progress: MemorizeDay["progress"] }>(
+  memorizeModule: (key: string) =>
+    req<{ key: string; entries: MemorizeEntry[]; progress: MemorizeProgress | null }>(
       "GET",
-      `/api/memorize/day/${day}`,
+      `/api/memorize/module?key=${encodeURIComponent(key)}`,
     ),
   memorizeDue: () =>
-    req<{ due: { day: number; stage: number; due_date: string }[] }>("GET", "/api/memorize/due"),
-  memorizeStart: (day: number) => req<{ ok: boolean }>("POST", "/api/memorize/start", { day }),
-  memorizeReview: (day: number) => req<{ ok: boolean }>("POST", "/api/memorize/review", { day }),
-  memorizeQuiz: (day: number, mode: "en2cn" | "cn2en") =>
-    req<{ questions: MemorizeQuizQuestion[]; total: number }>("POST", "/api/memorize/quiz", { day, mode }),
+    req<{ due: { key: string; stage: number; due_date: string }[] }>("GET", "/api/memorize/due"),
+  memorizeStart: (key: string) => req<{ ok: boolean }>("POST", "/api/memorize/start", { key }),
+  memorizeReview: (key: string) => req<{ ok: boolean }>("POST", "/api/memorize/review", { key }),
+  memorizeQuiz: (key: string, mode: "en2cn" | "cn2en") =>
+    req<{ questions: MemorizeQuizQuestion[]; total: number }>("POST", "/api/memorize/quiz", { key, mode }),
 
   // ── 错题本 / 配置 ─────────────────────────────────────────────
   mistakes: () => req<{ oral: WordItem[]; quiz: WordItem[] }>("GET", "/api/mistakes"),

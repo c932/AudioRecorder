@@ -9,7 +9,7 @@ type Phase = "setup" | "quiz" | "done";
 export default function MemorizeReviewPage() {
   const navigate = useNavigate();
   const loc = useLocation();
-  const state = (loc.state ?? {}) as { day?: number; title?: string };
+  const state = (loc.state ?? {}) as { key?: string; title?: string };
 
   const [phase, setPhase] = useState<Phase>("setup");
   const [mode, setMode] = useState<"en2cn" | "cn2en">("en2cn");
@@ -21,11 +21,11 @@ export default function MemorizeReviewPage() {
   const [error, setError] = useState("");
 
   const start = async () => {
-    if (!state.day) return;
+    if (!state.key) return;
     setBusy(true);
     setError("");
     try {
-      const r = await api.memorizeQuiz(state.day, mode);
+      const r = await api.memorizeQuiz(state.key, mode);
       setQuestions(r.questions);
       setIdx(0);
       setPicked(null);
@@ -59,7 +59,7 @@ export default function MemorizeReviewPage() {
   if (phase === "setup") {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader title={state.title ?? `Day ${state.day} 复习`} onBack={() => navigate("/memorize")} />
+        <PageHeader title={state.title ?? "复习"} onBack={() => navigate("/memorize")} />
         <ErrorText text={error} />
         <div className="flex flex-col gap-3">
           <p className="text-ui font-bold">选择复习模式</p>
