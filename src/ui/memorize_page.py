@@ -312,7 +312,10 @@ class MemorizePage(QWidget):
         self.day_list.addItem(plan_item)
 
         today = date.today()
-        due_days = {d["day"] for d in self.engine.get_due_reviews(today)}
+        due_days = {
+            int(d["key"][1:]) for d in self.engine.get_due_reviews(today)
+            if d.get("key", "").startswith("d") and d["key"][1:].isdigit()
+        }
         for day in self.engine.get_days():
             no = day["day"]
             prog = self.engine.get_module_progress(no)
@@ -421,9 +424,13 @@ class MemorizePage(QWidget):
         modules = self.engine.progress.get("modules", {})
         today_str = date.today().isoformat()
         rows = []
-        for key in sorted(modules, key=int):
-            no = int(key)
-            prog = self.engine.get_module_progress(no)
+        day_keys = sorted(
+            (key for key in modules if key.startswith("d") and key[1:].isdigit()),
+            key=lambda key: int(key[1:]),
+        )
+        for key in day_keys:
+            no = int(key[1:])
+            prog = self.engine.get_module_progress(key)
             if prog["stage"] >= prog["total_stages"]:
                 status = "✅ 已完成"
             elif prog["next_due"] <= today_str:

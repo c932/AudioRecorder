@@ -128,6 +128,9 @@ class MemorizeEngine:
 
     def get_entries(self, key):
         """按 key 统一获取词条：d1~d28 返回内置，v:分组名 返回词库。"""
+        key = self._module_key(key)
+        if not isinstance(key, str):
+            return []
         if key.startswith("v:"):
             return self.get_vocab_entries(key[2:])
         if key.startswith("d") and key[1:].isdigit():
@@ -136,6 +139,9 @@ class MemorizeEngine:
 
     def get_module_title(self, key):
         """按 key 获取模块标题。"""
+        key = self._module_key(key)
+        if not isinstance(key, str):
+            return str(key)
         if key.startswith("v:"):
             return key[2:]
         if key.startswith("d") and key[1:].isdigit():
@@ -146,6 +152,9 @@ class MemorizeEngine:
 
     def to_practice_list(self, key):
         """转成口语练习可用的词条列表（发音跟读用）"""
+        key = self._module_key(key)
+        if not isinstance(key, str):
+            return []
         if key.startswith("v:"):
             group_name = key[2:]
             items = []
@@ -172,10 +181,20 @@ class MemorizeEngine:
 
     # ---------- 学习进度与复习计划 ----------
 
+    @staticmethod
+    def _module_key(key):
+        """兼容桌面端传入的整数 Day 编号。"""
+        if isinstance(key, int):
+            return f"d{key}"
+        if isinstance(key, str) and key.isdigit():
+            return f"d{key}"
+        return key
+
     def start_module(self, key, start_date=None):
         """开始学习某模块，记录起始日期并生成复习计划。
         key: "d1"~"d28" (内置) 或 "v:分组名" (词库)
         """
+        key = self._module_key(key)
         modules = self.progress["modules"]
         if key not in modules:
             if start_date is None:
@@ -189,11 +208,11 @@ class MemorizeEngine:
             self.save_progress()
 
     def is_started(self, key):
-        return key in self.progress["modules"]
+        return self._module_key(key) in self.progress["modules"]
 
     def get_module_progress(self, key):
         """返回模块进度信息；未开始返回 None"""
-        m = self.progress["modules"].get(key)
+        m = self.progress["modules"].get(self._module_key(key))
         if not m:
             return None
         start = date.fromisoformat(m["start_date"])
@@ -236,7 +255,7 @@ class MemorizeEngine:
 
     def complete_review(self, key):
         """完成一次复习，推进阶段"""
-        m = self.progress["modules"].get(key)
+        m = self.progress["modules"].get(self._module_key(key))
         if not m:
             return False
         m["stage"] = min(m["stage"] + 1, len(REVIEW_INTERVALS))
@@ -245,7 +264,7 @@ class MemorizeEngine:
         return True
 
     def record_test(self, key, score, total):
-        m = self.progress["modules"].get(key)
+        m = self.progress["modules"].get(self._module_key(key))
         if not m:
             return
         m["tests"].append({
