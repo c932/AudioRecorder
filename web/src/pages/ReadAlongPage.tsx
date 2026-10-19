@@ -1,4 +1,4 @@
-// 跟读教练 — 上传课文 → TTS 领读 → 跟读评分 → 低分重读 → 总结
+// 图书跟读 — 上传课文 → TTS 领读 → 跟读评分 → 低分重读 → 总结
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api, type ReadAlongSegment, type ReadAlongSession,
@@ -21,7 +21,7 @@ type ReadState = "idle" | "playing" | "waiting" | "recording" | "scoring" | "sco
 const STORAGE_KEY = "readalong_text";
 
 export default function ReadAlongPage() {
-  const tracker = useStudyTracker("readalong", "跟读教练");
+  const tracker = useStudyTracker("readalong", "图书跟读");
 
   const resumeSnap = tracker.resumeSnapshot as {
     sessionId?: string; segIdx?: number;
@@ -303,7 +303,7 @@ export default function ReadAlongPage() {
   if (phase === "setup") {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader title="跟读教练" />
+        <PageHeader title="图书跟读" />
         <ErrorText text={error} />
         <p className="text-ui text-ink-soft">
           上传课本图片或粘贴课文，AI 老师带你逐句朗读、评分、纠错。
@@ -446,7 +446,7 @@ export default function ReadAlongPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <PageHeader title="跟读教练" onBack={endSession} />
+      <PageHeader title="图书跟读" onBack={endSession} />
 
       {session && (
         <ProgressBar current={segIdx + 1} total={session.total} />

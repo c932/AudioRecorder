@@ -6,7 +6,7 @@ import {
   btnPrimary, btnSecondary,
 } from "../components/ui";
 
-/** 分类速记 — 选模块 → 学习 / 复习 / 跟读 三个子模块。 */
+/** 学习中心 — 选词库 → 学习 / 复习 / 跟读 三个子模块。 */
 export default function MemorizePage() {
   const navigate = useNavigate();
   const [days, setDays] = useState<MemorizeDay[] | null>(null);
@@ -154,7 +154,7 @@ export default function MemorizePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="分类速记" />
+      <PageHeader title="学习中心" />
       <ErrorText text={error} />
 
       {due.length > 0 && (

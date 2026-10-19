@@ -147,13 +147,23 @@ export interface MemorizeEntry {
   category: string;
 }
 
-export interface MemorizeQuizQuestion {
-  direction: "en2cn" | "cn2en";
-  question: string;
-  question_extra: string;
-  options: string[];
-  answer_index: number;
-  entry: MemorizeEntry;
+/** 统一出题引擎的题目结构（/api/memorize/quiz 返回，供学习中心复习使用）。 */
+export interface ReviewQuestion {
+  type: "en2zh" | "zh2en";
+  mode: "en2cn" | "cn2en" | "fill";
+  source_item: {
+    text: string;
+    translation?: string;
+    pos?: string;
+    group?: string;
+  };
+  question_text: string;
+  question_extra?: string;
+  options: string[] | null;
+  answer: string | null;
+  answers: string[] | null;
+  correct_index: number | null;
+  chinese_hint?: string | null;
 }
 
 export interface ParsedItem {
@@ -317,7 +327,7 @@ export const api = {
     }>("GET", "/api/tutor/summary"),
   tutorStop: () => req<{ ok: boolean }>("POST", "/api/tutor/stop"),
 
-  // ── 分类速记 ──────────────────────────────────────────────────
+  // ── 学习中心（原分类速记） ──────────────────────────────────────
   memorizeDays: () => req<{ days: MemorizeDay[] }>("GET", "/api/memorize/days"),
   memorizeModule: (key: string) =>
     req<{ key: string; entries: MemorizeEntry[]; progress: MemorizeProgress | null }>(
@@ -328,8 +338,12 @@ export const api = {
     req<{ due: { key: string; stage: number; due_date: string }[] }>("GET", "/api/memorize/due"),
   memorizeStart: (key: string) => req<{ ok: boolean }>("POST", "/api/memorize/start", { key }),
   memorizeReview: (key: string) => req<{ ok: boolean }>("POST", "/api/memorize/review", { key }),
-  memorizeQuiz: (key: string, mode: "en2cn" | "cn2en") =>
-    req<{ questions: MemorizeQuizQuestion[]; total: number }>("POST", "/api/memorize/quiz", { key, mode }),
+  memorizeQuiz: (key: string, mode: "en2cn" | "cn2en" | "fill") =>
+    req<{ questions: ReviewQuestion[]; total: number; mode: string }>("POST", "/api/memorize/quiz", { key, mode }),
+  memorizeAnswer: (question: ReviewQuestion, user_answer: string | string[]) =>
+    req<{ is_correct: boolean; correct_answer: string | string[] }>(
+      "POST", "/api/memorize/answer", { question, user_answer },
+    ),
 
   // ── 错题本 / 配置 ─────────────────────────────────────────────
   mistakes: () => req<{ oral: WordItem[]; quiz: WordItem[] }>("GET", "/api/mistakes"),

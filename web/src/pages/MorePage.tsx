@@ -1,9 +1,7 @@
 import { Link } from "react-router-dom";
 
 const MODULES = [
-  { to: "/practice", zh: "跟读练习", en: "Read & Score", desc: "听标准音 · 录音 · 音素级评分" },
-  { to: "/quiz", zh: "中英互译", en: "Translation Quiz", desc: "看词选义 · 看义选词" },
-  { to: "/scenario", zh: "情景会话", en: "Scenario Dialogue", desc: "LLM 生成的 A/B 角色对话" },
+  { to: "/practice", zh: "跟读练习", en: "Read & Score", desc: "练任意词库 · 听标准音 · 音素级评分" },
   { to: "/import", zh: "导入词库", en: "Import Words", desc: "粘贴文本批量建词" },
   { to: "/settings", zh: "设置", en: "Settings", desc: "练习偏好与引擎选择" },
 ];
