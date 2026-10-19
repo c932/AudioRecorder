@@ -10,7 +10,7 @@ export default function MemorizeStudyPage() {
   const navigate = useNavigate();
   const loc = useLocation();
   const state = (loc.state ?? {}) as { key?: string; title?: string; entries?: MemorizeEntry[] };
-  const tracker = useStudyTracker("memorize", "分类速记");
+  const tracker = useStudyTracker("memorize", "学习中心");
 
   const resumeSnap = tracker.resumeSnapshot as {
     key?: string; idx?: number;
@@ -39,7 +39,7 @@ export default function MemorizeStudyPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="学习" onBack={() => navigate("/memorize")} />
-        <p className="text-body text-ink-soft">没有词条，请从分类速记选择一个模块。</p>
+        <p className="text-body text-ink-soft">没有词条，请从学习中心选择一个模块。</p>
       </div>
     );
   }

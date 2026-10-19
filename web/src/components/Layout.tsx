@@ -1,32 +1,24 @@
 import { NavLink, Outlet } from "react-router-dom";
 import {
   HomeIcon,
-  MicIcon,
-  QuizIcon,
   OralTestIcon,
   TutorIcon,
   ReadAlongIcon,
-  ScenarioIcon,
   MemorizeIcon,
   MistakesIcon,
   StudyLogIcon,
-  ImportIcon,
-  SettingsIcon,
+  MoreIcon,
 } from "./icons";
 
 const TABS = [
   { to: "/", label: "首页", icon: HomeIcon, end: true },
-  { to: "/practice", label: "跟读", icon: MicIcon, end: false },
-  { to: "/quiz", label: "互译", icon: QuizIcon, end: false },
-  { to: "/oral-test", label: "口语", icon: OralTestIcon, end: false },
+  { to: "/memorize", label: "学习", icon: MemorizeIcon, end: false },
+  { to: "/oral", label: "口语", icon: OralTestIcon, end: false },
+  { to: "/readalong", label: "图书跟读", icon: ReadAlongIcon, end: false },
   { to: "/tutor", label: "家教", icon: TutorIcon, end: false },
-  { to: "/readalong", label: "跟读教练", icon: ReadAlongIcon, end: false },
-  { to: "/scenario", label: "会话", icon: ScenarioIcon, end: false },
-  { to: "/memorize", label: "速记", icon: MemorizeIcon, end: false },
   { to: "/mistakes", label: "错题", icon: MistakesIcon, end: false },
   { to: "/study-log", label: "记录", icon: StudyLogIcon, end: false },
-  { to: "/import", label: "导入", icon: ImportIcon, end: false },
-  { to: "/settings", label: "设置", icon: SettingsIcon, end: false },
+  { to: "/more", label: "更多", icon: MoreIcon, end: false },
 ];
 
 /** 移动端底部标签栏（拇指可达）+ 桌面顶部导航。 */

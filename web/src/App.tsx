@@ -1,9 +1,8 @@
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import PracticePage from "./pages/PracticePage";
-import QuizPage from "./pages/QuizPage";
-import OralHubPage from "./pages/OralHubPage";
+import OralPracticePage from "./pages/OralPracticePage";
 import OralTestPage from "./pages/OralTestPage";
 import ScenarioPage from "./pages/ScenarioPage";
 import TutorPage from "./pages/TutorPage";
@@ -28,8 +27,9 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="practice" element={<PracticePage />} />
-          <Route path="quiz" element={<QuizPage />} />
-          <Route path="oral" element={<OralHubPage />} />
+          {/* 旧模块入口重定向 */}
+          <Route path="quiz" element={<Navigate to="/memorize" replace />} />
+          <Route path="oral" element={<OralPracticePage />} />
           <Route path="oral-test" element={<OralTestPage />} />
           <Route path="scenario" element={<ScenarioPage />} />
           <Route path="tutor" element={<TutorPage />} />

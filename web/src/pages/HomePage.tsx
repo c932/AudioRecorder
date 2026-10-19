@@ -1,39 +1,34 @@
 import { Link } from "react-router-dom";
 import {
-  MicIcon,
-  QuizIcon,
   OralTestIcon,
   TutorIcon,
   ReadAlongIcon,
   MemorizeIcon,
   MistakesIcon,
-  ScenarioIcon,
   StudyLogIcon,
-  ImportIcon,
-  SettingsIcon,
 } from "../components/icons";
 
 const SECTIONS = [
   {
-    to: "/practice",
-    zh: "跟读练习",
-    en: "Read & Score",
-    icon: MicIcon,
-    desc: "听标准音 · 录音 · 音素级评分",
+    to: "/memorize",
+    zh: "学习中心",
+    en: "Learn Center",
+    icon: MemorizeIcon,
+    desc: "词库分组 · 闪卡 / 复习测验 / 跟读",
   },
   {
-    to: "/quiz",
-    zh: "中英互译",
-    en: "Translation Quiz",
-    icon: QuizIcon,
-    desc: "看词选义 · 看义选词",
-  },
-  {
-    to: "/oral-test",
-    zh: "口语测试",
-    en: "Oral Test",
+    to: "/oral",
+    zh: "口语练习",
+    en: "Oral Practice",
     icon: OralTestIcon,
-    desc: "看题作答 · 限时录音 · 评分反馈",
+    desc: "口语朗读 · 情景对话 · 逐句评分",
+  },
+  {
+    to: "/readalong",
+    zh: "图书跟读",
+    en: "Book Read-Along",
+    icon: ReadAlongIcon,
+    desc: "上传课文 · 领读跟读 · 音素评分",
   },
   {
     to: "/tutor",
@@ -41,27 +36,6 @@ const SECTIONS = [
     en: "AI Tutor",
     icon: TutorIcon,
     desc: "自由对话 · 话题引导 · 实时纠错",
-  },
-  {
-    to: "/readalong",
-    zh: "跟读教练",
-    en: "Read-Along Coach",
-    icon: ReadAlongIcon,
-    desc: "逐句跟读 · 音素级评分",
-  },
-  {
-    to: "/scenario",
-    zh: "情景会话",
-    en: "Scenario Dialogue",
-    icon: ScenarioIcon,
-    desc: "LLM 生成的 A/B 角色对话",
-  },
-  {
-    to: "/memorize",
-    zh: "分类速记",
-    en: "28-Day Memorize",
-    icon: MemorizeIcon,
-    desc: "按天推进的词汇计划",
   },
   {
     to: "/mistakes",
@@ -76,20 +50,6 @@ const SECTIONS = [
     en: "Study Log",
     icon: StudyLogIcon,
     desc: "学习统计 · 续学 · 历史记录",
-  },
-  {
-    to: "/import",
-    zh: "导入词库",
-    en: "Import Words",
-    icon: ImportIcon,
-    desc: "粘贴文本批量建词",
-  },
-  {
-    to: "/settings",
-    zh: "设置",
-    en: "Settings",
-    icon: SettingsIcon,
-    desc: "练习偏好与引擎选择",
   },
 ] as const;
 

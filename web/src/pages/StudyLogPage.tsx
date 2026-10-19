@@ -9,12 +9,12 @@ import { StudyLogIcon, ResumeIcon, TrashIcon } from "../components/icons";
 /** 模块 key → 路由 + 中文标签 */
 const MODULE_ROUTE: Record<string, { route: string; label: string }> = {
   practice: { route: "/practice", label: "跟读练习" },
-  quiz: { route: "/quiz", label: "中英互译" },
-  oral: { route: "/oral-test", label: "口语测试" },
+  quiz: { route: "/memorize/review", label: "中英互译" },
+  oral: { route: "/oral", label: "口语测试" },
   tutor: { route: "/tutor", label: "AI 家教" },
-  readalong: { route: "/readalong", label: "跟读教练" },
-  scenario: { route: "/scenario", label: "情景会话" },
-  memorize: { route: "/memorize/study", label: "分类速记" },
+  readalong: { route: "/readalong", label: "图书跟读" },
+  scenario: { route: "/oral", label: "情景会话" },
+  memorize: { route: "/memorize/study", label: "学习中心" },
   mistakes: { route: "/mistakes", label: "错题本" },
 };
 
