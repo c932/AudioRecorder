@@ -54,6 +54,8 @@ def answer_quiz(req: QuizAnswer):
     eng = _get_engine()
     is_correct = eng.validate_answer(req.question, req.user_answer)
     eng.record_result(req.question, is_correct, req.user_answer)
+    # 立即落盘：答题更新此前只停留在内存，容器/进程重启会丢
+    eng.save_results()
 
     correct = req.question.get("answer") or req.question.get("answers", "")
     return {"is_correct": is_correct, "correct_answer": correct}

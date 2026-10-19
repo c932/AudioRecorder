@@ -142,8 +142,11 @@ def answer_quiz(req: AnswerRequest):
     is_correct = qg.validate_answer(req.question, req.user_answer)
 
     source = req.question.get("source_item") or {}
+    mgr = get_exercise_manager()
     if source.get("text"):
-        get_exercise_manager().record_quiz_result(source, is_correct)
+        mgr.record_quiz_result(source, is_correct)
+        # 立即落盘：答题更新此前只停留在内存，容器/进程重启会丢
+        mgr.save_data()
 
     if req.question.get("type") == "en2zh":
         correct = req.question.get("answer", "")
