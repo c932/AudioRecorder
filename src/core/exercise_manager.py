@@ -144,6 +144,31 @@ class ExerciseManager:
                     return True
         return False
 
+    def record_quiz_result(self, word: dict, is_correct: bool) -> bool:
+        """记录测验结果；词条不存在时自动插入（用于速记词库等独立来源）。
+
+        Returns True when the result was recorded for an existing entry with the
+        same (text, group); an inserted entry gets fresh counters and True as well.
+        """
+        word_text = word.get("text", "")
+        group = word.get("group", "Default")
+        if not word_text:
+            return False
+        if not self.update_quiz_stats(word_text, group, is_correct):
+            entry = {
+                "text": word_text,
+                "translation": word.get("translation", ""),
+                "pos": word.get("pos", ""),
+                "group": group,
+                "quiz_correct": 0,
+                "quiz_wrong": 0,
+                "last_score": 0,
+                "times_practiced": 0,
+            }
+            self.add_exercises([entry], "words")
+            return self.update_quiz_stats(word_text, group, is_correct)
+        return True
+
     def get_quiz_stats(self, word_text, group):
         """Get quiz statistics for a specific word."""
         for category in self.exercises:

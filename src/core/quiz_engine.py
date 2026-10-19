@@ -12,6 +12,8 @@ import os
 from datetime import datetime
 from src.core.qt_compat import QObject, pyqtSignal
 
+from src.core import question_generator as qg
+from src.core.question_generator import MODE_EN2CN
 from src.core.content_parser import _get_llm_client_and_model
 from src.utils import get_user_data_path
 
@@ -188,303 +190,29 @@ class QuizEngine(QObject):
                         self.generation_error.emit(f"Question generation failed: {e}")
     
     def _generate_fill_blank(self, client, model: str, items: list) -> list:
-        """Generate fill-in-the-blank questions for phrases."""
-        # Read blank count from config
-        config_path = get_user_data_path("config.json")
-        blank_count = 1
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    cfg = json.load(f)
-                    blank_count = cfg.get("quiz_blank_count", 1)
-            except Exception:
-                pass
-
-        item_list = "\n".join([
-            f'{i+1}. "{item["text"]}" (中文: {item.get("translation", "")})'
-            for i, item in enumerate(items)
-        ])
-        
-        if blank_count == 1:
-            blank_rule = "Replace exactly 1 word — the most educationally valuable (key vocabulary) — with (1)______"
-            format_example = '[{{"index": 0, "full_sentence": "I keep a diary every night.", "blanked_sentence": "I (1)______ a diary every night.", "answers": ["keep"], "chinese_sentence": "我每天晚上记日记。"}}]'
-        else:
-            blank_rule = (
-                f"Replace exactly {blank_count} SEPARATE words with numbered blanks (1)______, (2)______, etc.\n"
-                "   - Choose {n} non-adjacent words if possible (spread across the sentence).\n"
-                "   - Pick the most challenging/complex words that test vocabulary knowledge.\n"
-                "   - Each blank should be a single word (not a phrase).\n"
-                "   - The answers array must list the words in blank order (1), (2), etc."
-            ).format(n=blank_count)
-            format_example = f'[{{"index": 0, "full_sentence": "She always keeps a diary and writes stories.", "blanked_sentence": "She always (1)______ a diary and (2)______ stories.", "answers": ["keeps", "writes"], "chinese_sentence": "她总是记日记并写故事。"}}]'
-        
-        prompt = f"""You are an English quiz expert for children. Generate fill-in-the-blank questions for the following English phrases.
-
-Phrase list:
-{item_list}
-
-Rules:
-1. For each phrase, create a simple example sentence containing the phrase (suitable for children).
-2. {blank_rule}
-3. CRITICAL: The blanked words (answers) must be plain English words only — letters, no symbols. NEVER use symbols like ℃, °, ℉, $, %, etc. as answers. If the phrase contains such symbols, rewrite the sentence to avoid them (e.g., "40.3 degrees" instead of "40.3°C").
-4. Provide a natural Chinese translation of the FULL sentence (chinese_sentence field). This helps students understand the context.
-5. Return ONLY a JSON array, no other text.
-6. Format: {format_example}
-
-Return JSON:"""
-        
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=800,
-                temperature=0.3
-            )
-            content = response.choices[0].message.content.strip()
-            parsed = self._parse_json_array(content)
-            
-            questions = []
-            for i, item in enumerate(items):
-                # Find matching result from LLM
-                llm_result = None
-                for r in parsed:
-                    if r.get("index") == i:
-                        llm_result = r
-                        break
-                
-                if llm_result:
-                    # Support both old "answer" and new "answers" format
-                    answers = llm_result.get("answers", None)
-                    if answers is None:
-                        ans = llm_result.get("answer", item["text"].split()[-1])
-                        answers = [ans] if isinstance(ans, str) else ans
-                    
-                    # Skip questions with non-English answers (e.g. ℃, °)
-                    if not self._is_valid_english_answer(answers):
-                        print(f"[QuizEngine] Skipping non-English answer: {answers} for '{item['text']}'")
-                        # Use local fallback for this item instead
-                        words = item["text"].split()
-                        if " " in item["text"]:
-                            sorted_w = sorted(words, key=len, reverse=True)
-                            to_blank = sorted_w[:1]
-                            blanked = item["text"]
-                            fb_answers = []
-                            for w in to_blank:
-                                blanked = blanked.replace(w, "(1)______", 1)
-                                fb_answers.append(w)
-                            questions.append({
-                                "type": "zh2en",
-                                "source_item": item,
-                                "question_text": blanked,
-                                "answers": fb_answers,
-                                "options": None,
-                                "correct_index": None,
-                                "chinese_hint": item.get("translation", ""),
-                            })
-                        # If single word, skip entirely (shouldn't happen here)
-                        continue
-                    
-                    # Use LLM-generated full sentence Chinese translation, fallback to phrase translation
-                    chinese_hint = llm_result.get("chinese_sentence", "") or item.get("translation", "")
-                    
-                    questions.append({
-                        "type": "zh2en",
-                        "source_item": item,
-                        "question_text": llm_result.get("blanked_sentence", ""),
-                        "answers": answers,
-                        "options": None,
-                        "correct_index": None,
-                        "chinese_hint": chinese_hint,
-                    })
-                else:
-                    # Fallback: blank the last word of the phrase
-                    words = item["text"].split()
-                    answer = words[-1] if words else item["text"]
-                    blanked = item["text"].rsplit(answer, 1)[0] + "(1)______"
-                    questions.append({
-                        "type": "zh2en",
-                        "source_item": item,
-                        "question_text": blanked,
-                        "answers": [answer],
-                        "options": None,
-                        "correct_index": None,
-                        "chinese_hint": item.get("translation", ""),
-                    })
-            
-            return questions
-            
-        except Exception as e:
-            print(f"[QuizEngine] Fill-blank LLM error: {e}")
-            # Fallback: generate simple local questions
-            return self._fallback_fill_blank(items)
+        """Generate fill-in-the-blank questions (统一走 question_generator)."""
+        return qg.llm_fill_batch(client, model, items)
     
     @staticmethod
     def _is_valid_english_answer(answers: list) -> bool:
-        """Check if all answers contain only typable English characters.
-        Rejects answers with non-ASCII symbols like ℃, °, ℉, etc.
-        """
-        import re
-        pattern = re.compile(r"^[a-zA-Z0-9\s\.\,\-\']+$")
-        for a in answers:
-            if not a or not pattern.match(a.strip()):
-                return False
-        return True
+        """Check if all answers contain only typable English characters."""
+        return qg.is_valid_english_answer(answers)
     
     def _fallback_fill_blank(self, items: list) -> list:
         """Fallback: generate fill-in-blank without LLM."""
-        # Read blank count from config
-        import os
-        config_path = get_user_data_path("config.json")
-        blank_count = 1
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    cfg = json.load(f)
-                    blank_count = cfg.get("quiz_blank_count", 1)
-            except Exception:
-                pass
-
-        questions = []
-        for item in items:
-            words = item["text"].split()
-            # Blank the N longest words (spread apart if possible)
-            sorted_words = sorted(words, key=len, reverse=True)
-            to_blank = sorted_words[:min(blank_count, len(sorted_words))]
-            
-            blanked = item["text"]
-            answers = []
-            for idx, w in enumerate(to_blank):
-                # 用单词边界匹配，防止短词匹配子串（如 "in" 匹配 "interested"）
-                blanked = re.sub(r'\b' + re.escape(w) + r'\b', f"({idx+1})______", blanked, count=1)
-                answers.append(w)
-            
-            questions.append({
-                "type": "zh2en",
-                "source_item": item,
-                "question_text": blanked,
-                "answers": answers,
-                "options": None,
-                "correct_index": None,
-                "chinese_hint": item.get("translation", ""),
-            })
-        return questions
+        return qg.local_fill_batch(items, qg.get_blank_count())
     
     def _generate_multiple_choice(self, client, model: str, items: list) -> list:
-        """Generate multiple-choice questions for en2zh."""
-        item_list = "\n".join([
-            f'{i+1}. "{item["text"]}" (中文: {item.get("translation", "")})'
-            for i, item in enumerate(items)
-        ])
-        
-        prompt = f"""You are an English quiz expert for children. Generate multiple-choice questions (English to Chinese) for the following words/phrases.
-
-Word list:
-{item_list}
-
-CRITICAL Rules for distractors:
-1. For each word/phrase, generate exactly 4 Chinese options (A/B/C/D).
-2. 1 correct answer + 3 distractors.
-3. IMPORTANT: Each distractor MUST have a CLEARLY DIFFERENT meaning from the correct answer. Do NOT use synonyms or near-synonyms — if a student argues "that also means the same thing", it's a BAD distractor.
-4. Distractor strategies (use a MIX):
-   - Related but WRONG: words from the same category/topic but meaning something completely different (e.g., for "slow down" = "减速", use "加速" (speed up), "停下来" (stop), "转弯" (turn) — NOT "放慢速度" or "慢下来" which are synonyms)
-   - Opposite meaning: antonyms or contrasting actions
-   - Same word family confusion: words that share characters but mean different things (e.g., "发现" vs "发明" vs "发展")
-   - Context trap: plausible in the same situation but different action (e.g., for "wake up": "睡着" (fall asleep) not "醒来" (wake up synonym))
-5. BAD example for "slow down": ["减速", "放慢速度", "慢下来", "降低速度"] — ALL are synonyms, any could be correct!
-6. GOOD example for "slow down": ["减速", "加速", "停下来", "转弯"] — each has a distinct meaning.
-7. Correct answer position should be random (not always A).
-8. Difficulty suitable for children.
-9. Return ONLY a JSON array, no other text.
-10. Format: [{{"index": 0, "question": "introduce", "options": ["介绍", "发现", "推荐", "隐藏"], "correct_index": 0}}]
-
-Return JSON:"""
-        
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=600,
-                temperature=0.7
-            )
-            content = response.choices[0].message.content.strip()
-            parsed = self._parse_json_array(content)
-            
-            questions = []
-            for i, item in enumerate(items):
-                llm_result = None
-                for r in parsed:
-                    if r.get("index") == i:
-                        llm_result = r
-                        break
-                
-                if llm_result and llm_result.get("options") and len(llm_result["options"]) == 4:
-                    correct_idx = llm_result.get("correct_index", 0)
-                    questions.append({
-                        "type": "en2zh",
-                        "source_item": item,
-                        "question_text": item["text"],
-                        "answer": llm_result["options"][correct_idx],
-                        "options": llm_result["options"],
-                        "correct_index": correct_idx,
-                        "chinese_hint": None,
-                    })
-                else:
-                    # Fallback: use correct translation + random distractors
-                    questions.append(self._fallback_choice(item))
-            
-            return questions
-            
-        except Exception as e:
-            print(f"[QuizEngine] Multiple-choice LLM error: {e}")
-            return [self._fallback_choice(item) for item in items]
+        """Generate multiple-choice questions (en2zh 四选一，统一走 question_generator)."""
+        return qg.llm_choice_batch(client, model, items, MODE_EN2CN)
     
     def _fallback_choice(self, item: dict) -> dict:
         """Fallback: generate a simple multiple-choice with the correct translation."""
-        correct = item.get("translation", "未知")
-        # Generate simple distractors (these won't be great without LLM)
-        distractors = ["未知含义", "其他意思", "近义词"]
-        options = [correct] + distractors
-        random.shuffle(options)
-        correct_idx = options.index(correct)
-        
-        return {
-            "type": "en2zh",
-            "source_item": item,
-            "question_text": item["text"],
-            "answer": correct,
-            "options": options,
-            "correct_index": correct_idx,
-            "chinese_hint": None,
-        }
+        return qg.local_choice(item, [], MODE_EN2CN)
     
     def _parse_json_array(self, content: str) -> list:
         """Robust JSON array extraction from LLM response."""
-        # Try direct parse
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            pass
-        
-        # Try regex extraction
-        match = re.search(r'\[.*\]', content, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-        
-        # Try stripping markdown code blocks
-        cleaned = re.sub(r'```(?:json)?\s*', '', content).strip()
-        cleaned = cleaned.rstrip('`').strip()
-        match = re.search(r'\[.*\]', cleaned, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-        
-        print(f"[QuizEngine] Failed to parse JSON from: {content[:200]}")
-        return []
+        return qg.parse_json_array(content)
     
     def validate_answer(self, question: dict, user_answer) -> bool:
         """Validate user answer locally (no LLM call).
