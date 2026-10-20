@@ -337,7 +337,9 @@ class TutorEngine(QObject):
             extra_context=(
                 f"学生的回答: \"{text}\"\n"
                 f"正确含义: \"{translation}\"\n"
-                f"请给一句具体的讲评，然后必须输出 meaning_correct 字段。"
+                f"判定规则：学生只答一个词、短语也算完整回答；核心意思与正确含义一致"
+                f"（含同义词、中英文均可）→ meaning_correct=true；只有完全偏离或明显误解才 false。\n"
+                f"先用中文给一句具体讲评，然后必须输出 meaning_correct 字段。"
             ),
             student_text=text,
         )
@@ -347,7 +349,9 @@ class TutorEngine(QObject):
         self._request_llm_student(
             extra_context=(
                 f"学生造的句子: \"{text}\"\n"
-                f"请检查语法和词汇使用，给一句具体讲评，然后必须输出 grammar_correct / correction 字段。"
+                f"判定规则：学生是初中生，允许小瑕疵——只要句子基本通顺且用上了目标词，"
+                f"grammar_correct=true，correction 可以给出更高级的说法；结构混乱/目标词用错才 false。\n"
+                f"先用中文给一句具体讲评，然后必须输出 grammar_correct / correction 字段。"
             ),
             student_text=text,
         )
@@ -568,6 +572,7 @@ class TutorEngine(QObject):
         base = "[教学提示·内部信息，不要原样复述给学生]"
         if extra_context:
             base += f"\n{extra_context}"
+        base += "\n（语言提醒：回复必须以中文为主，英文只能作为示例台词出现。）"
         return base
 
     def _llm_call(self, extra_context: str = "", student_text: str = None):
@@ -650,6 +655,19 @@ class TutorEngine(QObject):
 
     def _finalize_action(self, action_dict: dict, extra_context: str, student_text: str):
         """解析后统一处理：校验 action、保证判定字段、记录干净历史、必要时推进。"""
+        # 非结构化散文 + 引擎主动任务轮：按阶段回填任务 action，避免 UI 卡在纯气泡上
+        if student_text is None and action_dict.pop("_fallback", None):
+            instruct = {
+                TutorPhase.WORD_LISTEN: "ask_repeat",
+                TutorPhase.WORD_MEANING: "ask_meaning",
+                TutorPhase.SENTENCE_MAKING: "ask_sentence",
+                TutorPhase.MICRO_DIALOGUE: "dialogue",
+                TutorPhase.RETRY_PHASE: "ask_repeat",
+            }.get(self.phase)
+            if instruct:
+                print(f"[TutorEngine] Fallback prose during teacher turn -> remap to '{instruct}'")
+                action_dict["action"] = instruct
+
         action = action_dict.get("action", "feedback")
 
         # 阶段外 action 强制回落为 feedback，防止越权推进
@@ -833,6 +851,7 @@ class TutorEngine(QObject):
             "action": "feedback",
             "text": cleaned,
             "tts_text": "",
+            "_fallback": True,   # 标记：非结构化散文，finalize 按阶段回填任务语义
         }
 
     def _sanitize_action(self, data: dict) -> dict:
