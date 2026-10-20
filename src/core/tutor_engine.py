@@ -756,16 +756,25 @@ class TutorEngine(QObject):
 
     def _resolve_judgment(self, action_dict: dict, student_text: str):
         """讲评轮次缺判定字段时的本地启发式兜底。"""
-        if self.phase == TutorPhase.WORD_MEANING and "meaning_correct" not in action_dict:
+        if self.phase == TutorPhase.WORD_MEANING:
             guess = self._guess_meaning(student_text)
-            action_dict["meaning_correct"] = guess
-            print(f"[TutorEngine] meaning_correct missing, local guess={guess}")
-        if self.phase == TutorPhase.SENTENCE_MAKING and "grammar_correct" not in action_dict:
+            if "meaning_correct" not in action_dict:
+                action_dict["meaning_correct"] = guess
+                print(f"[TutorEngine] meaning_correct missing, local guess={guess}")
+            # LLM 明显失判（学生原话 == 释义关键词）时本地覆写
+            elif action_dict["meaning_correct"] is False and guess:
+                action_dict["meaning_correct"] = True
+                print("[TutorEngine] LLM said False but local overrule -> True (exact match)")
+        if self.phase == TutorPhase.SENTENCE_MAKING:
             guess = self._guess_sentence_ok(student_text)
-            action_dict["grammar_correct"] = guess
-            if guess:
-                action_dict.setdefault("correction", None)
-            print(f"[TutorEngine] grammar_correct missing, local guess={guess}")
+            if "grammar_correct" not in action_dict:
+                action_dict["grammar_correct"] = guess
+                if guess:
+                    action_dict.setdefault("correction", None)
+                print(f"[TutorEngine] grammar_correct missing, local guess={guess}")
+            elif action_dict["grammar_correct"] is False and guess:
+                action_dict["grammar_correct"] = True
+                print("[TutorEngine] LLM said False but local overrule -> True (target word ok)")
 
     def _guess_meaning(self, student_text: str) -> bool:
         """词义判定兜底：学生回答命中释义片段即算对。"""
@@ -845,6 +854,12 @@ class TutorEngine(QObject):
             except json.JSONDecodeError:
                 pass
 
+        # Last resort: 宽松修复破损 JSON（引号未闭合/字段裸写/前缀复读）
+        repaired = self._repair_loose_json(cleaned)
+        if repaired:
+            print("[TutorEngine] Broken JSON repaired by loose parser")
+            return self._sanitize_action(repaired)
+
         # Fallback: treat entire response as text feedback
         print(f"[TutorEngine] Failed to parse JSON, using fallback. Cleaned: {cleaned[:100]}")
         return {
@@ -853,6 +868,49 @@ class TutorEngine(QObject):
             "tts_text": "",
             "_fallback": True,   # 标记：非结构化散文，finalize 按阶段回填任务语义
         }
+
+    def _repair_loose_json(self, cleaned: str):
+        """宽松修复破损的 JSON 输出：只提取 action/text/判定字段，修不了返回 None。"""
+        m = re.search(
+            r'"action"\s*:\s*"(teach_word|ask_repeat|ask_meaning|ask_choice|ask_sentence|'
+            r'dialogue|feedback|next_word|session_end)"', cleaned)
+        if not m:
+            return None
+        d = {"action": m.group(1)}
+
+        # text / tts_text：值可能尾部缺引号，截断到下一个疑似字段边界
+        for key in ("text", "tts_text"):
+            km = re.search(rf'"{key}"\s*:\s*"(.*)$', cleaned, re.DOTALL)
+            if km:
+                val = km.group(1)
+                cut = re.search(r'(?:",?\s*)?[a-z_]{4,}"?\s*:\s*', val)
+                if cut:
+                    val = val[:cut.start()]
+                d[key] = val.rstrip('"}\\ \n\r\t').strip()
+        if not d.get("text"):
+            d["text"] = cleaned.strip()[:120]  # 修复不了就用原始文本前段
+
+        for key in ("meaning_correct", "grammar_correct"):
+            vm = re.search(rf'"?{key}"?\s*:\s*(true|false)', cleaned, re.IGNORECASE)
+            if vm:
+                d[key] = vm.group(1).lower() == "true"
+        cr = re.search(r'"correction"\s*:\s*(null|"(?:[^"\\]|\\.)*)', cleaned)
+        if cr and cr.group(1) != "null":
+            g = cr.group(1)
+            if g.endswith('"'):
+                d["correction"] = g[1:-1]
+        om = re.search(r'"?options"?\s*:\s*(\[[^\]]*\])', cleaned, re.DOTALL)
+        if om:
+            try:
+                d["options"] = json.loads(om.group(1))
+            except json.JSONDecodeError:
+                d["options"] = None
+        ca = re.search(r'"correct_answer"\s*:\s*("(?:[^"\\]|\\.)*")', cleaned)
+        if ca:
+            d["correct_answer"] = ca.group(1)[1:-1]
+        if d.get("action") == "ask_choice" and not d.get("options"):
+            return None   # 缺选项的选择题修不了，交回 fallback
+        return d
 
     def _sanitize_action(self, data: dict) -> dict:
         """Strip any remaining thinking/reasoning tags from action text fields."""
