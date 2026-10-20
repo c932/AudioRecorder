@@ -23,6 +23,10 @@ SHORT_PHONEME_COUNT = 4
 PAD_BEFORE_MS = 80
 PAD_AFTER_MS = 80
 
+# silero-vad 模型进程内缓存（torch.hub.load 每次调用要多花 100-300ms）
+_VAD_MODEL = None
+_VAD_UTILS = None
+
 
 def _audio_duration_seconds(audio_path: str) -> float:
     """Return WAV duration in seconds. Returns 0 on failure."""
@@ -66,13 +70,17 @@ def extract_speech(audio_path: str, expected_phoneme_count: int = 0) -> tuple[st
         import soundfile as sf
         import torch
 
-        # Load silero-vad via torch.hub (cached after first download).
-        model, utils = torch.hub.load(
-            repo_or_dir="snakers4/silero-vad",
-            model="silero_vad",
-            trust_repo=True,
-        )
-        (get_speech_timestamps, _, _, _, _) = utils
+        # Load silero-vad via torch.hub (cached in-process; hub cache on disk
+        # after first download). Reload per request would add ~100-300ms.
+        global _VAD_MODEL, _VAD_UTILS
+        if _VAD_MODEL is None:
+            model, utils = torch.hub.load(
+                repo_or_dir="snakers4/silero-vad",
+                model="silero_vad",
+                trust_repo=True,
+            )
+            _VAD_MODEL, _VAD_UTILS = model, utils
+        (get_speech_timestamps, _, _, _, _) = _VAD_UTILS
 
         # Load audio with soundfile (avoid torchaudio.load -> torchcodec dep).
         data, sr = sf.read(audio_path, dtype="float32", always_2d=True)
