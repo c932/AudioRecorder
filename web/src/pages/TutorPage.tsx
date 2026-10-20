@@ -159,7 +159,11 @@ export default function TutorPage() {
     setMode(m);
     if (m === "choice") {
       setOptions(opts);
-      setCorrectOption(findCorrectOption(opts, st.word, st.translation));
+      // 引擎保证 correct_answer（LLM 漏字段时本地推断），找不到再回退启发式
+      const ca = last?.correct_answer;
+      setCorrectOption(
+        ca && opts.includes(ca) ? ca : findCorrectOption(opts, st.word, st.translation),
+      );
     }
     // 播放 TTS，播完后自动开始录音
     if (last) {

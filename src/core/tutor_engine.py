@@ -46,52 +46,51 @@ PHASE_EXPECTED_ACTIONS = {
     TutorPhase.SESSION_COMPLETE: {"session_end", "feedback"},
 }
 
+# 每个阶段的行为卡片（注入 system prompt）
+PHASE_BEHAVIOR = {
+    "WORD_LISTEN": "用一个小情景引入当前词（teach_word），英语台词里自然用到它；结尾一句中文提示跟读。不要给翻译腔的机械介绍。",
+    "RETRY_PHASE": "这个词学生没掌握，先用 ask_repeat 请他跟读一遍，顺带鼓励。简短一点。",
+    "WORD_MEANING": "考意思：优先 ask_meaning 用一个包含目标词的情景句问『它是什么意思』；偶尔出 ask_choice 选择题。",
+    "WORD_CHOICE": "出一道四选一（ask_choice）考词义或用法，界面会展示选项列表。",
+    "SENTENCE_MAKING": "请学生用目标词造句（ask_sentence），可以给一个句式开头提示，鼓励复杂一点的句式。",
+    "MICRO_DIALOGUE": "以真实场景发起一轮对话（dialogue）：你说一句含目标词的英文（8-15词），然后向学生提一个具体的、需要思考的问题。",
+    "SESSION_COMPLETE": "总结本课（session_end）：点出学到的词、发音或用法的进步和仍需努力的词，给一句鼓励。",
+}
 
-TUTOR_SYSTEM_PROMPT = """你是一个面向中国初中生的英语情景对话教练（学生年龄12-15岁，已有小学英语基础）。
-你的任务是通过模拟真实场景的对话，让学生在交流中自然练习目标词汇。
+TUTOR_SYSTEM_PROMPT = """你是 {student_name} 的英语随身老师（学生：中国初中生，12-15 岁，有小学英语基础）。
+你的任务：通过自然的生活情景对话，帮助学生掌握目标词汇。全程中文交流，英文台词自然穿插其中。
 
-学生: {student_name}
-
-当前状态：
-- 目标词条: {current_word} ({translation})
+当前教学状态：
+- 学生: {student_name}
+- 目标词条: "{current_word}"（中文释义: {translation}；类型: {item_type}）
 - 当前阶段: {phase}
-- 可用词汇表: {allowed_words}
+- 本组可用词汇: {allowed_words}（只能使用这些词，禁止引入超纲词）
 
-教学方式（极其重要）：
-你不是在"教单词"——你是在和学生进行模拟情景对话！
-每次轮到你说话时，你要设计一个自然的生活场景（如购物、问路、打电话、在学校等），
-让对话中的英语句子包含当前目标词汇或其他词汇表中的词，然后引导学生用英语回应。
+本轮要做什么（严格执行）：
+{phase_behavior}
 
-难度要求（极其重要）：
-- 初中生已掌握基础日常词汇，不要再问太简单的问题（如 "What is your name?"、"How are you?"）
-- 选择题的干扰项必须是合理的易混淆项（如同义词、形近词、相关但错误的搭配），不要设置明显错误的选项
-- 造句要求应引导学生使用较复杂的句式（如条件句、定语从句、比较级等），不要只要求简单主谓宾
-- 对话情景要体现真实交际需求（如委婉请求、表达观点、比较选择），而非机械问答
-- 英语句子长度应在 8-15 词之间，避免过短（3-4词）或过长
+台词风格（重要）：
+1. 中文口语化，像聘请的真人老师，每次回复控制在 2-3 句；拒绝说教和罗列规则。
+2. 英文台词完整自然（8-15 词），场景要真实，例如点餐、问路、借书、运动、假期、聚会等。
+3. 不要重复上一次用过的情景；开头不要每次都用"好"、"很好"、"接下来"。
+4. 鼓励要具体到这次表现（例如指出他连读/回答里的亮点），纠正时给出正确的说法。
+5. {item_type} 注意：若是句子/短语（已是完整句子），不要再要求造句，直接在情景中使用它。
 
-例如，教 "profile" 时：
-- 你说："假设你在学校认识新朋友，对方想了解你：Can you tell me something about your profile? 你会怎么介绍自己呢？"
-- 学生尝试回答
-- 你鼓励并纠正
-
-RULES:
-1. **语言规则**：你的所有输出必须用**中文**写！只有对话中的英文句子保留英文。
-   ✅ "好，假设你在餐厅点餐。服务员问你：Would you like to see the menu? 你怎么回答？"
-   ❌ "Welcome! Today we will learn menu." ← 全英文，错误！
-2. ONLY use vocabulary from the allowed list. 禁止引入超纲词汇.
-3. Keep responses SHORT (≤60 words for text field).
-4. One task at a time. 每次只推动一步对话.
-5. 鼓励学生，温和纠正错误.
-6. You MUST respond in JSON format ONLY:
-   {{"action": "...", "text": "...", "tts_text": "..."}}
-7. For ask_choice action, also include: "options": ["A. xxx", "B. xxx", "C. xxx"] (3 choices, one correct). 干扰项必须有迷惑性！
-8. NEVER decide phase transitions. Only generate content for the CURRENT phase.
-9. tts_text 必须和 text 完全一样，直接复制 text 的内容即可.
-10. 情景要多样化：购物、餐厅点餐、问路、看病、打电话、运动、旅行、天气、生日派对等，不要重复同一场景.
-11. 尽量让对话中的英文句子同时包含多个词汇表中的词，帮学生在语境中串联记忆.
-12. 不要做翻译练习或机械跟读，而是让学生在对话中自然使用英语.
-13. 不要输出 <think> 或 <action> 等思考标签，直接输出JSON.
+输出纪律（最最重要）：
+- 只输出一个 JSON 对象。禁止输出任何其它文字、markdown 或思考过程。禁止 <think> 标签。
+- 格式: {{"action": "...", "text": "..."}}
+  - action 只能取: teach_word, ask_repeat, ask_meaning, ask_choice, ask_sentence, dialogue, feedback, next_word, session_end
+  - text = 这一轮说给学生听的完整台词（中文为主体，英文句子穿插其中）。
+  - 不要输出 tts_text 字段（系统会自动用 text 配音）。
+- ask_choice 追加字段: {{"options": ["A. 选项1", "B. 选项2", "C. 选项3"], "correct_answer": "带A./B./C.前缀的正确选项原文"}}；正确项位置随机；干扰项要有迷惑性（同话题不同义、反义、形近），绝不能出现明显荒谬的选项。
+- 讲评学生回答时（feedback），必须追加判定字段：
+  - 判断词义回答: {{"meaning_correct": true 或 false}}
+  - 判断造句: {{"grammar_correct": true 或 false, "correction": "修正后的句子或 null"}}
+  - 微对话回应: 不需要额外字段。
+- 语言规则: text 的中文部分必须占主体，英文仅为台词。绝不允许整条 text 全英文。
+- 只对本轮内容负责，phase 切换由系统控制，不要在 text 里说"现在进入XX阶段"这种系统口吻。
 """
+
 
 
 class TutorEngine(QObject):
@@ -136,6 +135,9 @@ class TutorEngine(QObject):
 
         # Dialogue history for LLM context
         self._messages = []
+
+        # 微对话轮数（同一词最多 2 轮学生发言后强制收尾）
+        self._dialogue_rounds = {}
 
         # LLM client cache
         self._llm_client = None
@@ -247,8 +249,14 @@ class TutorEngine(QObject):
         elif self.phase == TutorPhase.MICRO_DIALOGUE:
             self._handle_dialogue_answer(transcribed_text, word_text)
         else:
-            # Generic: just send to LLM
-            self._request_llm_for_phase(extra_context=f"学生说了：\"{transcribed_text}\"")
+            # Generic: 通用回答 -> 学生轮，LLM 自然接话；RETRY 等阶段讲评后可推进
+            self._request_llm_student(
+                extra_context=(
+                    f"学生刚才说了: \"{transcribed_text}\"\n"
+                    f"请结合当前任务自然接话讲评。"
+                ),
+                student_text=transcribed_text,
+            )
 
     def handle_choice_answer(self, chosen_option: str, correct_option: str):
         """Called when student selects a choice.
@@ -325,32 +333,35 @@ class TutorEngine(QObject):
     def _handle_meaning_answer(self, text: str, word_text: str):
         """Check if student knows the meaning."""
         translation = self.current_word.get("translation", "")
-        # Simple check: if translation appears in student's answer
-        # Let LLM do the actual judgment by including the context
-        self._request_llm_for_phase(
-            extra_context=f"学生回答：\"{text}\"。"
-                          f"正确意思是：\"{translation}\"。"
-                          f"请判断学生的回答是否表达了相同的意思。"
-                          f"如果正确，用 action 'feedback' 回复并包含 'meaning_correct': true。"
-                          f"如果错误，用 'meaning_correct': false 并给出正确答案。"
+        self._request_llm_student(
+            extra_context=(
+                f"学生的回答: \"{text}\"\n"
+                f"正确含义: \"{translation}\"\n"
+                f"请给一句具体的讲评，然后必须输出 meaning_correct 字段。"
+            ),
+            student_text=text,
         )
 
     def _handle_sentence_answer(self, text: str, word_text: str):
         """Student made a sentence. LLM checks grammar."""
-        self._request_llm_for_phase(
-            extra_context=f"学生造了这个句子：\"{text}\"。"
-                          f"请检查语法和词汇使用。"
-                          f"在回复中包含 'grammar_correct': bool 和 'correction': str 或 null。"
+        self._request_llm_student(
+            extra_context=(
+                f"学生造的句子: \"{text}\"\n"
+                f"请检查语法和词汇使用，给一句具体讲评，然后必须输出 grammar_correct / correction 字段。"
+            ),
+            student_text=text,
         )
 
     def _handle_dialogue_answer(self, text: str, word_text: str):
         """Handle micro-dialogue reply."""
         self.word_mastery[word_text]["used_in_dialogue"] = True
-        # Let LLM respond, then we advance
-        self._request_llm_for_phase(
-            extra_context=f"学生回复了：\"{text}\"。"
-                          f"请给一个简短积极的回应来结束这段微对话。"
-                          f"使用 action 'feedback'。"
+        self._request_llm_student(
+            extra_context=(
+                f"学生回复: \"{text}\"\n"
+                f"请用一两句自然回应，肯定发言亮点并推进对话（对话继续 -> 以 dialogue 结尾），"
+                f"然后结束本轮微对话。"
+            ),
+            student_text=text,
         )
 
     def _advance_after_feedback(self, action_dict: dict):
@@ -522,189 +533,253 @@ class TutorEngine(QObject):
         ).start()
 
     def _request_llm_for_phase(self, extra_context: str = ""):
-        """Send request to LLM in background thread."""
+        """Teacher turn: 引擎主动推进，向 LLM 请求本轮台词。"""
         threading.Thread(
             target=self._llm_call,
-            args=(extra_context,),
+            args=(extra_context, None),
             daemon=True
         ).start()
 
-    def _llm_call(self, extra_context: str = ""):
-        """Background LLM call. Parses structured JSON response."""
+    def _request_llm_student(self, extra_context: str, student_text: str):
+        """Student turn: 刚收到学生输入，LLM 讲评后引擎自动推进。"""
+        threading.Thread(
+            target=self._llm_call,
+            args=(extra_context, student_text),
+            daemon=True
+        ).start()
+
+    # ------------------------------------------------------------------ #
+
+    def _build_system_prompt(self) -> str:
+        allowed_words = ", ".join(w["text"] for w in self.vocabulary[:20])
+        if len(self.vocabulary) > 20:
+            allowed_words += f" ...（共 {len(self.vocabulary)} 个）"
+        return TUTOR_SYSTEM_PROMPT.format(
+            student_name=self.student_name,
+            current_word=self.current_word.get("text", ""),
+            translation=self.current_word.get("translation", ""),
+            item_type=self._get_item_type(),
+            phase=self.phase.name,
+            allowed_words=allowed_words,
+            phase_behavior=PHASE_BEHAVIOR.get(self.phase.name, "继续当前任务。"),
+        )
+
+    def _build_user_turn(self, extra_context: str) -> str:
+        base = "[教学提示·内部信息，不要原样复述给学生]"
+        if extra_context:
+            base += f"\n{extra_context}"
+        return base
+
+    def _llm_call(self, extra_context: str = "", student_text: str = None):
+        """Background LLM call. Parses structured JSON response.
+
+        student_text 非 None 表示本轮由学生输入触发 -> feedback 后自动推进。
+        """
         try:
             config = self._load_config()
-            # Route to omni client if configured
             if _is_omni_provider(config):
-                self._llm_call_omni(config, extra_context)
+                self._llm_call_omni(config, extra_context, student_text)
                 return
             if self._llm_client is None:
                 self._llm_client, self._llm_model = _get_llm_client_and_model(config)
 
-            # Build system prompt
-            allowed_words = ", ".join(w["text"] for w in self.vocabulary[:20])
-            if len(self.vocabulary) > 20:
-                allowed_words += f" ... ({len(self.vocabulary)} total)"
-
-            system_prompt = TUTOR_SYSTEM_PROMPT.format(
-                student_name=self.student_name,
-                current_word=self.current_word["text"],
-                translation=self.current_word.get("translation", ""),
-                item_type=self._get_item_type(),
-                phase=self.phase.name,
-                allowed_words=allowed_words,
-            )
-
-            # Build messages
-            messages = [{"role": "system", "content": system_prompt}]
-
-            # Include recent dialogue history (last 10 messages)
-            messages.extend(self._messages[-10:])
-
-            # Add current user turn with extra context
-            user_content = f"[Phase: {self.phase.name}]"
-            if extra_context:
-                user_content += f"\n{extra_context}"
-            user_content += "\n\n请直接输出JSON，不要输出任何其他内容。格式：{\"action\": \"...\", \"text\": \"...\", \"tts_text\": \"...\"}"
+            user_content = self._build_user_turn(extra_context)
+            messages = [{"role": "system", "content": self._build_system_prompt()}]
+            messages.extend(self._messages[-12:])
             messages.append({"role": "user", "content": user_content})
 
-            # Call LLM
+            # 讲评/出题轮次降温，保证判分与 JSON 纪律；自由台词高温增加多样性
+            judging = student_text is not None or self.phase in (
+                TutorPhase.WORD_MEANING, TutorPhase.WORD_CHOICE,
+            )
             response = self._llm_client.chat.completions.create(
-                 model=self._llm_model,
+                model=self._llm_model,
                 messages=messages,
-                temperature=0.4,
-                max_tokens=300,
+                temperature=0.35 if judging else 0.7,
+                max_tokens=600,
             )
 
-            raw_text = response.choices[0].message.content.strip()
-            # Some models (Qwen3 via Ollama) put thinking in reasoning_content — ignore it
-            # If reasoning_content exists and content is empty, that's a problem; log it.
-            rc = getattr(response.choices[0].message, 'reasoning_content', None)
+            raw_text = (response.choices[0].message.content or "").strip()
+            rc = getattr(response.choices[0].message, "reasoning_content", None)
             if rc:
                 print(f"[TutorEngine] LLM reasoning_content ignored ({len(rc)} chars)")
             print(f"[TutorEngine] LLM raw: {raw_text[:200]}")
 
-            # Parse JSON action
             action_dict = self._parse_llm_response(raw_text)
-
-            # Save to dialogue history
-            self._messages.append({"role": "user", "content": user_content})
-            self._messages.append({"role": "assistant", "content": raw_text})
-
-            # Validate action for current phase
-            action = action_dict.get("action", "feedback")
-            expected = PHASE_EXPECTED_ACTIONS.get(self.phase, {"feedback"})
-            if action not in expected and action != "feedback":
-                print(f"[TutorEngine] Action '{action}' not expected in {self.phase.name}, forcing 'feedback'")
-                action_dict["action"] = "feedback"
-
-            # Emit to UI
-            self.tutor_action_ready.emit(action_dict)
-
-            # Auto-advance for certain actions
-            # Only auto-advance if this was a genuine feedback (not a forced fallback
-            # from ask_choice/ask_meaning etc.)
-            if action == "feedback" and self.phase in (
-                TutorPhase.WORD_MEANING, TutorPhase.SENTENCE_MAKING,
-                TutorPhase.MICRO_DIALOGUE, TutorPhase.RETRY_PHASE
-            ):
-                # Check if this is a response to student input (has meaning_correct/grammar_correct)
-                # or a forced feedback from invalid action — don't auto-advance on introductory messages
-                has_student_response = (
-                    action_dict.get("meaning_correct") is not None
-                    or action_dict.get("grammar_correct") is not None
-                    or "学生" in (extra_context or "")
-                    or "Student" in (extra_context or "")
-                )
-                if has_student_response:
-                    self._advance_after_feedback(action_dict)
+            self._finalize_action(action_dict, extra_context, student_text)
 
         except Exception as e:
             print(f"[TutorEngine] LLM error: {e}")
             self.error_occurred.emit(f"AI 请求失败: {str(e)[:100]}")
 
-    def _llm_call_omni(self, config, extra_context: str = ""):
+    def _llm_call_omni(self, config, extra_context: str = "", student_text: str = None):
         """LLM call via MiniCPM-o Omni client (custom JWT+SSE API)."""
         try:
             from src.core.omni_client import OmniError
             client = _get_omni_client(config)
 
-            # Build the same system + user prompt as the OpenAI path
-            allowed_words = ", ".join(w["text"] for w in self.vocabulary[:20])
-            if len(self.vocabulary) > 20:
-                allowed_words += f" ... ({len(self.vocabulary)} total)"
+            user_content = self._build_user_turn(extra_context)
 
-            system_prompt = TUTOR_SYSTEM_PROMPT.format(
-                student_name=self.student_name,
-                current_word=self.current_word["text"],
-                translation=self.current_word.get("translation", ""),
-                item_type=self._get_item_type(),
-                phase=self.phase.name,
-                allowed_words=allowed_words,
-            )
-
-            # Omni chat has no separate system role; concatenate.
-            user_content = f"[Phase: {self.phase.name}]"
-            if extra_context:
-                user_content += f"\n{extra_context}"
-            user_content += "\n\n请直接输出JSON，不要输出任何其他内容。格式：{\"action\": \"...\", \"text\": \"...\", \"tts_text\": \"...\"}"
-
-            # Include recent dialogue as context text
+            # Omni 无独立 system role：拼接为纯文本
             history_text = ""
-            for msg in self._messages[-10:]:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-                history_text += f"{role}: {content}\n"
+            for msg in self._messages[-12:]:
+                history_text += f"{msg.get('role')}: {msg.get('content', '')}\n"
 
             full_prompt = (
-                f"{system_prompt}\n\n"
-                f"对话历史:\n{history_text}\n"
-                f"user: {user_content}"
+                f"{self._build_system_prompt()}\n\n"
+                f"对话历史:\n{history_text}"
+                f"user: {user_content}\n"
+                f"assistant: "
             )
 
             def on_audio_merged(url):
                 if url and config.get("omni_tts_enabled", True):
                     self.omni_audio_ready.emit(url)
 
-            raw_text = client.chat(
-                text=full_prompt,
-                on_audio_merged=on_audio_merged,
-            )
-
+            raw_text = client.chat(text=full_prompt, on_audio_merged=on_audio_merged)
             print(f"[TutorEngine] Omni raw: {raw_text[:200]}")
 
-            # Reuse the same JSON parser + validation
             action_dict = self._parse_llm_response(raw_text)
+            self._finalize_action(action_dict, extra_context, student_text)
 
-            self._messages.append({"role": "user", "content": user_content})
-            self._messages.append({"role": "assistant", "content": raw_text})
-
-            action = action_dict.get("action", "feedback")
-            expected = PHASE_EXPECTED_ACTIONS.get(self.phase, {"feedback"})
-            if action not in expected and action != "feedback":
-                print(f"[TutorEngine] Omni action '{action}' not expected in {self.phase.name}, forcing 'feedback'")
-                action_dict["action"] = "feedback"
-
-            self.tutor_action_ready.emit(action_dict)
-
-            if action == "feedback" and self.phase in (
-                TutorPhase.WORD_MEANING, TutorPhase.SENTENCE_MAKING,
-                TutorPhase.MICRO_DIALOGUE, TutorPhase.RETRY_PHASE
-            ):
-                has_student_response = (
-                    action_dict.get("meaning_correct") is not None
-                    or action_dict.get("grammar_correct") is not None
-                    or "学生" in (extra_context or "")
-                    or "Student" in (extra_context or "")
-                )
-                if has_student_response:
-                    self._advance_after_feedback(action_dict)
-
-        except OmniError as e:
-            print(f"[TutorEngine] Omni error: {e}")
-            self.error_occurred.emit(f"Omni 请求失败: {str(e)[:100]}")
         except Exception as e:
             print(f"[TutorEngine] Omni error: {e}")
             self.error_occurred.emit(f"Omni 请求失败: {str(e)[:100]}")
+
+    # ------------------------------------------------------------------ #
+
+    def _finalize_action(self, action_dict: dict, extra_context: str, student_text: str):
+        """解析后统一处理：校验 action、保证判定字段、记录干净历史、必要时推进。"""
+        action = action_dict.get("action", "feedback")
+
+        # 阶段外 action 强制回落为 feedback，防止越权推进
+        expected = PHASE_EXPECTED_ACTIONS.get(self.phase, {"feedback"})
+        if action not in expected and action != "feedback":
+            print(f"[TutorEngine] Action '{action}' not expected in {self.phase.name}, forcing 'feedback'")
+            action_dict["action"] = "feedback"
+            action = "feedback"
+
+        # tts_text 统一等于 text（路由按 text 合成 TTS，省掉 LLM 重复输出）
+        action_dict["tts_text"] = action_dict.get("text", "")
+
+        # 选择题：确保能定位正确选项
+        if action == "ask_choice":
+            self._ensure_choice_answer(action_dict)
+
+        # 微对话轮数上限：同一词最多 2 轮学生发言，之后强制收尾
+        if student_text is not None and self.phase == TutorPhase.MICRO_DIALOGUE:
+            word = self.current_word.get("text", "")
+            rounds = self._dialogue_rounds.get(word, 0) + 1
+            self._dialogue_rounds[word] = rounds
+            if rounds >= 2 and action_dict["action"] == "dialogue":
+                action_dict["action"] = "feedback"
+                action_dict.setdefault("_wrap_dialogue", True)
+
+        # 写入安静历史：assistant 只存台词，student turn 存学生原话
+        assistant_text = action_dict.get("text", "") or "(…)"
+        self._messages.append({
+            "role": "assistant",
+            "content": assistant_text,
+        })
+        if student_text is not None:
+            self._messages.append({"role": "user", "content": f"（学生：{student_text}）"})
+
+        # LLM 漏掉判定字段时本地兜底，避免"说什么都判对"
+        if student_text is not None and action_dict["action"] == "feedback":
+            self._resolve_judgment(action_dict, student_text)
+
+        self.tutor_action_ready.emit(action_dict)
+
+        # 学生轮 + feedback -> 引擎自动推进阶段
+        if (
+            student_text is not None
+            and action_dict["action"] == "feedback"
+            and self.phase in (
+                TutorPhase.WORD_MEANING, TutorPhase.SENTENCE_MAKING,
+                TutorPhase.MICRO_DIALOGUE, TutorPhase.RETRY_PHASE,
+            )
+        ):
+            self._advance_after_feedback(action_dict)
+
+    def _ensure_choice_answer(self, action_dict: dict):
+        """保证 ask_choice 有可判定的 correct_answer（LLM 漏掉时本地推断）。"""
+        options = action_dict.get("options") or []
+        if not options:
+            return
+        correct = str(action_dict.get("correct_answer") or "").strip()
+        if correct and any(str(o).strip() == correct for o in options):
+            try:
+                action_dict["correct_index"] = list(options).index(
+                    next(o for o in options if str(o).strip() == correct))
+            except StopIteration:
+                pass
+            return
+
+        # 本地推断：清洗 "A. " 前缀后按目标词/释义匹配
+        word = self.current_word.get("text", "")
+        trans = self.current_word.get("translation", "")
+        best = None
+        for o in options:
+            clean = re.sub(r"^[A-G][.、]\s*", "", str(o)).strip()
+            if clean and word and (
+                clean.lower() == word.lower()
+                or (trans and (clean == trans or clean in trans or trans in clean))
+            ):
+                best = o
+                break
+        if best is None:
+            best = options[0]
+        print(f"[TutorEngine] correct_answer missing, local guess: {best}")
+        action_dict["correct_answer"] = best
+        try:
+            action_dict["correct_index"] = list(options).index(best)
+        except ValueError:
+            pass
+
+    def _resolve_judgment(self, action_dict: dict, student_text: str):
+        """讲评轮次缺判定字段时的本地启发式兜底。"""
+        if self.phase == TutorPhase.WORD_MEANING and "meaning_correct" not in action_dict:
+            guess = self._guess_meaning(student_text)
+            action_dict["meaning_correct"] = guess
+            print(f"[TutorEngine] meaning_correct missing, local guess={guess}")
+        if self.phase == TutorPhase.SENTENCE_MAKING and "grammar_correct" not in action_dict:
+            guess = self._guess_sentence_ok(student_text)
+            action_dict["grammar_correct"] = guess
+            if guess:
+                action_dict.setdefault("correction", None)
+            print(f"[TutorEngine] grammar_correct missing, local guess={guess}")
+
+    def _guess_meaning(self, student_text: str) -> bool:
+        """词义判定兜底：学生回答命中释义片段即算对。"""
+        trans = self.current_word.get("translation", "")
+        t = (student_text or "").strip()
+        if not t:
+            return False
+        lo = t.lower()
+        word = self.current_word.get("text", "").lower()
+        # 学生直接说出英文目标词（如"What is X?"句式下的回答）也算对
+        if word and word in lo:
+            return True
+        segments = [s.strip() for s in re.split(r"[；;，,、\s（）()]+", trans) if s.strip()]
+        for seg in segments:
+            if len(seg) >= 2 and seg in t:
+                return True
+        # 学生上下文包含中文释义任一连续 2 字片段（容错 ASR 误差）
+        chars = re.sub(r"[^\u4e00-\u9fff]", "", (segments[0] if segments else trans))
+        for i in range(len(chars) - 1):
+            if chars[i:i + 2] in t:
+                return True
+        return False
+
+    def _guess_sentence_ok(self, student_text: str) -> bool:
+        """造句判定兜底：使用目标词且长度合格即算通过。"""
+        t = (student_text or "").strip()
+        target = self.current_word.get("text", "")
+        if len(t.split()) < 3:
+            return False
+        stem = target.split()[0].lower()[:4] if target else ""
+        lo = t.lower()
+        return bool(stem and stem in lo) or target.lower() in lo
 
     def _parse_llm_response(self, raw: str) -> dict:
         """Extract JSON from LLM response, with fallback."""

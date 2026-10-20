@@ -108,6 +108,8 @@ export interface TutorAction {
   tts_text?: string;
   tts_token?: string;  // 预合成音频 token，播放用 /api/tutor/tts/{token}
   options?: string[];
+  correct_answer?: string;   // ask_choice 正确选项（引擎保证存在，LLM 漏给时本地推断）
+  correct_index?: number;
   grammar_correct?: boolean;
   correction?: string | null;
   meaning_correct?: boolean;
