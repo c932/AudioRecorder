@@ -33,6 +33,7 @@ export default function OralTestPage() {
   const [idx, setIdx] = useState(restoreProgress ? (snapshot?.idx ?? 0) : 0);
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [scores, setScores] = useState<number[]>(restoreProgress ? (snapshot?.scores ?? []) : []);
+  const [speaking, setSpeaking] = useState(false);
   const { recording, error: recError, start, stop } = useRecorder();
 
   useEffect(() => {
@@ -95,6 +96,18 @@ export default function OralTestPage() {
 
   const sentence = sentences[idx];
 
+  const playStandard = async () => {
+    if (!sentence) return;
+    setSpeaking(true);
+    try {
+      await speak(sentence.text);
+    } catch {
+      // TTS 失败不阻塞流程
+    } finally {
+      setSpeaking(false);
+    }
+  };
+
   const handleStop = async () => {
     if (!sentence) return;
     const rec = await stop();
@@ -118,8 +131,21 @@ export default function OralTestPage() {
     }
   };
 
+  // 再读一次：丢掉本次分数，回到录音状态（不计入成绩）
+  const retry = () => {
+    stopAudio();
+    setSpeaking(false);
+    const popped = scores.slice(0, -1);
+    setScores(popped);
+    setResult(null);
+    const snap = { bankId: snapshot?.bankId, idx, scores: popped };
+    tracker.setLatest(snap, `重读第${idx + 1}句`);
+    tracker.saveSnapshot(snap);
+  };
+
   const next = () => {
     stopAudio();
+    setSpeaking(false);
     setResult(null);
     if (idx + 1 >= sentences.length) {
       tracker.endSession(`口语测试完成：${scores.length}句，平均分${scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0}`);
@@ -131,6 +157,12 @@ export default function OralTestPage() {
       tracker.setLatest(snap, `朗读${scores.length}句`);
       tracker.saveSnapshot(snap);
     }
+  };
+
+  const backToBanks = () => {
+    stopAudio();
+    setSpeaking(false);
+    setPhase("banks");
   };
 
   if (phase === "done") {
@@ -172,7 +204,7 @@ export default function OralTestPage() {
   if (phase === "test") {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader title="口语测试" onBack={() => setPhase("banks")} />
+        <PageHeader title="口语测试" onBack={backToBanks} />
         <ProgressBar current={idx + 1} total={sentences.length} />
 
         <div className="bg-desk border border-desk-line rounded-xl p-5 flex flex-col items-center gap-2">
@@ -184,27 +216,33 @@ export default function OralTestPage() {
           )}
           <button
             type="button"
-            onClick={() => sentence && speak(sentence.text).catch(() => {})}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-desk-line text-body font-bold hover:border-mango transition-colors"
+            onClick={playStandard}
+            disabled={speaking}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-desk-line text-body font-bold hover:border-mango transition-colors disabled:opacity-50"
           >
-            <SpeakerIcon className="w-4 h-4" /> 听标准音
+            <SpeakerIcon className="w-4 h-4" /> {speaking ? "播放中…" : "听标准音"}
           </button>
         </div>
 
         {result ? (
           <>
             <ScoreResultView result={result} />
-            <button className={btnPrimary} onClick={next}>
-              {idx + 1 >= sentences.length ? "看成绩" : "下一句"}
-            </button>
+            <div className="flex gap-2">
+              <button className={btnSecondary + " flex-1"} onClick={retry} disabled={busy}>
+                再读一次
+              </button>
+              <button className={btnPrimary + " flex-1"} onClick={next}>
+                {idx + 1 >= sentences.length ? "看成绩" : "下一句"}
+              </button>
+            </div>
           </>
         ) : (
           <RecordButton
             recording={recording}
-            disabled={busy}
+            disabled={busy || speaking}
             onStart={start}
             onStop={handleStop}
-            hint={busy ? "评分中…" : recError || "听标准音后，点击朗读"}
+            hint={busy ? "评分中…" : speaking ? "正在播放标准音…" : recError || "听标准音后，点击朗读"}
           />
         )}
         <ErrorText text={error} />
