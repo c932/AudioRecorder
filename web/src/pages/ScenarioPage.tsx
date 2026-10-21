@@ -5,7 +5,7 @@ import {
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
 import useStudyTracker from "../hooks/useStudyTracker";
-import { playSoundForScore, speak, stopAudio } from "../lib/audio";
+import { playSoundForScore, speak, stopAudio, isAudioPlaying } from "../lib/audio";
 import GroupPicker from "../components/GroupPicker";
 import {
   PageHeader, ProgressBar, ErrorText,
@@ -113,10 +113,17 @@ export default function ScenarioPage() {
           window.setTimeout(() => setIdx((i) => i + 1), 250);
         });
     } else if (turn.role === "B") {
-      // B 角：短暂延迟后自动开始录音，让学生先看一眼句子
-      autoRecordTimer.current = setTimeout(() => {
-        start().catch(() => {});
-      }, 600);
+      // B 角：等当前 TTS 真正播完（含被打断重播的场景）再短暂延迟开始录音
+      const pendStart = () => {
+        if (isAudioPlaying()) {
+          autoRecordTimer.current = setTimeout(pendStart, 250);
+          return;
+        }
+        autoRecordTimer.current = setTimeout(() => {
+          start().catch(() => {});
+        }, 600);
+      };
+      pendStart();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, phase, script]);

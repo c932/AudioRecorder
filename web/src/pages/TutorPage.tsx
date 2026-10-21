@@ -8,7 +8,7 @@ import {
 } from "../lib/api";
 import { useRecorder } from "../lib/recorder";
 import useStudyTracker from "../hooks/useStudyTracker";
-import { speak, speakViaToken, stopAudio } from "../lib/audio";
+import { speak, speakViaToken, stopAudio, isAudioPlaying } from "../lib/audio";
 import RecordButton from "../components/RecordButton";
 import GroupPicker from "../components/GroupPicker";
 import {
@@ -64,6 +64,13 @@ export default function TutorPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   // 自动录音计时器引用
   const autoRecordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 会话批次号：新一批 action 到达时递增，废弃旧批次的自动录音调度
+  const applyEpochRef = useRef(0);
+  // 状态镜像（定时器回调里读最新值）
+  const busyRef = useRef(false);
+  const recordingRef = useRef(false);
+  busyRef.current = busy;
+  recordingRef.current = recording;
 
   // 启动时从配置加载已保存的分组
   useEffect(() => {
@@ -86,6 +93,7 @@ export default function TutorPage() {
   }, [stateItems, phase]);
 
   useEffect(() => () => {
+    applyEpochRef.current += 1; // 卸载后作废所有排期的自动录音
     stopAudio();
     if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
   }, []);
@@ -102,18 +110,29 @@ export default function TutorPage() {
     return Promise.resolve();
   };
 
-  /** TTS 播放完后自动开始录音（参照情景会话模式） */
-  const scheduleAutoRecord = (m: Mode) => {
-    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
-    if (m === "gop" || m === "asr") {
-      // 1500ms 缓冲：TTS 播放结束后给学生一点准备时间
-      autoRecordTimer.current = setTimeout(() => {
-        start().catch(() => {});
-      }, 1500);
+  /** 等 TTS 全部播完后自动开始录音（参照情景会话模式） */
+  const scheduleAutoRecord = async (m: Mode, myEpoch: number) => {
+    if (m !== "gop" && m !== "asr") return;
+    // 若仍有音频在播放（用户点气泡重听等被打断重排），等它真正结束后再排录音，
+    // 防止把 TTS 播放声录进评分音频。
+    const deadline = Date.now() + 20_000;
+    while (isAudioPlaying() && Date.now() < deadline) {
+      if (myEpoch !== applyEpochRef.current) return; // 已有新一轮会话接管
+      await new Promise((r) => setTimeout(r, 250));
     }
+    if (myEpoch !== applyEpochRef.current) return;
+    if (busyRef.current || recordingRef.current) return;
+    if (autoRecordTimer.current) clearTimeout(autoRecordTimer.current);
+    // 缓冲：给学生一点准备时间
+    autoRecordTimer.current = setTimeout(() => {
+      if (busyRef.current || recordingRef.current) return;
+      start().catch(() => {});
+    }, 1500);
   };
 
   const applyActions = async (actions: TutorAction[], st: TutorState, extra?: Bubble) => {
+    applyEpochRef.current += 1;
+    const myEpoch = applyEpochRef.current;
     const newBubbles: Bubble[] = extra ? [extra] : [];
     let last: TutorAction | null = null;
     for (const a of actions) {
@@ -165,16 +184,14 @@ export default function TutorPage() {
         ca && opts.includes(ca) ? ca : findCorrectOption(opts, st.word, st.translation),
       );
     }
-    // 播放 TTS，播完后自动开始录音
+    // 播放 TTS，播完（且没有其他音频在响）后自动开始录音
     if (last) {
       try {
         await playTts(last);
-        // TTS 播完，自动开始录音
-        scheduleAutoRecord(m);
       } catch {
         // TTS 失败也尝试自动录音
-        scheduleAutoRecord(m);
       }
+      scheduleAutoRecord(m, myEpoch);
     }
   };
 

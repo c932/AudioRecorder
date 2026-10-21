@@ -108,16 +108,21 @@ export async function speakViaToken(token: string): Promise<void> {
   const el = new Audio(url);
   audioEl = el;
   return new Promise((resolve) => {
-    el.onended = () => {
+    let resolved = false;
+    const done = () => {
       if (audioEl === el) audioEl = null;
-      resolve();
+      if (!resolved) { resolved = true; resolve(); }
     };
-    el.onerror = () => {
-      if (audioEl === el) audioEl = null;
-      resolve();
-    };
-    el.play().catch(() => resolve());
+    el.onended = done;
+    el.onerror = done;
+    el.onpause = done;   // 被 stopAudio/新 speak 打断时也要 resolve
+    el.play().catch(done);
   });
+}
+
+/** 当前是否有 TTS 音频正在播放（供页面延迟自动录音，防止把播放声录进去）。 */
+export function isAudioPlaying(): boolean {
+  return !!(audioEl && !audioEl.paused && !audioEl.ended);
 }
 
 export function stopAudio() {
@@ -138,18 +143,14 @@ export async function speak(text: string): Promise<void> {
   audioEl = el;
   return new Promise((resolve) => {
     let resolved = false;
-    el.onended = () => {
+    const done = () => {
       if (audioEl === el) audioEl = null;
       if (!resolved) { resolved = true; resolve(); }
     };
-    el.onerror = () => {
-      if (audioEl === el) audioEl = null;
-      if (!resolved) { resolved = true; resolve(); }
-    };
-    el.play().catch(() => {
-      if (audioEl === el) audioEl = null;
-      if (!resolved) { resolved = true; resolve(); }
-    });
+    el.onended = done;
+    el.onerror = done;
+    el.onpause = done;   // 被 stopAudio/新 speak 打断时也要 resolve
+    el.play().catch(done);
   });
 }
 
