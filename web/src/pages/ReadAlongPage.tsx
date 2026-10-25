@@ -103,23 +103,45 @@ export default function ReadAlongPage() {
     segRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [segIdx]);
 
-  // --- File upload handler（支持一次多选/连拍多张，按顺序合并成一篇课文） ---
-  const [pickedPreviews, setPickedPreviews] = useState<string[]>([]);
+  // --- 文件选择（支持连拍多张：每次拍照/选择追加到已选列表，点"开始识别"才解析） ---
+  const [pickedFiles, setPickedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]); // 与 pickedFiles 平行；非图片为空串
   const previewRef = useRef<string[]>([]);
-  previewRef.current = pickedPreviews;
+  previewRef.current = previews;
 
-  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = ""; // 允许再次选择同一文件
     if (!files.length) return;
+    setError("");
+    setPickedFiles((prev) => [...prev, ...files]);
+    setPreviews((prev) => [
+      ...prev,
+      ...files.map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f) : "")),
+    ]);
+  };
+
+  // 删除某张已选照片（拍糊了重拍）
+  const removePicked = (idx: number) => {
+    setPickedFiles((prev) => prev.filter((_, i) => i !== idx));
+    setPreviews((prev) => {
+      if (prev[idx]) URL.revokeObjectURL(prev[idx]);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  // --- 点击"开始识别"：把已选文件按顺序合并解析成课文 ---
+  const recognize = async () => {
+    if (!pickedFiles.length || busy) return;
     setBusy(true);
     setError("");
     try {
-      const r = await api.readalongParseFile(files, true);
+      const r = await api.readalongParseFile(pickedFiles, true);
       setRawText(r.text);
-      // 显示已识别文件的缩略图（仅图片），方便确认拍的是哪几页
-      for (const u of pickedPreviews) URL.revokeObjectURL(u);
-      setPickedPreviews(files.filter((f) => f.type.startsWith("image/")).map((f) => URL.createObjectURL(f)));
+      // 识别成功：课文已进文本框（可编辑），清空已选列表
+      for (const u of previews) if (u) URL.revokeObjectURL(u);
+      setPickedFiles([]);
+      setPreviews([]);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -324,13 +346,13 @@ export default function ReadAlongPage() {
 
         {/* File upload */}
         <div className="bg-desk border border-desk-line rounded-xl p-4 flex flex-col gap-2">
-          <p className="text-ui font-bold">上传课本（PDF / 图片，支持一次多张）</p>
+          <p className="text-ui font-bold">上传课本（PDF / 图片，支持多张）</p>
           <label
             htmlFor="readalong-file"
             className="bg-card border-2 border-dashed border-desk-line rounded-lg p-6 text-center cursor-pointer hover:border-mango transition-colors"
           >
             <p className="text-ui text-ink-soft">
-              点击选择文件 或 拍照上传（可一次选多张，按顺序合成一篇课文）
+              点击拍照或选择文件（可连续拍多张，拍完再识别）
             </p>
             <input
               id="readalong-file"
@@ -341,22 +363,48 @@ export default function ReadAlongPage() {
               className="hidden"
             />
           </label>
+
+          {pickedFiles.length > 0 && (
+            <>
+              <div className="flex gap-2 overflow-x-auto py-1">
+                {previews.map((u, i) => (
+                  <div key={i} className="relative shrink-0">
+                    {u ? (
+                      <img
+                        src={u}
+                        alt={`第${i + 1}张`}
+                        className="h-16 w-24 object-cover rounded-lg border border-desk-line"
+                      />
+                    ) : (
+                      <div className="h-16 w-24 rounded-lg border border-desk-line bg-card flex items-center justify-center px-1 text-center text-body text-ink-soft break-all">
+                        {pickedFiles[i]?.name}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePicked(i)}
+                      aria-label={`删除第${i + 1}个文件`}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-clay text-white text-body font-bold flex items-center justify-center shadow"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="text-ui text-ink-soft flex-1">
+                  已选 {pickedFiles.length} 个文件，可继续拍摄或删除
+                </p>
+                <button type="button" className={btnPrimary} disabled={busy} onClick={recognize}>
+                  {busy ? "识别中…" : `开始识别（${pickedFiles.length}）`}
+                </button>
+              </div>
+            </>
+          )}
           {busy && (
             <p className="text-ui text-mango-dk text-center">
               正在识别课文（多张图片可能需要十几秒）…
             </p>
-          )}
-          {pickedPreviews.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto">
-              {pickedPreviews.map((u, i) => (
-                <img
-                  key={i}
-                  src={u}
-                  alt={`第${i + 1}张`}
-                  className="h-16 w-24 object-cover rounded-lg border border-desk-line shrink-0"
-                />
-              ))}
-            </div>
           )}
         </div>
 
