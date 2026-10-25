@@ -26,8 +26,11 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors
 WORKDIR /app
 
 # Python 依赖（版本与开发机 pip freeze 一致；torch 走 pytorch cu128 索引）
+# pip 缓存挂载（BuildKit cache mount）：wheel 下载持久化在宿主机，
+# 即使层缓存失效（换源/改依赖/基础镜像更新）也不必重新下载 3-4GB 的 torch/CUDA 全家桶
 COPY deploy/requirements-web.txt /tmp/requirements-web.txt
-RUN pip install --no-cache-dir \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install \
     -i https://mirrors.aliyun.com/pypi/simple/ \
     --extra-index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu128/ \
     --trusted-host mirrors.aliyun.com \
