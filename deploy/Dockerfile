@@ -17,7 +17,9 @@ FROM python:3.12-slim
 
 # ffmpeg：浏览器 webm 录音转 WAV + Whisper 音频解码
 # tzdata：速记复习按本地日期调度（TZ=Asia/Shanghai 需要它生效）
-RUN apt-get update \
+# apt 换阿里云镜像：deb.debian.org 在国内网络极慢（曾导致重建卡 40+ 分钟）
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg tzdata \
     && rm -rf /var/lib/apt/lists/*
 
