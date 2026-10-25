@@ -198,16 +198,18 @@ export default function ReadAlongPage() {
 
   // --- Stop recording and score ---
   const handleStopRecord = async () => {
-    if (scoringRef.current) return; // 防止评分流程并发
+    // 锁在 await 之前设置：双击停止/评分中再点不会触发第二次评分
+    if (scoringRef.current || readState !== "recording") return;
+    scoringRef.current = true;
     const rec = await stop();
     if (!rec.b64 || !session) {
-      // 录音数据为空 → 给出明确提示而非静默返回
-      if (!rec.b64 && session) setError("录音时长太短，请长按再试");
+      // 录音数据为空（误触/太短）→ 给出明确提示而非静默返回
+      if (!rec.b64 && session) setError("没录到声音，请点麦克风重新朗读一次");
       setReadState("waiting");
+      scoringRef.current = false;
       return;
     }
 
-    scoringRef.current = true;
     setReadState("scoring");
     setBusy(true);
     setError("");

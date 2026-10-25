@@ -3,32 +3,28 @@ from __future__ import annotations
 
 import re
 
+# 逐段模式下每段最多包含的句子数（防止 LLM/OCR 输出的超长段一口气读不完）
+MAX_SENTENCES_PER_SEGMENT = 4
+
 
 class ReadAlongEngine:
     """课文跟读引擎：拆分课文、LLM 翻译、生成总结。"""
 
     @staticmethod
-    def split_text(text: str, mode: str = "sentence") -> list[str]:
-        """拆分课文为句子或段落列表。
+    def _split_sentences(text: str) -> list[str]:
+        """句级拆分：按句号/问号/感叹号拆分，保留缩写（如 Mr. Mrs.）。
 
-        sentence 模式：按句号/问号/感叹号拆分，保留缩写（如 Mr. Mrs.）。
-        paragraph 模式：按空行拆分，空行内保留原文本。
+        OCR/图片识别的换行是视觉换行，先折叠为空格再拆句。
         """
         text = text.strip()
         if not text:
             return []
 
-        if mode == "paragraph":
-            # 按一个或多个空行拆分段落
-            paragraphs = re.split(r'\n\s*\n', text)
-            return [p.strip() for p in paragraphs if p.strip()]
-
-        # 逐句模式：按句末标点拆分，但避免缩写中的句号
         # 缩写模式：Mr. Mrs. Dr. Ms. Prof. St. etc. e.g. i.e.
         abbrevs = r'(?:Mr|Mrs|Dr|Ms|Prof|St|etc|e\.g|i\.e)\.'
         # 先保护缩写中的句号
-        protected = text
         placeholder_map = {}
+        protected = text
         for i, m in enumerate(re.finditer(abbrevs, text)):
             ph = f"__ABBR{i}__"
             placeholder_map[ph] = m.group()
@@ -49,6 +45,40 @@ class ReadAlongEngine:
                 result.append(seg)
 
         return result
+
+    @staticmethod
+    def split_text(text: str, mode: str = "sentence") -> list[str]:
+        """拆分课文为句子或段落列表。
+
+        sentence 模式：按句号/问号/感叹号拆分，保留缩写（如 Mr. Mrs.）。
+        paragraph 模式：按空行拆段落；段内再按句切分，
+        每段最多 MAX_SENTENCES_PER_SEGMENT 句（超长段自动续到下一段）。
+        """
+        text = text.strip()
+        if not text:
+            return []
+
+        if mode == "paragraph":
+            # 按一个或多个空行拆分段落
+            paragraphs = re.split(r'\n\s*\n', text)
+            result = []
+            for para in paragraphs:
+                # 段内的视觉换行折叠为空格
+                para = re.sub(r'\n+', ' ', para).strip()
+                if not para:
+                    continue
+                sents = ReadAlongEngine._split_sentences(para)
+                if not sents:
+                    result.append(para)
+                    continue
+                # 每段最多 4 句，超出部分拆成新段（LLM 解析的课文常出现超长段）
+                for i in range(0, len(sents), MAX_SENTENCES_PER_SEGMENT):
+                    chunk = " ".join(sents[i:i + MAX_SENTENCES_PER_SEGMENT]).strip()
+                    if chunk:
+                        result.append(chunk)
+            return result
+
+        return ReadAlongEngine._split_sentences(text)
 
     @staticmethod
     def extract_words_from_segment(text: str) -> list[str]:
