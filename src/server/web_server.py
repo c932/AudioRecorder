@@ -127,6 +127,19 @@ from src.server.routers.study_log import router as study_log_router
 
 app = FastAPI(title="少儿英语发音教练 Web", version="1.0", lifespan=lifespan)
 
+
+# HTML 文档不缓存（Cache-Control: no-cache，配合 ETag 304 重验证）：
+# index.html 引用的是带哈希的 JS/CSS（可永久缓存），但文档本身若被浏览器
+# 启发式缓存，发版后用户会一直跑旧 bundle（曾导致新旧前后端字段不匹配报错）。
+@app.middleware("http")
+async def _no_cache_html(request, call_next):
+    resp = await call_next(request)
+    ct = resp.headers.get("content-type", "")
+    if ct.startswith("text/html"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 # CORS：开发时前端跑在 Vite dev server（不同端口）；局域网同源部署时无影响
 app.add_middleware(
     CORSMiddleware,

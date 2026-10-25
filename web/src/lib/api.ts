@@ -225,6 +225,18 @@ export interface StudyStats {
   module_breakdown: Record<string, number>;
 }
 
+/** FastAPI 错误体 detail 的安全字符串化：字符串直用，422 校验数组取 msg，对象 JSON 化。 */
+function detailText(d: unknown): string {
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    return d.map((e) => String((e as { msg?: string })?.msg ?? e)).join("; ");
+  }
+  if (d && typeof d === "object") {
+    try { return JSON.stringify(d); } catch { return String(d); }
+  }
+  return "";
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
@@ -235,7 +247,8 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     let detail = `请求失败 (${res.status})`;
     try {
       const j = await res.json();
-      if (j?.detail) detail = String(j.detail);
+      const d = detailText(j?.detail);
+      if (d) detail = d;
     } catch {
       /* 非 JSON 错误体 */
     }
@@ -251,7 +264,8 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
     let detail = `请求失败 (${res.status})`;
     try {
       const j = await res.json();
-      if (j?.detail) detail = String(j.detail);
+      const d = detailText(j?.detail);
+      if (d) detail = d;
     } catch {
       /* 非 JSON 错误体 */
     }
