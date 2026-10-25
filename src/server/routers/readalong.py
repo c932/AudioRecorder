@@ -78,62 +78,47 @@ def _new_session(text: str, mode: str) -> dict:
 # Endpoints
 # ---------------------------------------------------------------------------
 @router.post("/parse-text")
-async def parse_text(file: UploadFile = File(...), use_ai: bool = Form(True)):
-    """上传 PDF / 图片 → 提取课文全文（不是词汇表）。"""
+async def parse_text(files: list[UploadFile] = File(...), use_ai: bool = Form(True)):
+    """上传 PDF / 图片 / TXT（支持多张，按上传顺序合并成一篇课文）。"""
     from fastapi.concurrency import run_in_threadpool
 
-    ext = os.path.splitext(file.filename or "")[1].lower()
     allowed = {".pdf", ".txt", ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
-    if ext not in allowed:
-        raise HTTPException(400, f"不支持的文件类型「{ext}」，支持 PDF / TXT / 图片")
-
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(400, "文件是空的")
-    if len(raw) > 20 * 1024 * 1024:
-        raise HTTPException(400, "文件超过 20MB 上限")
-
-    config = load_config()
-    path = None
+    slots: list[dict] = []   # 按上传顺序的提取任务：{"kind": "txt"|"pdf"|"image", ...}
+    tmp_paths: list[str] = []
     try:
-        if ext == ".txt":
-            text = raw.decode("utf-8", errors="replace").strip()
-            if not text:
-                raise HTTPException(422, "文本文件内容为空")
-        else:
-            fd, path = tempfile.mkstemp(prefix="readalong_", suffix=ext)
-            with os.fdopen(fd, "wb") as f:
-                f.write(raw)
+        for file in files:
+            ext = os.path.splitext(file.filename or "")[1].lower()
+            if ext not in allowed:
+                raise HTTPException(400, f"不支持的文件类型「{ext}」，支持 PDF / TXT / 图片")
+            raw = await file.read()
+            if not raw:
+                raise HTTPException(400, f"文件「{file.filename}」是空的")
+            if len(raw) > 20 * 1024 * 1024:
+                raise HTTPException(400, f"文件「{file.filename}」超过 20MB 上限")
 
-            # 使用 ContentParser 提取，但 prompt 改为提取课文全文
-            from src.core.content_parser import ContentParser, _get_llm_client_and_model
-
-            if ext == ".pdf":
-                # 先尝试 pdfplumber 提取文本
-                import pdfplumber
-                full_text = ""
-                with pdfplumber.open(path) as pdf:
-                    for page in pdf.pages:
-                        t = page.extract_text()
-                        if t:
-                            full_text += t + "\n\n"
-
-                if full_text.strip():
-                    text = full_text.strip()
-                else:
-                    # 扫描版 PDF：用视觉模型提取
-                    text = await run_in_threadpool(
-                        _extract_text_from_images, path, config)
+            if ext == ".txt":
+                text = raw.decode("utf-8", errors="replace").strip()
+                if not text:
+                    raise HTTPException(422, f"文本文件「{file.filename}」内容为空")
+                slots.append({"kind": "txt", "text": text})
             else:
-                # 图片：用视觉模型提取
-                text = await run_in_threadpool(
-                    _extract_text_from_image, path, config)
+                fd, path = tempfile.mkstemp(prefix="readalong_", suffix=ext)
+                with os.fdopen(fd, "wb") as f:
+                    f.write(raw)
+                tmp_paths.append(path)
+                slots.append({"kind": "pdf" if ext == ".pdf" else "image", "path": path})
+
+        if not slots:
+            raise HTTPException(400, "没有收到文件")
+
+        config = load_config()
+        text = await run_in_threadpool(_extract_all, slots, config)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(502, f"解析失败：{e}")
     finally:
-        if path:
+        for path in tmp_paths:
             try:
                 os.remove(path)
             except OSError:
@@ -348,55 +333,126 @@ def state(session_id: str):
 # ---------------------------------------------------------------------------
 # Helpers: extract text from images/scanned PDF for readalong (not vocab)
 # ---------------------------------------------------------------------------
-def _extract_text_from_image(image_path: str, config: dict) -> str:
-    """用视觉 LLM 从图片提取课文全文。
+_IMAGES_PER_LLM_CALL = 4  # 单次视觉 LLM 调用最多带的图片数（防止 payload/上下文超限）
 
+
+def _extract_all(slots: list[dict], config: dict) -> str:
+    """按上传顺序提取各文件文本，合并成一篇课文。
+
+    连续的图片会合并为一次视觉 LLM 调用（每批最多 _IMAGES_PER_LLM_CALL 张），
+    既省调用次数，也让模型能按页序拼接成连贯课文。
+    """
+    parts: list[str] = []
+    img_batch: list[str] = []
+
+    def flush() -> None:
+        nonlocal img_batch
+        if img_batch:
+            t = _extract_text_from_image_list(img_batch, config)
+            if t:
+                parts.append(t)
+            img_batch = []
+
+    for slot in slots:
+        kind = slot["kind"]
+        if kind == "txt":
+            flush()
+            if slot["text"]:
+                parts.append(slot["text"])
+        elif kind == "pdf":
+            flush()
+            t = _pdf_extract_text(slot["path"])
+            if t.strip():
+                parts.append(t.strip())
+            else:
+                # 扫描版 PDF：渲染为图片走视觉模型
+                t2 = _extract_text_from_images(slot["path"], config)
+                if t2:
+                    parts.append(t2)
+        else:  # image
+            if len(img_batch) >= _IMAGES_PER_LLM_CALL:
+                flush()
+            img_batch.append(slot["path"])
+    flush()
+
+    return "\n\n".join(p for p in parts if p and p.strip()).strip()
+
+
+def _pdf_extract_text(pdf_path: str) -> str:
+    """用 pdfplumber 提取 PDF 文本（无文本层时返回空串）。"""
+    import pdfplumber
+
+    full_text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            t = page.extract_text()
+            if t:
+                full_text += t + "\n\n"
+    return full_text
+
+
+def _load_image_b64(image_path: str) -> tuple[str, str]:
+    """读取图片为 (base64, mime)；超过 2MB 自动压缩。"""
+    import base64
+    import mimetypes
+    from src.core.content_parser import ContentParser
+
+    if os.path.getsize(image_path) > 2 * 1024 * 1024:
+        image_data = ContentParser._compress_image(image_path)
+    else:
+        with open(image_path, "rb") as f:
+            image_data = base64.b64encode(f.read()).decode("utf-8")
+    mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+    return image_data, mime_type
+
+
+def _extract_text_from_image_list(image_paths: list[str], config: dict) -> str:
+    """用视觉 LLM 从多张图片（按顺序）提取课文全文，合并为一段连贯文本。
+
+    超过 _IMAGES_PER_LLM_CALL 张时自动分批调用，按顺序拼接结果。
     LLM 失败时返回空串——应用必须在无 LLM 时仍可工作。
     """
     try:
-        import base64
-        import mimetypes
         from src.core.content_parser import _get_llm_client_and_model
 
-        file_size = os.path.getsize(image_path)
-        MAX_SIZE = 2 * 1024 * 1024
-        if file_size > MAX_SIZE:
-            from src.core.content_parser import ContentParser
-            image_data = ContentParser._compress_image(image_path)
-        else:
-            with open(image_path, "rb") as f:
-                image_data = base64.b64encode(f.read()).decode("utf-8")
+        results: list[str] = []
+        for start in range(0, len(image_paths), _IMAGES_PER_LLM_CALL):
+            batch = image_paths[start:start + _IMAGES_PER_LLM_CALL]
+            content_parts: list[dict] = [{
+                "type": "text",
+                "text": (
+                    "Analyze these images which contain pages of an English "
+                    "textbook, given in reading order. Extract the FULL English "
+                    "text content from all images, in order, as one continuous "
+                    "passage. Preserve paragraph structure with blank lines "
+                    "between paragraphs. Ignore page numbers, headers, footers, "
+                    "illustrations, and non-text elements. Return ONLY the "
+                    "extracted text, no JSON, no explanation."
+                ),
+            }]
+            for p in batch:
+                image_data, mime_type = _load_image_b64(p)
+                content_parts.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime_type};base64,{image_data}"}
+                })
 
-        mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+            client, model = _get_llm_client_and_model(config)
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": content_parts}],
+                max_tokens=6000, temperature=0.2)
+            results.append(response.choices[0].message.content.strip())
 
-        prompt = """Analyze this image which contains an English text passage or textbook page.
-Extract the FULL English text content exactly as written.
-Preserve paragraph structure with blank lines between paragraphs.
-Ignore page numbers, headers, footers, illustrations, and non-text elements.
-Return ONLY the extracted text, no JSON, no explanation."""
-
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{mime_type};base64,{image_data}"
-                        }
-                    }
-                ]
-            }
-        ]
-
-        client, model = _get_llm_client_and_model(config)
-        response = client.chat.completions.create(
-            model=model, messages=messages, max_tokens=3000, temperature=0.2)
-        return response.choices[0].message.content.strip()
+        return "\n\n".join(r for r in results if r).strip()
     except Exception as e:
-        print(f"[readalong] 图片提取课文失败: {e}")
+        print(f"[readalong] 多图提取课文失败: {e}")
         return ""
+
+
+def _extract_text_from_image(image_path: str, config: dict) -> str:
+    """用视觉 LLM 从单张图片提取课文全文（多图场景请用 _extract_text_from_image_list）。"""
+    return _extract_text_from_image_list([image_path], config)
 
 
 def _extract_text_from_images(pdf_path: str, config: dict) -> str:

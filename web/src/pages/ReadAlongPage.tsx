@@ -92,7 +92,10 @@ export default function ReadAlongPage() {
     return () => clearTimeout(t);
   }, [rawText]);
 
-  useEffect(() => () => stopAudio(), []);
+  useEffect(() => () => {
+    stopAudio();
+    for (const u of previewRef.current) URL.revokeObjectURL(u);
+  }, []);
 
   // Auto-scroll to current segment
   const segRef = useRef<HTMLDivElement>(null);
@@ -100,15 +103,23 @@ export default function ReadAlongPage() {
     segRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [segIdx]);
 
-  // --- File upload handler ---
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // --- File upload handler（支持一次多选/连拍多张，按顺序合并成一篇课文） ---
+  const [pickedPreviews, setPickedPreviews] = useState<string[]>([]);
+  const previewRef = useRef<string[]>([]);
+  previewRef.current = pickedPreviews;
+
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // 允许再次选择同一文件
+    if (!files.length) return;
     setBusy(true);
     setError("");
     try {
-      const r = await api.readalongParseFile(file, true);
+      const r = await api.readalongParseFile(files, true);
       setRawText(r.text);
+      // 显示已识别文件的缩略图（仅图片），方便确认拍的是哪几页
+      for (const u of pickedPreviews) URL.revokeObjectURL(u);
+      setPickedPreviews(files.filter((f) => f.type.startsWith("image/")).map((f) => URL.createObjectURL(f)));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -311,22 +322,40 @@ export default function ReadAlongPage() {
 
         {/* File upload */}
         <div className="bg-desk border border-desk-line rounded-xl p-4 flex flex-col gap-2">
-          <p className="text-ui font-bold">上传课本（PDF / 图片）</p>
+          <p className="text-ui font-bold">上传课本（PDF / 图片，支持一次多张）</p>
           <label
             htmlFor="readalong-file"
             className="bg-card border-2 border-dashed border-desk-line rounded-lg p-6 text-center cursor-pointer hover:border-mango transition-colors"
           >
             <p className="text-ui text-ink-soft">
-              点击选择文件 或 拍照上传
+              点击选择文件 或 拍照上传（可一次选多张，按顺序合成一篇课文）
             </p>
             <input
               id="readalong-file"
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
-              onChange={handleFile}
+              multiple
+              onChange={handleFiles}
               className="hidden"
             />
           </label>
+          {busy && (
+            <p className="text-ui text-mango-dk text-center">
+              正在识别课文（多张图片可能需要十几秒）…
+            </p>
+          )}
+          {pickedPreviews.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto">
+              {pickedPreviews.map((u, i) => (
+                <img
+                  key={i}
+                  src={u}
+                  alt={`第${i + 1}张`}
+                  className="h-16 w-24 object-cover rounded-lg border border-desk-line shrink-0"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Text input */}

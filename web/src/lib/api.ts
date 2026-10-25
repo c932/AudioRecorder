@@ -357,9 +357,10 @@ export const api = {
       "POST", "/api/config/test", { config }),
 
   // ── 跟读教练 ──────────────────────────────────────────────────
-  readalongParseFile: (file: File, useAi: boolean) => {
+  readalongParseFile: (file: File | File[], useAi: boolean) => {
+    const files = Array.isArray(file) ? file : [file];
     const form = new FormData();
-    form.append("file", file);
+    for (const f of files) form.append("files", f);
     form.append("use_ai", String(useAi));
     return postForm<{ text: string }>("/api/readalong/parse-text", form);
   },
