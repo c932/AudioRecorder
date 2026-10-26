@@ -333,14 +333,18 @@ def state(session_id: str):
 # ---------------------------------------------------------------------------
 # Helpers: extract text from images/scanned PDF for readalong (not vocab)
 # ---------------------------------------------------------------------------
-_IMAGES_PER_LLM_CALL = 4  # 单次视觉 LLM 调用最多带的图片数（防止 payload/上下文超限）
+# OCR 友好的压缩上限：长边 2000px（课本整页文字仍清晰可读）。
+# 之前沿用 ContentParser 的 1024px 压缩，整页文字缩到十几像素高，模型读不出 → 课文被吞。
+_OCR_MAX_SIDE = 2000
+_OCR_JPEG_QUALITY = 85
+# 逐张并发数（云 API 可承受小并发；顺序由结果下标保证）
+_EXTRACT_CONCURRENCY = 3
 
 
 def _extract_all(slots: list[dict], config: dict) -> str:
     """按上传顺序提取各文件文本，合并成一篇课文。
 
-    连续的图片会合并为一次视觉 LLM 调用（每批最多 _IMAGES_PER_LLM_CALL 张），
-    既省调用次数，也让模型能按页序拼接成连贯课文。
+    图片逐张识别（见 _extract_text_from_image_list），文本按上传顺序拼接。
     """
     parts: list[str] = []
     img_batch: list[str] = []
@@ -370,8 +374,6 @@ def _extract_all(slots: list[dict], config: dict) -> str:
                 if t2:
                     parts.append(t2)
         else:  # image
-            if len(img_batch) >= _IMAGES_PER_LLM_CALL:
-                flush()
             img_batch.append(slot["path"])
     flush()
 
@@ -392,110 +394,146 @@ def _pdf_extract_text(pdf_path: str) -> str:
 
 
 def _load_image_b64(image_path: str) -> tuple[str, str]:
-    """读取图片为 (base64, mime)；超过 2MB 自动压缩。"""
+    """读取图片为 (base64, mime)；长边超过 _OCR_MAX_SIDE 时缩到该尺寸。
+
+    课本照片（iPad 约 3024×4032）压到 1024px 会让整页文字不可读，
+    2000px 长边在可读性与 payload 大小（~0.5MB base64）间取得平衡。
+    """
     import base64
     import mimetypes
-    from src.core.content_parser import ContentParser
+    from PIL import Image
+    import io
 
-    if os.path.getsize(image_path) > 2 * 1024 * 1024:
-        image_data = ContentParser._compress_image(image_path)
-    else:
-        with open(image_path, "rb") as f:
-            image_data = base64.b64encode(f.read()).decode("utf-8")
-    mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
-    return image_data, mime_type
+    with Image.open(image_path) as img:
+        if max(img.size) > _OCR_MAX_SIDE:
+            ratio = _OCR_MAX_SIDE / max(img.size)
+            img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=_OCR_JPEG_QUALITY)
+        data = base64.b64encode(buf.getvalue()).decode("utf-8")
+    mime_type = "image/jpeg"
+    return data, mime_type
+
+
+def _extract_image_text_b64(image_b64: str, mime_type: str, config: dict) -> str:
+    """单张图片（base64）→ 视觉 LLM 提取课文全文。失败抛异常，空文本返回空串。"""
+    from src.core.content_parser import _get_llm_client_and_model
+
+    prompt = (
+        "Analyze this image which contains an English text passage or textbook "
+        "page. Extract the FULL English text content exactly as written, from "
+        "the beginning to the end of the page. Do not skip or summarize any "
+        "part. Preserve paragraph structure with blank lines between "
+        "paragraphs. Ignore page numbers, headers, footers, illustrations, and "
+        "non-text elements. Return ONLY the extracted text, no JSON, no "
+        "explanation."
+    )
+    messages = [{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": prompt},
+            {"type": "image_url",
+             "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
+        ],
+    }]
+    client, model = _get_llm_client_and_model(config)
+    response = client.chat.completions.create(
+        model=model, messages=messages, max_tokens=4000, temperature=0.2)
+    return (response.choices[0].message.content or "").strip()
+
+
+def _extract_one_image(image_path: str, config: dict) -> str:
+    """单张图片文件 → 课文文本。压缩版为空时用原图重试一次（仍限 4MB 内）。"""
+    import base64
+    import mimetypes
+
+    try:
+        b64, mime = _load_image_b64(image_path)
+        try:
+            t = _extract_image_text_b64(b64, mime, config)
+            if t:
+                return t
+        except Exception as e:
+            print(f"[readalong] 图片提取失败（将重试）: {e}")
+        # 压缩版为空/失败 → 用原图重试（可能是压缩后文字不可读）
+        if os.path.getsize(image_path) <= 4 * 1024 * 1024:
+            with open(image_path, "rb") as f:
+                raw = base64.b64encode(f.read()).decode("utf-8")
+            mime_raw = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+            try:
+                t = _extract_image_text_b64(raw, mime_raw, config)
+                if t:
+                    return t
+            except Exception as e:
+                print(f"[readalong] 原图重试失败: {e}")
+    except Exception as e:
+        print(f"[readalong] 读取图片失败: {e}")
+    return ""
 
 
 def _extract_text_from_image_list(image_paths: list[str], config: dict) -> str:
-    """用视觉 LLM 从多张图片（按顺序）提取课文全文，合并为一段连贯文本。
+    """逐张提取课文并按图片顺序拼接。
 
-    超过 _IMAGES_PER_LLM_CALL 张时自动分批调用，按顺序拼接结果。
-    LLM 失败时返回空串——应用必须在无 LLM 时仍可工作。
+    之前把多张图塞进一次 LLM 调用，弱模型常漏读后面的图导致课文缺失；
+    逐张识别保证每张图都被完整处理，顺序由结果下标保证，小并发加速。
     """
-    try:
-        from src.core.content_parser import _get_llm_client_and_model
+    from concurrent.futures import ThreadPoolExecutor
 
-        results: list[str] = []
-        for start in range(0, len(image_paths), _IMAGES_PER_LLM_CALL):
-            batch = image_paths[start:start + _IMAGES_PER_LLM_CALL]
-            content_parts: list[dict] = [{
-                "type": "text",
-                "text": (
-                    "Analyze these images which contain pages of an English "
-                    "textbook, given in reading order. Extract the FULL English "
-                    "text content from all images, in order, as one continuous "
-                    "passage. Preserve paragraph structure with blank lines "
-                    "between paragraphs. Ignore page numbers, headers, footers, "
-                    "illustrations, and non-text elements. Return ONLY the "
-                    "extracted text, no JSON, no explanation."
-                ),
-            }]
-            for p in batch:
-                image_data, mime_type = _load_image_b64(p)
-                content_parts.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:{mime_type};base64,{image_data}"}
-                })
-
-            client, model = _get_llm_client_and_model(config)
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": content_parts}],
-                max_tokens=6000, temperature=0.2)
-            results.append(response.choices[0].message.content.strip())
-
-        return "\n\n".join(r for r in results if r).strip()
-    except Exception as e:
-        print(f"[readalong] 多图提取课文失败: {e}")
+    if not image_paths:
         return ""
+
+    with ThreadPoolExecutor(max_workers=min(_EXTRACT_CONCURRENCY, len(image_paths))) as ex:
+        results = list(ex.map(lambda p: _extract_one_image(p, config), image_paths))
+
+    for i, r in enumerate(results):
+        if not r:
+            print(f"[readalong] 警告：第 {i + 1}/{len(image_paths)} 张图片未提取到文本")
+
+    return "\n\n".join(r for r in results if r).strip()
 
 
 def _extract_text_from_image(image_path: str, config: dict) -> str:
-    """用视觉 LLM 从单张图片提取课文全文（多图场景请用 _extract_text_from_image_list）。"""
-    return _extract_text_from_image_list([image_path], config)
+    """用视觉 LLM 从单张图片提取课文全文。"""
+    return _extract_one_image(image_path, config)
 
 
 def _extract_text_from_images(pdf_path: str, config: dict) -> str:
-    """扫描版 PDF：渲染为图片后提取全文。
+    """扫描版 PDF：渲染为图片后逐页提取全文（与多图上传同样的逐张策略）。
 
     LLM 失败时返回空串——应用必须在无 LLM 时仍可工作。
     """
     try:
         import fitz
         import base64
-        from src.core.content_parser import _get_llm_client_and_model
+        from concurrent.futures import ThreadPoolExecutor
 
         doc = fitz.open(pdf_path)
-        page_images = []
+        page_images: list[tuple[str, str]] = []
         for page_idx, page in enumerate(doc):
             if page_idx >= 20:
                 break
             pix = page.get_pixmap(dpi=150)
             img_bytes = pix.tobytes("jpeg")
-            page_images.append(base64.b64encode(img_bytes).decode("utf-8"))
+            page_images.append((base64.b64encode(img_bytes).decode("utf-8"), "image/jpeg"))
         doc.close()
 
         if not page_images:
             return ""
 
-        prompt = """Analyze these PDF page images which contain an English text passage.
-Extract the FULL English text content exactly as written.
-Preserve paragraph structure with blank lines between paragraphs.
-Ignore page numbers, headers, footers, and non-text elements.
-Return ONLY the extracted text, no JSON, no explanation."""
+        def extract_page(item: tuple[str, str]) -> str:
+            b64, mime = item
+            try:
+                return _extract_image_text_b64(b64, mime, config)
+            except Exception as e:
+                print(f"[readalong] PDF 单页提取失败: {e}")
+                return ""
 
-        content_parts = [{"type": "text", "text": prompt}]
-        for img_b64 in page_images:
-            content_parts.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
-            })
+        with ThreadPoolExecutor(max_workers=min(_EXTRACT_CONCURRENCY, len(page_images))) as ex:
+            results = list(ex.map(extract_page, page_images))
 
-        messages = [{"role": "user", "content": content_parts}]
-        client, model = _get_llm_client_and_model(config)
-        response = client.chat.completions.create(
-            model=model, messages=messages, max_tokens=5000, temperature=0.2)
-        return response.choices[0].message.content.strip()
+        return "\n\n".join(r for r in results if r).strip()
     except Exception as e:
         print(f"[readalong] 扫描版 PDF 提取课文失败: {e}")
         return ""
