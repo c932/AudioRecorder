@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { api } from "../lib/api";
+import { api, type PracticeModeStatus } from "../lib/api";
 import GroupPicker from "../components/GroupPicker";
 import {
   PageHeader, Spinner, ErrorText, btnPrimary, btnSecondary, inputCls,
@@ -58,6 +58,27 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  // ── GPU 练习模式 ──
+  const [pm, setPm] = useState<PracticeModeStatus | null>(null);
+  const [pmBusy, setPmBusy] = useState(false);
+  const loadPm = () => api.practiceModeStatus().then(setPm).catch(() => {});
+  useEffect(() => {
+    loadPm();
+    const t = setInterval(loadPm, 5000);
+    return () => clearInterval(t);
+  }, []);
+  const switchPm = async (mode: "on" | "off") => {
+    setPmBusy(true);
+    try {
+      await api.practiceModeSwitch(mode);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPmBusy(false);
+    }
+    loadPm();
+  };
 
   useEffect(() => {
     api.config().then((c) => {
@@ -446,6 +467,59 @@ export default function SettingsPage() {
       <button className={btnPrimary} disabled={busy} onClick={save}>
         {busy ? "保存中…" : "保存设置"}
       </button>
+
+      {/* ── GPU 练习模式（显存装不下 strata + qwen-tts + whisper，需手动切换） ── */}
+      <div className="bg-desk border border-desk-line rounded-xl p-4 flex flex-col gap-2">
+        <p className="text-ui font-bold">GPU 练习模式</p>
+        <p className="text-body text-ink-soft">
+          显存（8GB）装不下本地大模型和语音服务。孩子练习前点「进入练习模式」
+          （停本地大模型，启用中文语音 + 语音识别），练完点「切回日常模式」。
+        </p>
+        {pm && (
+          <div className="flex flex-wrap gap-2">
+            {([
+              ["本地大模型", pm.services.strata],
+              ["中文语音", pm.services.qwen_tts],
+              ["语音识别", pm.services.whisper],
+            ] as const).map(([label, st]) => (
+              <span
+                key={label}
+                className={`px-2 py-1 rounded-lg text-body font-semibold border ${
+                  st === "running"
+                    ? "bg-leaf-soft border-leaf text-ink"
+                    : "bg-card border-desk-line text-ink-soft"
+                }`}
+              >
+                {label} · {st === "running" ? "运行中" : st === "unknown" ? "未知" : "已停"}
+              </span>
+            ))}
+          </div>
+        )}
+        {pm?.switching && (
+          <p className="text-ui text-mango-dk">
+            切换中（{pm.target === "on" ? "进入练习模式" : "切回日常模式"}），模型加载约需 1 分钟…
+          </p>
+        )}
+        {pm?.error && <p className="text-body text-clay font-semibold">{pm.error}</p>}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={btnPrimary}
+            disabled={pmBusy || (pm?.switching ?? false)}
+            onClick={() => switchPm("on")}
+          >
+            进入练习模式
+          </button>
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={pmBusy || (pm?.switching ?? false)}
+            onClick={() => switchPm("off")}
+          >
+            切回日常模式
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

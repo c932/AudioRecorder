@@ -216,6 +216,13 @@ export interface StudyRecord {
   snapshot: unknown;
 }
 
+export interface PracticeModeStatus {
+  switching: boolean;
+  target: string;
+  error: string;
+  services: { strata: string; qwen_tts: string; whisper: string };
+}
+
 export interface StudyStats {
   today_sec: number;
   week_sec: number;
@@ -398,6 +405,12 @@ export const api = {
     req<ReadAlongSummary>("POST", "/api/readalong/summary", { session_id }),
   readalongState: (session_id: string) =>
     req<{ session_id: string; segments: ReadAlongSegment[]; total: number; mode: string; current_idx: number; results: Record<string, { score: number; retries: number }> }>("GET", `/api/readalong/state/${encodeURIComponent(session_id)}`),
+
+  // ── 系统（GPU 练习模式） ──────────────────────────────────────
+  practiceModeStatus: () =>
+    req<PracticeModeStatus>("GET", "/api/system/practice-mode"),
+  practiceModeSwitch: (mode: "on" | "off") =>
+    req<{ accepted: boolean; message?: string }>("POST", "/api/system/practice-mode", { mode }),
 
   // ── 学习记录 ──────────────────────────────────────────────────
   studyLogStart: (module: string, module_label: string) =>
