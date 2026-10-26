@@ -15,13 +15,14 @@ for f in /app/src/data-defaults/*.json; do
   fi
 done
 
-# ---- 等待 Qwen3-TTS 服务就绪 ----
+# ---- 等待 Qwen3-TTS 服务就绪（最多 20 秒：TTS 有 Kokoro/Edge 降级链路，
+#      qwen-tts 缺席不应阻塞应用启动，只影响中文合成首选引擎） ----
 TTS_URL="${TTS_URL:-http://host.docker.internal:50000}"
 echo "[entrypoint] 等待 Qwen3-TTS 服务就绪..."
 python3 -c "
 import time, requests
 url = '$TTS_URL'
-for i in range(1, 61):
+for i in range(1, 5):
     try:
         r = requests.get(f'{url}/speakers', timeout=5)
         if r.ok:
@@ -30,11 +31,9 @@ for i in range(1, 61):
             break
     except Exception:
         pass
-    if i % 10 == 0:
-        print(f'[entrypoint] Qwen3-TTS 未就绪，已等待 {i * 5}秒...')
     time.sleep(5)
 else:
-    print('[entrypoint] ⚠️ Qwen3-TTS 等待超时')
+    print('[entrypoint] ⚠️ Qwen3-TTS 未就绪（20秒），继续启动；TTS 将按降级链路（Kokoro/Edge）合成')
 " || echo "[entrypoint] ⚠️ TTS 就绪检查出错"
 
 # ---- HTTPS 证书检测 ----
