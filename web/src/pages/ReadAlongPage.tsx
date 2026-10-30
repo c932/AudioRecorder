@@ -114,10 +114,13 @@ export default function ReadAlongPage() {
     e.target.value = ""; // 允许再次选择同一文件
     if (!files.length) return;
     setError("");
+    // iPad 相机某些情况下 File.type 为空 —— 按扩展名兜底判定图片
+    const isImage = (f: File) =>
+      f.type.startsWith("image/") || /\.(jpe?g|png|bmp|tiff?)$/i.test(f.name);
     setPickedFiles((prev) => [...prev, ...files]);
     setPreviews((prev) => [
       ...prev,
-      ...files.map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f) : "")),
+      ...files.map((f) => (isImage(f) ? URL.createObjectURL(f) : "")),
     ]);
   };
 
@@ -132,7 +135,11 @@ export default function ReadAlongPage() {
 
   // --- 点击"开始识别"：把已选文件按顺序合并解析成课文 ---
   const recognize = async () => {
-    if (!pickedFiles.length || busy) return;
+    if (!pickedFiles.length) {
+      setError("还没有选择照片，请先拍照或选择文件");
+      return;
+    }
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
@@ -143,6 +150,7 @@ export default function ReadAlongPage() {
       setPickedFiles([]);
       setPreviews([]);
     } catch (err) {
+      // 保留已选列表，方便直接重试
       setError((err as Error).message);
     } finally {
       setBusy(false);

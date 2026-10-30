@@ -264,9 +264,23 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return (await res.json()) as T;
 }
 
-/** multipart 上传（浏览器自动设 boundary，不能手动设 Content-Type）。 */
-async function postForm<T>(path: string, form: FormData): Promise<T> {
-  const res = await fetch(path, { method: "POST", body: form });
+/** multipart 上传（浏览器自动设 boundary，不能手动设 Content-Type）。
+ * 5 分钟超时：iPad 多张大照片经 Wi-Fi 上传 + LLM 识别可能较慢，
+ * 无限挂起会让用户以为按钮失灵。 */
+async function postForm<T>(path: string, form: FormData, timeoutMs = 300_000): Promise<T> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(path, { method: "POST", body: form, signal: ctrl.signal });
+  } catch (e) {
+    if ((e as Error).name === "AbortError") {
+      throw new Error("上传或识别超时，请检查网络后重试（照片较多时可分批上传）");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     let detail = `请求失败 (${res.status})`;
     try {
