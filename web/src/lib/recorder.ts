@@ -1,5 +1,7 @@
 // 浏览器录音 — MediaRecorder → base64（后端 ffmpeg 转 16kHz WAV 供 GOP/Whisper）。
-// 麦克风 stream 在组件生命周期内复用，避免每次录音都弹权限提示。
+// 每次录音新建 MediaStream：iOS/Safari 上复用同一 stream 创建第二个 MediaRecorder
+// 会静默产出空数据（第一句正常、第二句"没录到声音"）。权限授予后 getUserMedia
+// 不会重复弹窗，秒级返回，重建 stream 无感知。
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface Recording {
@@ -36,18 +38,6 @@ export function useRecorder() {
   const recStartTsRef = useRef(0);
   const MIN_RECORD_MS = 300; // 短于此视为误触（点开始后立刻点停止）
 
-  // 预获取麦克风 stream（只弹一次权限）
-  const ensureStream = useCallback(async (): Promise<MediaStream> => {
-    if (streamRef.current && streamRef.current.getTracks().some((t) => t.readyState === "live")) {
-      return streamRef.current;
-    }
-    // 释放旧的
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    streamRef.current = stream;
-    return stream;
-  }, []);
-
   // 组件卸载时释放 stream
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -69,8 +59,10 @@ export function useRecorder() {
         throw new Error(msg);
       }
       try {
-        // 复用已有 stream，避免重复弹权限
-        const stream = await ensureStream();
+        // 释放旧 stream（若有），每次录音新建 —— 见文件头注释
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
         const mime = MIME_CANDIDATES.find((t) => MediaRecorder.isTypeSupported?.(t)) ?? "";
         mimeRef.current = mime;
         const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -79,11 +71,13 @@ export function useRecorder() {
           if (e.data.size > 0) chunksRef.current.push(e.data);
         };
         rec.onstop = () => {
+          // 录音结束即释放麦克风（下次录音重新获取）
+          stream.getTracks().forEach((t) => t.stop());
+          if (streamRef.current === stream) streamRef.current = null;
           const blob = new Blob(chunksRef.current, { type: mimeRef.current || "audio/webm" });
           const reader = new FileReader();
           reader.onloadend = () => {
             const b64 = String(reader.result).split(",")[1] ?? "";
-            // 不释放 stream——保持复用
             recRef.current = null;
             resolveRef.current?.({ b64, format: formatOf(mimeRef.current) });
             resolveRef.current = null;
@@ -111,7 +105,7 @@ export function useRecorder() {
     })().finally(() => { startPromiseRef.current = null; });
     startPromiseRef.current = p;
     return p;
-  }, [ensureStream]);
+  }, []);
 
   const stop = useCallback((): Promise<Recording> => {
     if (pendingStopRef.current) return pendingStopRef.current; // 快速双击停止：复用同一次结果
