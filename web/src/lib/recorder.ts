@@ -38,8 +38,18 @@ export function useRecorder() {
   const recStartTsRef = useRef(0);
   const MIN_RECORD_MS = 300; // 短于此视为误触（点开始后立刻点停止）
 
-  // 组件卸载时释放 stream
+  // 组件卸载时释放 stream，并显式停掉进行中的录音器（否则 MediaRecorder
+  // 仍在缓冲、onstop 不会触发，麦克风可能保持占用）
   useEffect(() => () => {
+    try {
+      if (recRef.current && recRef.current.state !== "inactive") {
+        recRef.current.stop();
+      }
+    } catch {
+      /* 忽略：卸载阶段停止失败不影响 */
+    }
+    recRef.current = null;
+    resolveRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);

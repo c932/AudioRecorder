@@ -43,7 +43,8 @@ def _mgr(path: str, method: str = "GET", timeout: float = 30) -> dict:
 
 def _service_status(sid: str) -> str:
     try:
-        d = _mgr(f"/api/services/{sid}")
+        # 状态查询用短超时：Manager 若不可达，设置页每 5 秒轮询不能卡 90 秒
+        d = _mgr(f"/api/services/{sid}", timeout=3)
         return str(d.get("status", "unknown"))
     except Exception:
         return "unknown"

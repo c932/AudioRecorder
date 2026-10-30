@@ -203,9 +203,19 @@ export default function ReadAlongPage() {
     }
   };
 
+  // --- 静默取消进行中的录音（切句/重听/结束前调用，不评分）---
+  // 无条件调用 stop()：没有录音时立即返回空数据，无害；
+  // 不依赖 React 状态，避免 useCallback 里捕获到过期的 recording 值。
+  const cancelRecording = () => {
+    stop().catch(() => {});
+  };
+
   // --- 点击句子切换 ---
   const clickSegment = (idx: number) => {
     if (!session || idx >= session.segments.length) return;
+    // 评分流程进行中（含 stop 等待阶段）切句会把分数挂到错误句子上
+    if (scoringRef.current || readState === "scoring" || busy) return;
+    cancelRecording();
     // 停止当前播放/录音
     stopAudio();
     setSegIdx(idx);
@@ -272,6 +282,7 @@ export default function ReadAlongPage() {
   // --- Advance to next segment ---
   const goNext = useCallback(() => {
     if (!session) return;
+    cancelRecording();
     const nextIdx = segIdx + 1;
     if (nextIdx >= session.total) {
       finishSession();
@@ -291,10 +302,11 @@ export default function ReadAlongPage() {
   // --- Retry current segment ---
   const retrySegment = useCallback(() => {
     if (!session) return;
+    cancelRecording();
     setScoreResult(null);
     setLlmFeedback("");
     playCurrentSegment(session.segments, segIdx);
-  }, [session, segIdx, playCurrentSegment]);
+  }, [session, segIdx, playCurrentSegment, cancelRecording]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Re-listen TTS ---
   const reListen = useCallback(() => {
@@ -337,6 +349,7 @@ export default function ReadAlongPage() {
   };
 
   const endSession = () => {
+    cancelRecording();
     stopAudio();
     finishSession();
   };
@@ -600,7 +613,14 @@ export default function ReadAlongPage() {
           recording={recording}
           onStart={handleStartRecord}
           onStop={handleStopRecord}
-          hint={recError || (readState === "waiting" ? "听完后点击开始跟读" : "朗读中，点击停止")}
+          hint={
+            recError ||
+            (recording
+              ? "朗读中，点击停止"
+              : readState === "recording"
+                ? "麦克风准备中…"
+                : "听完后点击开始跟读")
+          }
         />
       )}
 

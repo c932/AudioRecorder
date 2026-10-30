@@ -398,13 +398,15 @@ def _load_image_b64(image_path: str) -> tuple[str, str]:
 
     课本照片（iPad 约 3024×4032）压到 1024px 会让整页文字不可读，
     2000px 长边在可读性与 payload 大小（~0.5MB base64）间取得平衡。
+    同时按 EXIF 校正方向——iPad 竖拍照片常以横向像素 + Orientation 标记存储，
+    不校正会以侧躺姿态送给视觉模型，识别质量显著下降。
     """
     import base64
-    import mimetypes
-    from PIL import Image
+    from PIL import Image, ImageOps
     import io
 
     with Image.open(image_path) as img:
+        img = ImageOps.exif_transpose(img)  # 按 EXIF 校正旋转/镜像
         if max(img.size) > _OCR_MAX_SIDE:
             ratio = _OCR_MAX_SIDE / max(img.size)
             img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
@@ -413,8 +415,7 @@ def _load_image_b64(image_path: str) -> tuple[str, str]:
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=_OCR_JPEG_QUALITY)
         data = base64.b64encode(buf.getvalue()).decode("utf-8")
-    mime_type = "image/jpeg"
-    return data, mime_type
+    return data, "image/jpeg"
 
 
 def _extract_image_text_b64(image_b64: str, mime_type: str, config: dict) -> str:
